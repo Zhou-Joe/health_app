@@ -14,8 +14,17 @@ function request(url, method = 'GET', data = {}, needAuth = true, retryCount = 0
       'content-type': 'application/json'
     }
 
-    if (needAuth && app.globalData.token) {
-      header['Authorization'] = `Bearer ${app.globalData.token}`
+    // 优先使用globalData中的token，如果不存在则从storage读取
+    let token = app.globalData.token
+    if (needAuth && !token) {
+      token = wx.getStorageSync('token')
+      if (token) {
+        app.globalData.token = token
+      }
+    }
+
+    if (needAuth && token) {
+      header['Authorization'] = `Bearer ${token}`
     }
 
     wx.request({
@@ -65,7 +74,14 @@ function request(url, method = 'GET', data = {}, needAuth = true, retryCount = 0
 // 文件上传
 function uploadFile(filePath, formData = {}, retryCount = 0) {
   return new Promise((resolve, reject) => {
-    const token = app.globalData.token
+    // 优先使用globalData中的token，如果不存在则从storage读取
+    let token = app.globalData.token
+    if (!token) {
+      token = wx.getStorageSync('token')
+      if (token) {
+        app.globalData.token = token
+      }
+    }
 
     wx.uploadFile({
       url: `${app.globalData.baseUrl}/api/miniprogram/upload/`,
