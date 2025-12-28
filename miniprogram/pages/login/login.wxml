@@ -1,7 +1,6 @@
 <!--pages/login/login.wxml-->
 <view class="login-container">
   <view class="login-header">
-    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
     <text class="app-name">健康档案</text>
     <text class="app-desc">智能健康管理系统</text>
   </view>
