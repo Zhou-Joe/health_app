@@ -26,33 +26,23 @@
     "list": [
       {
         "pagePath": "pages/dashboard/dashboard",
-        "text": "首页",
-        "iconPath": "images/home.png",
-        "selectedIconPath": "images/home-active.png"
+        "text": "首页"
       },
       {
         "pagePath": "pages/checkups/checkups",
-        "text": "报告",
-        "iconPath": "images/report.png",
-        "selectedIconPath": "images/report-active.png"
+        "text": "报告"
       },
       {
         "pagePath": "pages/upload/upload",
-        "text": "上传",
-        "iconPath": "images/upload.png",
-        "selectedIconPath": "images/upload-active.png"
+        "text": "上传"
       },
       {
         "pagePath": "pages/ai-advice/ai-advice",
-        "text": "AI咨询",
-        "iconPath": "images/ai.png",
-        "selectedIconPath": "images/ai-active.png"
+        "text": "AI咨询"
       },
       {
         "pagePath": "pages/settings/settings",
-        "text": "我的",
-        "iconPath": "images/me.png",
-        "selectedIconPath": "images/me-active.png"
+        "text": "我的"
       }
     ]
   },
