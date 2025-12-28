@@ -1,0 +1,679 @@
+{% extends 'base.html' %}
+
+{% block title %}数据整合 - 个人健康管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+.checkup-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+.checkup-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.checkup-card.selected {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+.checkup-checkbox {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+}
+.integration-progress {
+    display: none;
+}
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+}
+.result-card {
+    max-height: 400px;
+    overflow-y: auto;
+}
+.indicator-changed {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+.indicator-unchanged {
+    background-color: #f8f9fa;
+}
+.diff-old {
+    text-decoration: line-through;
+    color: #dc3545;
+}
+.diff-new {
+    color: #198754;
+    font-weight: 600;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-0">
+                <i class="bi bi-layers text-primary"></i> 智能数据整合
+            </h1>
+            <p class="text-muted">选择多份体检报告，AI将自动统一指标名称、单位、参考范围等信息</p>
+        </div>
+    </div>
+
+    <!-- 步骤指示器 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-pills nav-fill">
+                <li class="nav-item">
+                    <a class="nav-link active" id="step1-tab" href="#">
+                        <i class="bi bi-1-circle"></i> 选择报告
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="step2-tab" href="#">
+                        <i class="bi bi-2-circle"></i> AI分析
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="step3-tab" href="#">
+                        <i class="bi bi-3-circle"></i> 确认更新
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 第一步：选择报告 -->
+    <div id="step1-content">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5>
+                        <i class="bi bi-file-earmark-text"></i> 选择要整合的体检报告
+                    </h5>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="selectAllCheckups()">
+                            <i class="bi bi-check-all"></i> 全选
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                            <i class="bi bi-x"></i> 清空
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted">已选择 <strong id="selectedCount">0</strong> 份报告</small>
+            </div>
+        </div>
+
+        <!-- 报告列表 -->
+        <div class="row" id="checkupsList">
+            {% if checkups %}
+                {% for checkup in checkups %}
+                <div class="col-md-6 col-lg-4 col-xl-3 mb-3">
+                    <div class="card checkup-card position-relative" data-checkup-id="{{ checkup.id }}">
+                        <input type="checkbox" class="form-check-input checkup-checkbox" value="{{ checkup.id }}">
+                        <div class="card-body">
+                            <h6 class="card-title mb-1">
+                                <i class="bi bi-calendar3"></i>
+                                {{ checkup.checkup_date|date:"Y年m月d日" }}
+                            </h6>
+                            <p class="card-text text-muted small mb-2">
+                                <i class="bi bi-hospital"></i> {{ checkup.hospital }}
+                            </p>
+                            <p class="card-text small mb-0">
+                                <span class="badge bg-primary">{{ checkup.healthindicator_set.count }} 个指标</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 暂无体检报告，请先上传报告
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <button class="btn btn-primary btn-lg" id="startIntegrationBtn" onclick="startIntegration()" disabled>
+                    <i class="bi bi-magic"></i> 开始智能整合
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第二步：AI分析中 -->
+    <div id="step2-content" class="integration-progress">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5>AI正在分析数据...</h5>
+                        <p class="text-muted" id="progressText">正在读取报告数据，请稍候...</p>
+                        <div class="progress mt-3" style="height: 10px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressBar"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 第三步：确认更新 -->
+    <div id="step3-content" class="integration-progress">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>分析完成！</strong>
+                    AI共分析了 <strong id="totalIndicators">0</strong> 个指标，
+                    建议更新 <strong id="changedIndicators">0</strong> 个，
+                    无变化 <strong id="unchangedIndicators">0</strong> 个
+                </div>
+            </div>
+        </div>
+
+        <!-- 变更摘要 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <h5>
+                    <i class="bi bi-list-check"></i> 变更摘要
+                </h5>
+            </div>
+        </div>
+
+        <!-- 变更详情 -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card result-card">
+                    <div class="card-body">
+                        <div id="changesList">
+                            <!-- 动态生成的变更列表 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="row">
+            <div class="col-12">
+                <button class="btn btn-success btn-lg me-2" onclick="applyChanges()">
+                    <i class="bi bi-check-circle"></i> 应用所有更新
+                </button>
+                <button class="btn btn-outline-secondary btn-lg" onclick="location.reload()">
+                    <i class="bi bi-x-circle"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let selectedCheckups = new Set();
+let integrationResult = null;
+
+// 页面加载完成
+document.addEventListener('DOMContentLoaded', function() {
+    initCheckupSelection();
+});
+
+// 初始化报告选择功能
+function initCheckupSelection() {
+    const cards = document.querySelectorAll('.checkup-card');
+    const checkboxes = document.querySelectorAll('.checkup-checkbox');
+
+    cards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // 如果点击的不是复选框，切换选中状态
+            if (e.target.type !== 'checkbox') {
+                const checkbox = this.querySelector('.checkup-checkbox');
+                checkbox.checked = !checkbox.checked;
+                toggleCheckupSelection(this);
+            }
+        });
+    });
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            toggleCheckupSelection(this.closest('.checkup-card'));
+        });
+    });
+}
+
+// 切换报告选中状态
+function toggleCheckupSelection(card) {
+    const checkbox = card.querySelector('.checkup-checkbox');
+    const checkupId = checkbox.value;
+
+    if (checkbox.checked) {
+        card.classList.add('selected');
+        selectedCheckups.add(checkupId);
+    } else {
+        card.classList.remove('selected');
+        selectedCheckups.delete(checkupId);
+    }
+
+    updateSelectedCount();
+}
+
+// 更新选中计数
+function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = selectedCheckups.size;
+    document.getElementById('startIntegrationBtn').disabled = selectedCheckups.size === 0;
+}
+
+// 全选
+function selectAllCheckups() {
+    const checkboxes = document.querySelectorAll('.checkup-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+        toggleCheckupSelection(checkbox.closest('.checkup-card'));
+    });
+}
+
+// 清空选择
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.checkup-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+        toggleCheckupSelection(checkbox.closest('.checkup-card'));
+    });
+}
+
+// 开始整合
+async function startIntegration() {
+    if (selectedCheckups.size === 0) {
+        alert('请至少选择一份体检报告');
+        return;
+    }
+
+    // 切换到第二步
+    document.getElementById('step1-content').style.display = 'none';
+    document.getElementById('step2-content').style.display = 'block';
+    updateStepIndicator(2);
+
+    try {
+        // 调用后端API
+        const checkupIds = Array.from(selectedCheckups);
+        const response = await fetch('{% url "medical_records:api_integrate_data" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                checkup_ids: checkupIds
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            integrationResult = result;
+            displayResults(result);
+        } else {
+            alert('整合失败：' + (result.error || '未知错误'));
+            location.reload();
+        }
+    } catch (error) {
+        console.error('整合请求失败:', error);
+        alert('请求失败，请稍后重试');
+        location.reload();
+    }
+}
+
+// 显示结果
+function displayResults(result) {
+    // 切换到第三步
+    document.getElementById('step2-content').style.display = 'none';
+    document.getElementById('step3-content').style.display = 'block';
+    updateStepIndicator(3);
+
+    // 更新统计
+    document.getElementById('totalIndicators').textContent = result.total_indicators;
+    document.getElementById('changedIndicators').textContent = result.changed_count || result.changes.length;
+    document.getElementById('unchangedIndicators').textContent = result.unchanged_count || (result.total_indicators - (result.changed_count || result.changes.length));
+
+    // 显示变更列表
+    const changesList = document.getElementById('changesList');
+    changesList.innerHTML = '';
+
+    // 使用 all_indicators 如果存在，否则使用 changes（兼容旧版本）
+    const indicatorsToDisplay = result.all_indicators || result.changes;
+
+    if (indicatorsToDisplay.length === 0) {
+        changesList.innerHTML = '<div class="alert alert-info mb-0"><i class="bi bi-info-circle"></i> 没有需要更新的指标</div>';
+        return;
+    }
+
+    indicatorsToDisplay.forEach((change, index) => {
+        const changeItem = createChangeItem(change, index);
+        changesList.appendChild(changeItem);
+    });
+}
+
+// 创建变更项
+function createChangeItem(change, index) {
+    const div = document.createElement('div');
+    // 根据是否有变更设置不同的样式
+    const isUnchanged = change.unchanged || Object.keys(change.changes || {}).length === 0;
+    div.className = isUnchanged ? 'card mb-2 indicator-unchanged' : 'card mb-2 indicator-changed';
+
+    // 判断哪些字段有变化
+    const hasNameChange = change.changes && change.changes.indicator_name;
+    const hasValueChange = change.changes && change.changes.value;
+    const hasUnitChange = change.changes && change.changes.unit;
+    const hasRefRangeChange = change.changes && change.changes.reference_range;
+    const hasStatusChange = change.changes && change.changes.status;
+    const hasTypeChange = change.changes && change.changes.indicator_type;
+
+    div.innerHTML = `
+        <div class="card-body">
+            <h6 class="card-title">
+                <span class="badge ${isUnchanged ? 'bg-secondary' : 'bg-warning text-dark'} me-2">${index + 1}</span>
+                ${escapeHtml(change.original.indicator_name)}
+                ${isUnchanged ? '<span class="badge bg-info ms-2">无变化</span>' : ''}
+            </h6>
+            <div class="row">
+                <div class="col-md-3">
+                    <small class="text-muted">指标名称</small><br>
+                    ${hasNameChange ? `
+                        <span class="diff-old">${escapeHtml(change.original.indicator_name)}</span><br>
+                        <span class="diff-new">→ ${escapeHtml(change.changes.indicator_name)}</span>
+                    ` : `<span class="text-muted">${escapeHtml(change.original.indicator_name)} ${isUnchanged ? '(无变化)' : ''}</span>`}
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">数值</small><br>
+                    ${hasValueChange ? `
+                        <span class="diff-old">${escapeHtml(change.original.value)}</span><br>
+                        <span class="diff-new">→ ${escapeHtml(change.changes.value)}</span>
+                    ` : `<span class="text-muted">${escapeHtml(change.original.value)} ${isUnchanged ? '(无变化)' : ''}</span>`}
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">单位</small><br>
+                    ${hasUnitChange ? `
+                        <span class="diff-old">${escapeHtml(change.original.unit || '无')}</span><br>
+                        <span class="diff-new">→ ${escapeHtml(change.changes.unit)}</span>
+                    ` : `<span class="text-muted">${escapeHtml(change.original.unit || '无')} ${isUnchanged ? '(无变化)' : ''}</span>`}
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted">参考范围</small><br>
+                    ${hasRefRangeChange ? `
+                        <span class="diff-old">${escapeHtml(change.original.reference_range || '无')}</span><br>
+                        <span class="diff-new">→ ${escapeHtml(change.changes.reference_range)}</span>
+                    ` : `<span class="text-muted">${escapeHtml(change.original.reference_range || '无')} ${isUnchanged ? '(无变化)' : ''}</span>`}
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-6">
+                    <small class="text-muted">状态</small><br>
+                    ${hasStatusChange ? `
+                        <span class="diff-old">${getStatusBadge(change.original.status)}</span>
+                        <span class="diff-new">→ ${getStatusBadge(change.changes.status)}</span>
+                    ` : `<span class="text-muted">${getStatusBadge(change.original.status)} ${isUnchanged ? '(无变化)' : ''}</span>`}
+                </div>
+                <div class="col-md-6">
+                    <small class="text-muted">分类</small><br>
+                    ${hasTypeChange ? `
+                        <span class="diff-old">${getTypeName(change.original.indicator_type)}</span>
+                        <span class="diff-new">→ ${getTypeName(change.changes.indicator_type)}</span>
+                    ` : `<span class="text-muted">${getTypeName(change.original.indicator_type)} ${isUnchanged ? '(无变化)' : ''}</span>`}
+                </div>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+// 应用更改
+async function applyChanges() {
+    if (!integrationResult || !integrationResult.changes.length) {
+        alert('没有需要应用的更改');
+        return;
+    }
+
+    // 只发送有变更的指标
+    const changesToApply = integrationResult.changes;
+    if (!confirm(`确定要应用 ${changesToApply.length} 个更改吗？此操作不可撤销。`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('{% url "medical_records:api_apply_integration" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                changes: changesToApply
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // 显示更新详情
+            showUpdateDetails(result);
+        } else {
+            alert('更新失败：' + (result.error || '未知错误'));
+        }
+    } catch (error) {
+        console.error('更新请求失败:', error);
+        alert('更新失败，请稍后重试');
+    }
+}
+
+// 显示更新详情
+function showUpdateDetails(result) {
+    // 隐藏第三步内容
+    document.getElementById('step3-content').style.display = 'none';
+
+    // 创建新的详情展示区域
+    const detailsContainer = document.createElement('div');
+    detailsContainer.id = 'updateDetailsContent';
+    detailsContainer.innerHTML = `
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>更新完成！</strong>
+                    成功更新 <strong>${result.updated_count}</strong> 个指标
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-12">
+                <h5>
+                    <i class="bi bi-list-check"></i> 更新详情对比
+                </h5>
+                <p class="text-muted">以下是每个指标更新前后的对比，请核对是否正确</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="updateDetailsList" style="max-height: 600px; overflow-y: auto;">
+                            <!-- 动态生成的更新详情 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <button class="btn btn-primary btn-lg" onclick="window.location.href='{% url "medical_records:dashboard" %}'">
+                    <i class="bi bi-house"></i> 返回首页
+                </button>
+                <button class="btn btn-outline-secondary btn-lg" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-repeat"></i> 继续整合
+                </button>
+            </div>
+        </div>
+    `;
+
+    // 插入到页面
+    document.querySelector('#step1-content').parentNode.appendChild(detailsContainer);
+
+    // 生成更新详情列表
+    const detailsList = document.getElementById('updateDetailsList');
+    result.update_details.forEach((detail, index) => {
+        const detailItem = createUpdateDetailItem(detail, index);
+        detailsList.appendChild(detailItem);
+    });
+}
+
+// 创建更新详情项
+function createUpdateDetailItem(detail, index) {
+    const div = document.createElement('div');
+    div.className = 'card mb-3 border-success';
+
+    const hasChanges = Object.keys(detail.changes || {}).length > 0;
+
+    div.innerHTML = `
+        <div class="card-header bg-success text-white">
+            <h6 class="mb-0">
+                <span class="badge bg-light text-dark me-2">${index + 1}</span>
+                ${escapeHtml(detail.after.indicator_name)}
+                <small class="ms-2">${detail.checkup_date} - ${escapeHtml(detail.hospital)}</small>
+            </h6>
+        </div>
+        <div class="card-body">
+            ${hasChanges ? renderFieldChanges(detail) : '<p class="text-muted mb-0">无变更</p>'}
+            ${detail.reason ? `<hr><p class="mb-0"><strong>AI说明：</strong>${escapeHtml(detail.reason)}</p>` : ''}
+        </div>
+    `;
+    return div;
+}
+
+// 渲染字段变更
+function renderFieldChanges(detail) {
+    const fields = [
+        { key: 'indicator_name', label: '指标名称' },
+        { key: 'value', label: '数值' },
+        { key: 'unit', label: '单位' },
+        { key: 'reference_range', label: '参考范围' },
+        { key: 'status', label: '状态' },
+        { key: 'indicator_type', label: '分类' }
+    ];
+
+    let changesHtml = '<div class="row">';
+    let hasAnyChange = false;
+
+    fields.forEach(field => {
+        const before = detail.before[field.key];
+        const after = detail.after[field.key];
+
+        if (before !== after) {
+            hasAnyChange = true;
+            changesHtml += `
+                <div class="col-md-6 mb-2">
+                    <small class="text-muted">${field.label}</small><br>
+                    <span class="diff-old">${escapeHtml(String(before || '无'))}</span><br>
+                    <span class="diff-new">→ ${escapeHtml(String(after || '无'))}</span>
+                </div>
+            `;
+        }
+    });
+
+    changesHtml += '</div>';
+
+    if (!hasAnyChange) {
+        return '<p class="text-muted mb-0">无变更</p>';
+    }
+
+    return changesHtml;
+}
+
+// 更新步骤指示器
+function updateStepIndicator(step) {
+    const tabs = ['step1-tab', 'step2-tab', 'step3-tab'];
+    tabs.forEach((tabId, index) => {
+        const tab = document.getElementById(tabId);
+        if (index + 1 === step) {
+            tab.classList.add('active');
+            tab.classList.remove('disabled');
+        } else if (index + 1 < step) {
+            tab.classList.remove('active');
+            tab.classList.add('disabled');
+        } else {
+            tab.classList.remove('active', 'disabled');
+        }
+    });
+}
+
+// 获取状态徽章
+function getStatusBadge(status) {
+    const badges = {
+        'normal': '<span class="badge bg-success">正常</span>',
+        'abnormal': '<span class="badge bg-danger">异常</span>',
+        'attention': '<span class="badge bg-warning text-dark">关注</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">未知</span>';
+}
+
+// 获取类型名称
+function getTypeName(type) {
+    const types = {
+        'physical_exam': '体格检查',
+        'blood_routine': '血液常规',
+        'biochemistry': '生化检验',
+        'liver_function': '肝功能',
+        'kidney_function': '肾功能',
+        'thyroid_function': '甲状腺功能',
+        'tumor_markers': '肿瘤标志物',
+        'urine_exam': '尿液检查',
+        'blood_rheology': '血液流变学',
+        'eye_exam': '眼科检查',
+        'ultrasound_exam': '超声检查',
+        'imaging_exam': '影像学检查',
+        'diagnosis': '病症诊断',
+        'symptoms': '症状描述',
+        'other_exam': '其他检查'
+    };
+    return types[type] || type || '未知';
+}
+
+// HTML转义
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// 获取CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

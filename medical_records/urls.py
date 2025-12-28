@@ -1,0 +1,39 @@
+from django.urls import path
+from . import views
+from . import api_views
+
+app_name = 'medical_records'
+
+urlpatterns = [
+    # 原有页面路由
+    path('', views.dashboard, name='dashboard'),
+    path('upload/', views.upload_report, name='upload_report'),
+    path('manual-input/', views.manual_input, name='manual_input'),
+    path('ai-advice/', views.ai_health_advice, name='ai_health_advice'),
+    path('data-integration/', views.data_integration, name='data_integration'),
+    path('checkup/<int:checkup_id>/', views.checkup_detail, name='checkup_detail'),
+    path('checkup/<int:checkup_id>/delete/', views.delete_checkup, name='delete_checkup'),
+    path('checkup/indicator/<int:indicator_id>/update/', views.update_indicator, name='update_indicator'),
+    path('all/', views.all_checkups, name='all_checkups'),
+    path('settings/', views.system_settings, name='system_settings'),
+    path('profile/', views.user_profile, name='user_profile'),
+
+    # API路由
+    path('api/upload/', api_views.upload_and_process, name='api_upload'),
+    path('api/status/<int:processing_id>/', api_views.get_processing_status, name='api_status'),
+    path('api/history/', api_views.get_processing_history, name='api_history'),
+    path('api/ocr/<int:processing_id>/', api_views.get_ocr_result, name='api_ocr'),
+    path('api/ai-result/<int:processing_id>/', api_views.get_ai_result, name='api_ai_result'),
+    path('api/advice/<int:advice_id>/', views.get_advice_detail, name='api_advice_detail'),
+    path('api/advice/<int:advice_id>/delete/', views.delete_advice, name='api_delete_advice'),
+    path('api/conversations/', api_views.get_conversations, name='api_conversations'),
+    path('api/conversations/create/', api_views.create_new_conversation, name='api_create_conversation'),
+    path('api/conversations/<int:conversation_id>/', api_views.get_conversation_messages, name='api_conversation_messages'),
+    path('api/conversations/<int:conversation_id>/delete/', api_views.delete_conversation, name='api_delete_conversation'),
+    path('api/user-advices/', api_views.get_user_advices, name='api_user_advices'),
+    path('api/hospitals/common/', api_views.get_common_hospitals, name='api_common_hospitals'),
+    path('api/check-services/', api_views.check_services_status, name='api_check_services'),
+    path('api/checkups/', api_views.get_user_checkups, name='api_user_checkups'),
+    path('api/integrate-data/', api_views.integrate_data, name='api_integrate_data'),
+    path('api/apply-integration/', api_views.apply_integration, name='api_apply_integration'),
+]

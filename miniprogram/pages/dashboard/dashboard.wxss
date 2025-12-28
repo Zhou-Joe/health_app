@@ -1,0 +1,147 @@
+/* pages/dashboard/dashboard.wxss */
+.dashboard-container {
+  padding: 20rpx;
+}
+
+.user-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #FFFFFF;
+  margin-bottom: 30rpx;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 40rpx;
+  font-weight: 600;
+  margin-bottom: 10rpx;
+}
+
+.user-greeting {
+  font-size: 26rpx;
+  opacity: 0.9;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.stat-item {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 30rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.stat-value {
+  font-size: 48rpx;
+  font-weight: 600;
+  color: #4A90E2;
+  margin-bottom: 10rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+}
+
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.action-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 12rpx;
+}
+
+.upload-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.integrate-icon {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.ai-icon {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.manual-icon {
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.action-text {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.more-link {
+  font-size: 26rpx;
+  color: #4A90E2;
+}
+
+.checkup-list {
+  margin-top: 20rpx;
+}
+
+.checkup-item {
+  background-color: #F8F9FA;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.checkup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.checkup-hospital {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333333;
+}
+
+.checkup-date {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.checkup-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.indicator-count {
+  font-size: 26rpx;
+  color: #666666;
+}

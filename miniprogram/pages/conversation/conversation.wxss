@@ -1,0 +1,13 @@
+.chat-container { display: flex; flex-direction: column; height: 100vh; }
+.message-list { flex: 1; padding: 20rpx; overflow-y: auto; }
+.message-row { display: flex; margin-bottom: 30rpx; }
+.message-row.user { justify-content: flex-end; }
+.message-row.ai { justify-content: flex-start; }
+.message-bubble { max-width: 70%; padding: 20rpx 24rpx; border-radius: 12rpx; }
+.user-bubble { background-color: #4A90E2; color: #FFF; }
+.ai-bubble { background-color: #F0F0F0; color: #333; }
+.message-text { font-size: 28rpx; line-height: 1.6; word-wrap: break-word; }
+.input-area { padding: 20rpx; background-color: #FFF; border-top: 1rpx solid #F0F0F0; }
+.input-wrapper { display: flex; margin-bottom: 16rpx; }
+.message-input { flex: 1; min-height: 80rpx; max-height: 200rpx; padding: 16rpx; background-color: #F8F9FA; border-radius: 12rpx; font-size: 28rpx; }
+.send-btn { width: 100%; background-color: #4A90E2; color: #FFF; border-radius: 12rpx; font-size: 28rpx; }

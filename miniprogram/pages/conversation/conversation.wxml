@@ -1,0 +1,36 @@
+<view class="chat-container">
+  <scroll-view class="message-list" scroll-y scroll-into-view="msg-{{messages.length}}">
+    <block wx:for="{{messages}}" wx:key="id">
+      <!-- 用户消息 -->
+      <view class="message-row user" wx:if="{{item.role === 'user'}}">
+        <view class="message-bubble user-bubble">
+          <text class="message-text">{{item.content}}</text>
+        </view>
+      </view>
+
+      <!-- AI消息 -->
+      <view class="message-row ai" wx:else>
+        <view class="message-bubble ai-bubble">
+          <text class="message-text">{{item.content}}</text>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+
+  <view class="input-area">
+    <view class="input-wrapper">
+      <textarea class="message-input"
+                value="{{inputText}}"
+                bindinput="onInputChange"
+                placeholder="请输入您的问题..."
+                maxlength="500"
+                auto-height />
+      </view>
+    <button class="send-btn"
+            bindtap="sendMessage"
+            disabled="{{!inputText || sending}}"
+            loading="{{sending}}">
+      发送
+    </button>
+  </view>
+</view>

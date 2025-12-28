@@ -1,0 +1,25 @@
+# Core Django
+Django==5.2.8
+djangorestframework==3.16.1
+
+# Image and PDF Processing
+Pillow==10.4.0
+pdf2image==1.17.0
+reportlab==4.2.0
+fpdf2
+
+# HTTP and Utilities
+requests==2.32.3
+python-dotenv==1.0.1
+dj-database-url==2.2.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# OCR and Text Processing (for Docker compatibility)
+# Note: poppler-utils is system package, not Python package
+ pytesseract==0.3.13
+
+# Additional utilities for Docker deployment
+gunicorn==23.0.0
+whitenoise==6.8.2

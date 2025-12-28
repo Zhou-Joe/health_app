@@ -1,0 +1,31 @@
+<view class="integration-container">
+  <view class="intro-card card">
+    <view class="card-title">数据智能整合</view>
+    <text class="intro-text">选择多份体检报告，AI将自动统一指标名称、单位和参考范围</text>
+  </view>
+
+  <view class="checkups-list card">
+    <view class="section-title">选择要整合的报告（至少2份）</view>
+    <view class="checkup-item" wx:for="{{checkups}}" wx:key="id">
+      <view class="checkbox" bindtap="toggleSelection" data-id="{{item.id}}">
+        <view class="checkbox-icon {{selectedIds.includes(item.id) ? 'checked' : ''}}">
+          {{selectedIds.includes(item.id) ? '✓' : ''}}
+        </view>
+      </view>
+      <view class="checkup-info" bindtap="toggleSelection" data-id="{{item.id}}">
+        <text class="hospital">{{item.hospital}}</text>
+        <text class="date">{{item.checkup_date}} · {{item.indicators_count}}项</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="action-area">
+    <text class="selected-count">已选择 {{selectedIds.length}} 份报告</text>
+    <button class="integrate-btn btn-primary"
+            bindtap="handleIntegrate"
+            disabled="{{selectedIds.length < 2 || integrating}}"
+            loading="{{integrating}}">
+      {{integrating ? '整合中...' : '开始整合'}}
+    </button>
+  </view>
+</view>

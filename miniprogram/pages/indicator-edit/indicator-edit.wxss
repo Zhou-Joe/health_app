@@ -1,0 +1,7 @@
+.edit-container { padding: 20rpx; }
+.form-card { margin-bottom: 30rpx; }
+.form-item { padding: 20rpx 0; border-bottom: 1rpx solid #F0F0F0; }
+.label { display: block; font-size: 28rpx; color: #333; margin-bottom: 16rpx; }
+.input { width: 100%; font-size: 28rpx; padding: 16rpx; background: #F8F9FA; border-radius: 8rpx; }
+.picker-value { font-size: 28rpx; color: #666; }
+.submit-btn { width: 100%; }

@@ -1,0 +1,1405 @@
+{% extends 'base.html' %}
+
+{% block title %}AI健康建议 - 个人健康管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 右侧咨询历史 -->
+    <div class="col-md-4 order-md-2">
+        <!-- 咨询历史 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-clock-history"></i> 咨询历史
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if user_advices %}
+                    <div class="advice-history">
+                        {% for advice in user_advices %}
+                        <div class="border-bottom pb-2 mb-2" id="advice-{{ advice.id }}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        {% if advice.is_conversation %}
+                                            <span class="badge bg-success me-2">
+                                                <i class="bi bi-chat-dots"></i> {{ advice.message_count }}条对话
+                                            </span>
+                                        {% endif %}
+                                        <div class="small text-muted">{{ advice.updated_at|date:"m-d H:i" }}</div>
+                                    </div>
+                                    <div class="small fw-bold">{{ advice.title }}</div>
+                                    <div class="small text-truncate text-muted" style="max-width: 200px;">
+                                        <strong class="text-primary">最新：</strong>{{ advice.latest_question|default:advice.question|truncatechars:60 }}
+                                    </div>
+                                </div>
+                                <div class="ms-2">
+                                    {% if advice.is_conversation %}
+                                        <button class="btn btn-link btn-sm p-0" onclick="showConversationMessages({{ advice.conversation_id }})">
+                                            查看对话
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-link btn-sm p-0" onclick="showFullAdvice({{ advice.id }})">
+                                            查看完整回答
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="ms-2">
+                                    {% if advice.is_conversation %}
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteConversation({{ advice.conversation_id }})" title="删除整个对话">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteAdvice({{ advice.id }})" title="删除此条记录">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">暂无咨询记录</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 左侧主要内容 -->
+    <div class="col-md-8 order-md-1">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-robot"></i> AI健康医生
+                </h4>
+            </div>
+            <div class="card-body">
+                <form id="adviceForm" method="post">
+                    {% csrf_token %}
+
+                    <!-- 对话选择区域 -->
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <i class="bi bi-chat-dots"></i> 对话模式
+                        </label>
+                        <small class="text-muted d-block mb-2">选择创建新对话或继续之前的对话</small>
+
+                        <div class="card">
+                            <div class="card-body p-0">
+                                <!-- 新对话选项 -->
+                                <div class="form-check m-0 p-3 border-bottom">
+                                    <input type="radio" name="conversation_mode" value="new_conversation" class="form-check-input" id="newConversationMode" checked onchange="handleConversationModeChange()">
+                                    <label class="form-check-label w-100" for="newConversationMode">
+                                        <div>
+                                            <strong class="text-primary">
+                                                <i class="bi bi-plus-circle"></i> 创建新对话
+                                            </strong>
+                                            <div class="text-muted small">
+                                                开始一个全新的健康咨询对话
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 继续对话选项 -->
+                                <div class="form-check m-0 p-3">
+                                    <input type="radio" name="conversation_mode" value="continue_conversation" class="form-check-input" id="continueConversationMode" onchange="handleConversationModeChange()">
+                                    <label class="form-check-label w-100" for="continueConversationMode">
+                                        <div>
+                                            <strong class="text-success">
+                                                <i class="bi bi-arrow-right-circle"></i> 继续之前的对话
+                                            </strong>
+                                            <div class="text-muted small">
+                                                选择一个已有的对话继续咨询
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 对话列表选择区域 -->
+                        <div id="conversationListContainer" class="mt-3" style="display: none;">
+                            <div class="border rounded p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <strong><i class="bi bi-chat-history"></i> 选择对话</strong>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshConversations()">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新
+                                    </button>
+                                </div>
+
+                                <div id="conversationList" class="conversation-list">
+                                    {% if user_advices %}
+                                        {% for advice in user_advices %}
+                                            <div class="conversation-item p-3 border rounded mb-2 {% if forloop.first %}border-primary bg-light{% else %}border-secondary{% endif %}"
+                                                 data-conversation-id="{{ advice.conversation_id }}"
+                                                 style="cursor: pointer; transition: all 0.2s ease;"
+                                                 onclick="selectConversation({{ advice.conversation_id }}, '{{ advice.title|escapejs }}', {{ advice.message_count }})">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <div class="fw-bold">{{ advice.title }}</div>
+                                                        <div class="small text-muted mt-1">
+                                                            {{ advice.message_count }} 条对话
+                                                        </div>
+                                                        <div class="small text-truncate mt-1" style="max-width: 200px;">
+                                                            最新: {{ advice.latest_question|default:advice.question }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <div class="small text-muted">{{ advice.updated_at }}</div>
+                                                        {% if forloop.first %}<span class="badge bg-primary">选中</span>{% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-center text-muted py-3">
+                                            <i class="bi bi-chat-dots" style="font-size: 2rem;"></i>
+                                            <p class="mt-2">暂无对话记录</p>
+                                            <small class="text-muted">开始一个新对话</small>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.question.id_for_label }}" class="form-label">
+                            <i class="bi bi-chat-dots"></i> 请描述您的健康问题
+                        </label>
+                        {{ form.question }}
+                        {% if form.question.errors %}
+                            <div class="text-danger">
+                                {{ form.question.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 报告选择区域 -->
+                    <div class="mb-4">
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-clipboard-check"></i>
+                                选择相关体检报告
+                            </label>
+                            <small class="text-muted d-block mb-2">请选择与您问题相关的体检报告，或选择不使用任何报告</small>
+                        </div>
+
+                        <div id="reportSelectionArea" class="border rounded p-3" style="background-color: #f8f9fa; max-height: 300px; overflow-y: auto;">
+                            {% if reports_with_info %}
+                                <!-- 选项：不使用任何报告 -->
+                                <div class="form-check mb-3 p-3 border rounded" style="background-color: #e8f5e8; border: 1px solid #28a745 !important;">
+                                    <input type="radio" name="report_mode" value="no_reports" class="form-check-input" id="noReportsMode" onchange="handleReportModeChange()">
+                                    <label class="form-check-label w-100" for="noReportsMode">
+                                        <div>
+                                            <strong class="text-success">
+                                                <i class="bi bi-chat-text"></i> 不使用任何报告
+                                            </strong>
+                                            <div class="text-muted small">
+                                                仅基于我的问题提供一般性健康建议
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 选项：选择特定报告 -->
+                                <div class="form-check mb-3 p-3 border rounded" style="background-color: #f8f9fa; border: 1px solid #6c757d !important;">
+                                    <input type="radio" name="report_mode" value="select_reports" class="form-check-input" id="selectReportsMode" checked onchange="handleReportModeChange()">
+                                    <label class="form-check-label w-100" for="selectReportsMode">
+                                        <div>
+                                            <strong class="text-dark">
+                                                <i class="bi bi-clipboard-data"></i> 选择特定报告
+                                            </strong>
+                                            <div class="text-muted small">
+                                                AI医生将基于我选择的报告提供针对性建议
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 报告列表 -->
+                                <div id="reportListContainer">
+                                    <div class="mb-3">
+                                        <small class="text-muted">{{ form.selected_reports.help_text }}</small>
+                                    </div>
+
+                                    <div class="report-selection-list">
+                                    {% for report_info in reports_with_info %}
+                                        {% with report=report_info.report %}
+                                        <div class="form-check mb-2 p-2 border-bottom" style="background-color: white;">
+                                            <input type="checkbox" name="selected_reports" value="{{ report.id }}"
+                                                   class="form-check-input" id="report_{{ report.id }}">
+                                            <label class="form-check-label w-100" for="report_{{ report.id }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <strong>{{ report.hospital|default:"未知医院" }}</strong>
+                                                        <div class="text-muted small">
+                                                            <i class="bi bi-calendar"></i> {{ report.checkup_date|date:"Y年m月d日" }}
+                                                            {% if report.indicator_set.all %}
+                                                                <span class="badge bg-info ms-2">{{ report.indicator_set.all|length }}项指标</span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </div>
+
+                                      <!-- 快捷选择按钮 -->
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllReports()">
+                                            <i class="bi bi-check-all"></i> 全选
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="selectRecentReports()">
+                                            <i class="bi bi-clock-history"></i> 选择最近2份
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-success" onclick="selectAbnormalReports()">
+                                            <i class="bi bi-clipboard-check"></i> 选择报告
+                                        </button>
+                                    </div>
+                                </div> <!-- 关闭 report-selection-list -->
+                                </div> <!-- 关闭 reportListContainer -->
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="bi bi-clipboard-x" style="font-size: 2rem;"></i>
+                                    <p class="mt-2">暂无体检报告</p>
+                                    <small class="text-muted">
+                                        请先<a href="{% url 'medical_records:upload_report' %}" class="text-decoration-none">上传体检报告</a>，再选择相关报告进行咨询
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 选中的报告提示 -->
+                        <div id="selectedReportsInfo" class="mt-2" style="display: none;">
+                            <small class="text-info">
+                                <i class="bi bi-check-circle"></i>
+                                已选择 <span id="selectedCount">0</span> 份报告
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回首页
+                        </a>
+                        <button type="submit" id="submitBtn" class="btn btn-primary">
+                            <i class="bi bi-send"></i> 获取建议
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div class="card mt-4" id="loadingCard" style="display: none;">
+            <div class="card-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">处理中...</span>
+                </div>
+                <h5><i class="bi bi-cpu"></i> AI医生正在分析您的健康数据...</h5>
+                <p class="text-muted">请稍等片刻，这可能需要几十秒到几分钟时间</p>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI建议结果 -->
+        <div class="card mt-4" id="resultCard" style="display: none;">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-robot"></i> AI医生建议
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong><i class="bi bi-question-circle"></i> 您的问题：</strong>
+                    <p id="userQuestion" class="mt-2"></p>
+                </div>
+                <hr>
+                <div id="conversationHistory" style="display: none;">
+                    <div class="mb-3">
+                        <strong><i class="bi bi-clock-history"></i> 对话历史：</strong>
+                        <div id="historyContent" class="mt-2 p-3 bg-light rounded" style="font-size: 0.9em;"></div>
+                    </div>
+                    <hr>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-chat-dots"></i> AI医生建议：</strong>
+                    <div id="aiAnswer" class="mt-2 p-3 bg-light rounded ai-content"></div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <button class="btn btn-outline-info btn-sm" onclick="togglePrompt()">
+                        <i class="bi bi-code"></i> 查看发送给AI的内容
+                    </button>
+                </div>
+                <div id="promptSection" style="display: none;">
+                    <strong><i class="bi bi-terminal"></i> 发送给AI医生的完整内容：</strong>
+                    <pre id="promptContent" class="mt-2 p-3 bg-dark text-light rounded" style="font-size: 0.9em; max-height: 300px; overflow-y: auto;"></pre>
+                </div>
+                <div class="text-muted small">
+                    <i class="bi bi-clock"></i> 回复时间：<span id="responseTime"></span>
+                </div>
+            </div>
+        </div>
+
+      </div>
+
+    </div>
+</div>
+
+<!-- 完整建议模态框 -->
+<div class="modal fade" id="adviceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">AI健康建议详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+
+// 获取CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// 处理报告模式切换
+function handleReportModeChange() {
+    const noReportsMode = document.getElementById('noReportsMode');
+    const selectReportsMode = document.getElementById('selectReportsMode');
+    const reportListContainer = document.getElementById('reportListContainer');
+
+    if (noReportsMode && noReportsMode.checked) {
+        // 选择"不使用任何报告"时，隐藏报告列表
+        if (reportListContainer) {
+            reportListContainer.style.display = 'none';
+        }
+        // 清空所有报告选择
+        const checkboxes = document.querySelectorAll('input[name="selected_reports"]');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
+        updateSelectedCount();
+    } else {
+        // 选择"选择特定报告"时，显示报告列表
+        if (reportListContainer) {
+            reportListContainer.style.display = 'block';
+        }
+    }
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('input[name="selected_reports"]:checked');
+    const count = checkboxes.length;
+    const selectedInfo = document.getElementById('selectedReportsInfo');
+    const countSpan = document.getElementById('selectedCount');
+
+    if (count > 0) {
+        selectedInfo.style.display = 'block';
+        countSpan.textContent = count;
+    } else {
+        selectedInfo.style.display = 'none';
+    }
+}
+
+function selectAllReports() {
+    const checkboxes = document.querySelectorAll('input[name="selected_reports"]');
+    checkboxes.forEach(checkbox => checkbox.checked = true);
+    updateSelectedCount();
+}
+
+function selectRecentReports() {
+    const checkboxes = document.querySelectorAll('input[name="selected_reports"]');
+
+    // 先清空所有选择
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+
+    // 选择前2个（最近的2份报告）
+    for (let i = 0; i < Math.min(2, checkboxes.length); i++) {
+        checkboxes[i].checked = true;
+    }
+    updateSelectedCount();
+}
+
+function selectAbnormalReports() {
+    const checkboxes = document.querySelectorAll('input[name="selected_reports"]');
+
+    // 先清空所有选择
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+
+    // 选择有异常或需要注意的报告
+    checkboxes.forEach(checkbox => {
+        const reportDiv = checkbox.closest('.form-check');
+        if (reportDiv.querySelector('.badge')) {
+            checkbox.checked = true;
+        }
+    });
+    updateSelectedCount();
+}
+
+// 处理对话模式切换
+function handleConversationModeChange() {
+    const newConversationMode = document.getElementById('newConversationMode');
+    const continueConversationMode = document.getElementById('continueConversationMode');
+    const conversationListContainer = document.getElementById('conversationListContainer');
+
+    if (continueConversationMode && continueConversationMode.checked) {
+        // 选择"继续对话"时，显示对话列表
+        if (conversationListContainer) {
+            conversationListContainer.style.display = 'block';
+            // 加载对话列表
+            loadConversationList();
+        }
+    } else {
+        // 选择"新对话"时，隐藏对话列表
+        if (conversationListContainer) {
+            conversationListContainer.style.display = 'none';
+        }
+    }
+}
+
+// 加载对话列表
+async function loadConversationList() {
+    const conversationList = document.getElementById('conversationList');
+
+    // 如果页面已经加载了对话数据，就不需要重新加载
+    if (conversationList.children.length > 0 &&
+        !conversationList.querySelector('.bi-arrow-repeat')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('{% url "medical_records:api_conversations" %}', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                displayConversationList(result.conversations);
+            } else {
+                conversationList.innerHTML = '<div class="text-center text-muted">加载对话列表失败</div>';
+            }
+        } else {
+            conversationList.innerHTML = '<div class="text-center text-muted">网络错误</div>';
+        }
+    } catch (error) {
+        console.error('加载对话列表失败:', error);
+        conversationList.innerHTML = '<div class="text-center text-muted">网络错误</div>';
+    }
+}
+
+// 显示对话列表
+function displayConversationList(conversations) {
+    const conversationList = document.getElementById('conversationList');
+
+    if (conversations.length === 0) {
+        conversationList.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-chat-dots" style="font-size: 2rem;"></i>
+                <p class="mt-2">暂无对话记录</p>
+                <small class="text-muted">开始一个新对话</small>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    conversations.forEach((conversation, index) => {
+        const latestMessage = conversation.latest_message;
+        const messageCount = conversation.message_count;
+        const isSelected = index === 0; // 默认选中第一个
+
+        html += `
+            <div class="conversation-item p-3 border rounded mb-2 ${isSelected ? 'border-primary bg-light' : 'border-secondary'}"
+                 data-conversation-id="${conversation.id}"
+                 style="cursor: pointer; transition: all 0.2s ease;"
+                 onclick="selectConversation(${conversation.id}, '${conversation.title.replace(/'/g, "\\'")}', ${messageCount})">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${conversation.title}</div>
+                        <div class="small text-muted mt-1">
+                            ${messageCount} 条对话
+                        </div>
+                        ${latestMessage ? `
+                            <div class="small text-truncate mt-1" style="max-width: 200px;">
+                                最新: ${latestMessage.question.substring(0, 50)}${latestMessage.question.length > 50 ? '...' : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="text-end">
+                        <div class="small text-muted">${conversation.updated_at}</div>
+                        ${isSelected ? '<span class="badge bg-primary">选中</span>' : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    conversationList.innerHTML = html;
+}
+
+// 选择对话
+function selectConversation(conversationId, title, messageCount) {
+    // 移除所有选中状态
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('border-primary', 'bg-light');
+        item.classList.add('border-secondary');
+
+        // 移除选中徽章
+        const badge = item.querySelector('.badge');
+        if (badge) badge.remove();
+    });
+
+    // 添加选中状态
+    const selectedItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+    selectedItem.classList.remove('border-secondary');
+    selectedItem.classList.add('border-primary', 'bg-light');
+
+    // 添加选中徽章
+    const textEnd = selectedItem.querySelector('.text-end');
+    const existingBadge = textEnd.querySelector('.badge');
+    if (!existingBadge) {
+        textEnd.innerHTML += ' <span class="badge bg-primary">选中</span>';
+    }
+
+    // 隐藏当前对话历史显示
+    document.getElementById('conversationHistory').style.display = 'none';
+
+    // 可以在页面顶部显示选中的对话信息
+    showSelectedConversationInfo(title, messageCount);
+}
+
+// 显示选中的对话信息
+function showSelectedConversationInfo(title, messageCount) {
+    // 可以在问题输入框上方显示选中的对话信息
+    const textarea = document.querySelector('textarea[name="question"]');
+    const container = textarea.parentElement;
+
+    // 移除之前的信息（如果存在）
+    const existingInfo = document.getElementById('selectedConversationInfo');
+    if (existingInfo) {
+        existingInfo.remove();
+    }
+
+    // 添加选中对话信息
+    const infoDiv = document.createElement('div');
+    infoDiv.id = 'selectedConversationInfo';
+    infoDiv.className = 'alert alert-info py-2 mb-2';
+    infoDiv.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small class="text-muted">当前对话：</small>
+                <strong>${title}</strong>
+                <small class="text-muted ms-2">(${messageCount} 条消息)</small>
+            </div>
+            <button type="button" class="btn-close btn-sm" onclick="clearSelectedConversation()"></button>
+        </div>
+    `;
+
+    container.insertBefore(infoDiv, textarea);
+}
+
+// 清除选中的对话
+function clearSelectedConversation() {
+    document.querySelectorAll('.conversation-item').forEach(item => {
+        item.classList.remove('border-primary', 'bg-light');
+        item.classList.add('border-secondary');
+
+        const badge = item.querySelector('.badge');
+        if (badge) badge.remove();
+    });
+
+    const infoDiv = document.getElementById('selectedConversationInfo');
+    if (infoDiv) {
+        infoDiv.remove();
+    }
+}
+
+// 显示对话消息
+function showConversationMessages(conversationId) {
+    const conversationItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+    if (!conversationItem) return;
+
+    const originalContent = conversationItem.innerHTML;
+    conversationItem.innerHTML = `
+        <div class="d-flex justify-content-center align-items-center" style="min-height: 100px;">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <span class="ms-2">加载消息...</span>
+        </div>
+    `;
+
+    fetch(`{% url 'medical_records:api_conversation_messages' 0 %}`.replace('0', conversationId), {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayMessagesInModal(data.messages);
+        } else {
+            conversationItem.innerHTML = originalContent;
+            alert('加载对话消息失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('加载对话消息失败:', error);
+        conversationItem.innerHTML = originalContent;
+        alert('加载对话消息失败：网络错误');
+    });
+}
+
+// 在模态框中显示消息
+function displayMessagesInModal(messages) {
+    const modal = new bootstrap.Modal(document.getElementById('adviceModal'));
+    const modalContent = document.getElementById('modalContent');
+
+    let messagesHtml = '';
+    messages.forEach((msg) => {
+        // 每条消息包含一次完整的对话（用户问题和AI回答）
+        // 使用 marked.parse() 解析Markdown，并添加 CSS 类来应用样式
+        messagesHtml += `
+            <div class="mb-3 p-3 rounded bg-light border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong><i class="bi bi-person"></i> 您的问题</strong>
+                    <span class="small text-muted">${msg.created_at}</span>
+                </div>
+                <div class="user-question">${msg.question}</div>
+            </div>
+            <hr class="my-2">
+            <div class="mb-3 p-3 rounded bg-info bg-opacity-10 border border-info">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong><i class="bi bi-robot"></i> AI医生建议</strong>
+                    <span class="small text-muted">${msg.created_at}</span>
+                </div>
+                <div class="ai-content-modal">${marked.parse(msg.answer)}</div>
+            </div>
+        `;
+    });
+
+    // 检查是否有任何消息包含prompt_sent
+    const hasAnyPrompt = messages.some(msg => msg.prompt_sent && msg.prompt_sent.trim() !== '');
+    
+    let promptButtonHtml = '';
+    if (hasAnyPrompt) {
+        promptButtonHtml = `
+            <button class="btn btn-outline-info btn-sm mb-3" onclick="toggleAllPrompts()">
+                <i class="bi bi-code"></i> 查看发送给AI的内容
+            </button>
+            <div id="allPromptsSection" style="display: none;">
+                ${messages.map((msg, index) => `
+                    <div class="mb-3">
+                        <strong><i class="bi bi-chat-dots"></i> 第 ${index + 1} 条消息发送给AI的内容：</strong>
+                        <pre class="mt-2 p-3 bg-dark text-light rounded" style="font-size: 0.9em; max-height: 200px; overflow-y: auto;">${msg.prompt_sent || '无'}</pre>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    modalContent.innerHTML = `
+        <div class="mb-3">
+            <h5><i class="bi bi-chat-dots"></i> 对话历史</h5>
+            <small class="text-muted">共 ${messages.length} 条消息</small>
+        </div>
+        ${promptButtonHtml}
+        <div class="mb-3">
+            ${messagesHtml}
+        </div>
+    `;
+
+    modal.show();
+}
+
+// 切换显示所有Prompt
+function toggleAllPrompts() {
+    const promptSection = document.getElementById('allPromptsSection');
+    const button = event.target;
+
+    if (promptSection.style.display === 'none') {
+        promptSection.style.display = 'block';
+        button.innerHTML = '<i class="bi bi-code-slash"></i> 隐藏发送给AI的内容';
+    } else {
+        promptSection.style.display = 'none';
+        button.innerHTML = '<i class="bi bi-code"></i> 查看发送给AI的内容';
+    }
+}
+
+// 删除对话
+function deleteConversation(conversationId) {
+    fetch(`{% url 'medical_records:api_delete_conversation' 0 %}`.replace('0', conversationId), {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('删除失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('删除对话失败:', error);
+        alert('删除失败：网络错误');
+    });
+}
+
+// 刷新对话列表
+function refreshConversations() {
+    const conversationList = document.getElementById('conversationList');
+    conversationList.innerHTML = `
+        <div class="text-center text-muted">
+            <i class="bi bi-arrow-repeat spin"></i> 刷新中...
+        </div>
+    `;
+    loadConversationList();
+}
+
+// 监听报告选择变化和历史列表按钮事件
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('input[name="selected_reports"]');
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+
+    // 初始化报告模式
+    handleReportModeChange();
+
+    // 初始化对话模式
+    handleConversationModeChange();
+
+    // 初始化时更新选择计数
+    updateSelectedCount();
+
+    // 事件委托：处理历史列表中的动态按钮点击
+    document.addEventListener('click', function(e) {
+        // 处理查看对话按钮
+        const convBtn = e.target.closest('[data-show-conversation]');
+        if (convBtn) {
+            e.preventDefault();
+            const conversationId = parseInt(convBtn.dataset.showConversation);
+            showConversationMessages(conversationId);
+            return;
+        }
+
+        // 处理查看完整回答按钮
+        const adviceBtn = e.target.closest('[data-show-advice]');
+        if (adviceBtn) {
+            e.preventDefault();
+            const adviceId = parseInt(adviceBtn.dataset.showAdvice);
+            showFullAdvice(adviceId);
+            return;
+        }
+    });
+});
+
+// 切换Prompt显示
+function togglePrompt() {
+    const promptSection = document.getElementById('promptSection');
+    const button = event.target;
+
+    if (promptSection.style.display === 'none') {
+        promptSection.style.display = 'block';
+        button.innerHTML = '<i class="bi bi-code-slash"></i> 隐藏发送给AI的内容';
+    } else {
+        promptSection.style.display = 'none';
+        button.innerHTML = '<i class="bi bi-code"></i> 查看发送给AI的内容';
+    }
+}
+
+// 显示完整建议（历史记录）
+function showFullAdvice(adviceId) {
+    fetch(`{% url 'medical_records:api_advice_detail' 0 %}`.replace('0', adviceId), {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = new bootstrap.Modal(document.getElementById('adviceModal'));
+            const modalContent = document.getElementById('modalContent');
+
+            modalContent.innerHTML = `
+                <div class="mb-3">
+                    <strong><i class="bi bi-question-circle"></i> 问题：</strong>
+                    <p class="mt-2">${data.question}</p>
+                </div>
+                <div class="mb-3">
+                    <strong><i class="bi bi-chat-dots"></i> AI医生建议：</strong>
+                    <div class="mt-2 p-3 bg-light rounded ai-content-modal">${marked.parse(data.answer)}</div>
+                </div>
+                ${data.prompt ? `
+                <div class="mb-3">
+                    <button class="btn btn-outline-info btn-sm" onclick="toggleModalPrompt()">
+                        <i class="bi bi-code"></i> 查看发送给AI的内容
+                    </button>
+                    <div id="modalPromptSection" style="display: none;">
+                        <strong><i class="bi bi-terminal"></i> 发送给AI医生的完整内容：</strong>
+                        <pre class="mt-2 p-3 bg-dark text-light rounded" style="font-size: 0.9em; max-height: 300px; overflow-y: auto;">${data.prompt}</pre>
+                    </div>
+                </div>
+                ` : ''}
+                <div class="text-muted small">
+                    <i class="bi bi-clock"></i> 咨询时间：${data.created_at}
+                </div>
+            `;
+
+            modal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('获取建议详情失败');
+    });
+}
+
+// 切换模态框中的Prompt显示
+function toggleModalPrompt() {
+    const promptSection = document.getElementById('modalPromptSection');
+    const button = event.target;
+
+    if (promptSection.style.display === 'none') {
+        promptSection.style.display = 'block';
+        button.innerHTML = '<i class="bi bi-code-slash"></i> 隐藏发送给AI的内容';
+    } else {
+        promptSection.style.display = 'none';
+        button.innerHTML = '<i class="bi bi-code"></i> 查看发送给AI的内容';
+    }
+}
+
+// 删除咨询记录
+function deleteAdvice(adviceId) {
+    fetch(`/api/advice/${adviceId}/delete/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('删除失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('删除失败:', error);
+        alert('删除失败：网络错误');
+    });
+}
+
+// 刷新咨询历史列表
+function refreshAdviceHistory() {
+    const historyContainer = document.querySelector('.advice-history') || document.querySelector('.card-body');
+    if (!historyContainer) {
+        return;
+    }
+
+    historyContainer.innerHTML = `
+        <div class="text-center text-muted py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">刷新中...</span>
+            </div>
+            <span class="ms-2">刷新中...</span>
+        </div>
+    `;
+
+    fetch('{% url "medical_records:api_user_advices" %}', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            historyContainer.innerHTML = data.html;
+        } else {
+            historyContainer.innerHTML = '<p class="text-muted text-center">刷新失败，请刷新页面重试</p>';
+        }
+    })
+    .catch(error => {
+        console.error('刷新咨询历史失败:', error);
+        historyContainer.innerHTML = '<p class="text-muted text-center">网络错误，刷新失败</p>';
+    });
+}
+
+// 表单提交处理
+document.getElementById('adviceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const textarea = document.querySelector('textarea[name="question"]');
+    const question = textarea.value.trim();
+
+    if (!question) {
+        alert('请输入您的健康问题');
+        textarea.focus();
+        return;
+    }
+
+    if (question.length < 5) {
+        alert('请详细描述您的问题，至少5个字符');
+        textarea.focus();
+        return;
+    }
+
+    // 显示加载状态
+    document.getElementById('loadingCard').style.display = 'block';
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>处理中...';
+
+    // 提交表单
+    const formData = new FormData(this);
+
+    // 添加对话相关信息
+    const conversationMode = document.querySelector('input[name="conversation_mode"]:checked');
+    if (conversationMode && conversationMode.value === 'continue_conversation') {
+        // 如果选择继续对话，添加选中的对话ID
+        const selectedConversation = document.querySelector('.conversation-item.border-primary');
+        if (selectedConversation) {
+            const conversationId = selectedConversation.getAttribute('data-conversation-id');
+            formData.append('conversation_id', conversationId);
+        } else {
+            alert('请选择一个要继续的对话');
+            return;
+        }
+    }
+
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Received data:', data); // 调试信息
+        console.log('Success status:', data.success); // 调试信息
+        console.log('Error info:', data.error); // 调试信息
+        if (data.success) {
+            // 显示结果
+            document.getElementById('userQuestion').textContent = data.question;
+
+            // 将Markdown转换为HTML
+            const aiAnswerHtml = marked.parse(data.answer);
+            document.getElementById('aiAnswer').innerHTML = aiAnswerHtml;
+
+            document.getElementById('promptContent').textContent = data.prompt;
+            document.getElementById('responseTime').textContent = data.created_at;
+
+            // 显示对话历史
+            if (data.conversation_context && data.conversation_context.length > 0) {
+                const historyHtml = data.conversation_context.map((ctx, index) => `
+                    <div class="mb-2">
+                        <div class="text-muted small">${ctx.time}</div>
+                        <div><strong>问：</strong>${ctx.question}</div>
+                        <div><strong>答：</strong>${ctx.answer.substring(0, 100)}${ctx.answer.length > 100 ? '...' : ''}</div>
+                        ${index < data.conversation_context.length - 1 ? '<hr class="my-2">' : ''}
+                    </div>
+                `).join('');
+                document.getElementById('historyContent').innerHTML = historyHtml;
+                document.getElementById('conversationHistory').style.display = 'block';
+            } else {
+                document.getElementById('conversationHistory').style.display = 'none';
+            }
+
+            // 隐藏加载状态，显示结果
+            document.getElementById('loadingCard').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'block';
+
+            // 滚动到结果区域
+            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+
+            // 清空表单
+            textarea.value = '';
+
+            // 刷新页面以更新历史记录
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } else {
+            // 显示详细错误信息
+            let errorMessage = data.error || '未知错误';
+
+            if (data.form_errors) {
+                // 表单验证错误
+                const formErrorDetails = Object.entries(data.form_errors)
+                    .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
+                    .join('\\n');
+                errorMessage += '\\n\\n详细错误：\\n' + formErrorDetails;
+            }
+
+            if (data.technical_error) {
+                // 技术错误详情
+                errorMessage += '\\n\\n技术详情：' + data.technical_error;
+            }
+
+            // 显示错误结果卡片
+            document.getElementById('userQuestion').textContent = data.question || '未知问题';
+            document.getElementById('aiAnswer').innerHTML = `
+                <div class="alert alert-danger">
+                    <h5><i class="bi bi-exclamation-triangle"></i> AI医生服务暂时不可用</h5>
+                    <p><strong>错误信息：</strong>${errorMessage}</p>
+                    ${data.prompt ? `
+                        <details class="mt-3">
+                            <summary><i class="bi bi-code"></i> 查看发送给AI的内容</summary>
+                            <pre class="mt-2 p-3 bg-dark text-light rounded" style="font-size: 0.9em; max-height: 300px; overflow-y: auto;">${data.prompt}</pre>
+                        </details>
+                    ` : ''}
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise"></i> 重新尝试
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm ms-2" onclick="document.getElementById('loadingCard').style.display='none'; document.getElementById('resultCard').style.display='none';">
+                            <i class="bi bi-x"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('responseTime').textContent = new Date().toLocaleString();
+            document.getElementById('conversationHistory').style.display = 'none';
+
+            // 隐藏加载状态，显示错误结果
+            document.getElementById('loadingCard').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'block';
+
+            // 滚动到结果区域
+            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+
+        // 显示网络错误
+        document.getElementById('userQuestion').textContent = textarea.value || '未知问题';
+        document.getElementById('aiAnswer').innerHTML = `
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-exclamation-triangle"></i> 网络或服务器错误</h5>
+                <p><strong>错误信息：</strong>${error.message}</p>
+                <p>请检查网络连接或稍后重试</p>
+                <div class="mt-3">
+                    <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> 刷新页面
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm ms-2" onclick="document.getElementById('loadingCard').style.display='none'; document.getElementById('resultCard').style.display='none';">
+                        <i class="bi bi-x"></i> 关闭
+                    </button>
+                </div>
+            </div>
+        `;
+        document.getElementById('responseTime').textContent = new Date().toLocaleString();
+        document.getElementById('conversationHistory').style.display = 'none';
+
+        // 隐藏加载状态，显示错误
+        document.getElementById('loadingCard').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'block';
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('submitBtn').innerHTML = '<i class="bi bi-send"></i> 获取建议';
+        document.getElementById('loadingCard').style.display = 'none';
+    });
+});
+
+// 自动调整文本框高度
+const textarea = document.querySelector('textarea[name="question"]');
+textarea.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = (this.scrollHeight) + 'px';
+});
+</script>
+
+<style>
+.ai-content h1,
+.ai-content h2,
+.ai-content h3,
+.ai-content h4,
+.ai-content h5,
+.ai-content h6 {
+    color: #2c3e50;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.ai-content h1 {
+    font-size: 1.75rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+}
+
+.ai-content h2 {
+    font-size: 1.5rem;
+    color: #34495e;
+    border-bottom: 1px solid #bdc3c7;
+    padding-bottom: 0.3rem;
+}
+
+.ai-content h3 {
+    font-size: 1.25rem;
+    color: #2c3e50;
+}
+
+.ai-content h4 {
+    font-size: 1.1rem;
+    color: #34495e;
+}
+
+.ai-content p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.ai-content strong {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.ai-content em {
+    color: #8e44ad;
+    font-style: italic;
+}
+
+.ai-content ul,
+.ai-content ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+}
+
+.ai-content li {
+    margin-bottom: 0.5rem;
+    line-height: 1.5;
+}
+
+.ai-content blockquote {
+    border-left: 4px solid #3498db;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    font-style: italic;
+    color: #6c757d;
+}
+
+.ai-content code {
+    background-color: #f1f2f6;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #e83e8c;
+}
+
+.ai-content pre {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.ai-content pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+.ai-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.ai-content th,
+.ai-content td {
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.ai-content th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.ai-content hr {
+    border: 0;
+    height: 1px;
+    background-color: #dee2e6;
+    margin: 2rem 0;
+}
+
+/* 模态框中的样式 */
+.ai-content-modal h1,
+.ai-content-modal h2,
+.ai-content-modal h3,
+.ai-content-modal h4,
+.ai-content-modal h5,
+.ai-content-modal h6 {
+    color: #2c3e50;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.ai-content-modal h1 {
+    font-size: 1.5rem;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+}
+
+.ai-content-modal h2 {
+    font-size: 1.3rem;
+    color: #34495e;
+    border-bottom: 1px solid #bdc3c7;
+    padding-bottom: 0.3rem;
+}
+
+.ai-content-modal strong {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.ai-content-modal em {
+    color: #8e44ad;
+    font-style: italic;
+}
+
+.ai-content-modal code {
+    background-color: #f1f2f6;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #e83e8c;
+}
+
+.ai-content-modal blockquote {
+    border-left: 4px solid #3498db;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    background-color: #f8f9fa;
+    border-radius: 0.25rem;
+    font-style: italic;
+    color: #6c757d;
+}
+
+/* 健康相关的特殊样式 */
+.ai-content .health-tip {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin: 1rem 0;
+}
+
+.ai-content .health-warning {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin: 1rem 0;
+}
+
+.ai-content .health-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 0.25rem;
+    padding: 0.75rem;
+    margin: 1rem 0;
+}
+
+/* 报告选择区域样式 */
+.report-selection-list .form-check {
+    transition: background-color 0.2s ease;
+}
+
+.report-selection-list .form-check:hover {
+    background-color: #f0f8ff !important;
+}
+
+.report-selection-list .form-check-input:checked ~ .form-check-label {
+    font-weight: 500;
+    color: #0d6efd;
+}
+
+.report-selection-list .form-check-input:checked + .form-check-label {
+    background-color: #e7f3ff;
+    border-radius: 0.25rem;
+}
+
+#selectedReportsInfo {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 报告选择区域滚动条样式 */
+#reportSelectionArea::-webkit-scrollbar {
+    width: 6px;
+}
+
+#reportSelectionArea::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#reportSelectionArea::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#reportSelectionArea::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,28 @@
+<view class="checkups-container">
+  <view class="checkup-list">
+    <block wx:if="{{checkups.length > 0}}">
+      <view class="checkup-item card" wx:for="{{checkups}}" wx:key="id"
+            bindtap="goToDetail" data-id="{{item.id}}">
+        <view class="checkup-header">
+          <text class="hospital">{{item.hospital || '未知机构'}}</text>
+          <text class="date">{{item.checkup_date}}</text>
+        </view>
+        <view class="checkup-body">
+          <text class="department">{{item.department || '未知科室'}}</text>
+          <view class="status-badge status-{{item.status}}">
+            {{item.status === 'completed' ? '已完成' : '处理中'}}
+          </view>
+        </view>
+        <view class="checkup-footer">
+          <text class="indicator-count">{{item.indicators_count}}项指标</text>
+          <text class="view-detail">查看详情 ></text>
+        </view>
+      </view>
+    </block>
+    <view class="empty-container" wx:else>
+      <image class="empty-icon" src="/images/empty.png"></image>
+      <text class="empty-text">暂无体检报告</text>
+      <button class="btn-primary mt-20" bindtap="goToUpload">上传第一份报告</button>
+    </view>
+  </view>
+</view>

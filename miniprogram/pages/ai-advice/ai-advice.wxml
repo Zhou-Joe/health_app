@@ -1,0 +1,33 @@
+<view class="advice-container">
+  <view class="quick-actions card">
+    <view class="action-item" bindtap="startNewChat">
+      <view class="action-icon new-chat">+</view>
+      <text class="action-text">新建咨询</text>
+    </view>
+    <view class="action-item" bindtap="viewHistory">
+      <view class="action-icon history">≡</view>
+      <text class="action-text">历史记录</text>
+    </view>
+  </view>
+
+  <view class="conversation-list card" wx:if="{{conversations.length > 0}}">
+    <view class="card-title">对话记录</view>
+    <view class="conversation-item" wx:for="{{conversations}}" wx:key="id"
+          bindtap="openChat" data-id="{{item.id}}">
+      <view class="conversation-header">
+        <text class="title">{{item.title}}</text>
+        <text class="time">{{item.updated_at}}</text>
+      </view>
+      <view class="preview">{{item.latest_question}}</view>
+      <view class="footer">
+        <text class="count">{{item.message_count}}条消息</text>
+        <text class="delete" catchtap="deleteChat" data-id="{{item.id}}">删除</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-container card" wx:else>
+    <text class="empty-text">暂无对话记录</text>
+    <button class="btn-primary mt-20" bindtap="startNewChat">开始咨询</button>
+  </view>
+</view>

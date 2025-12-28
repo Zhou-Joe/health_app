@@ -1,0 +1,81 @@
+<!--pages/dashboard/dashboard.wxml-->
+<view class="dashboard-container">
+  <!-- 用户信息卡片 -->
+  <view class="user-card card">
+    <view class="user-info">
+      <text class="user-name">{{userInfo.first_name || userInfo.username}}</text>
+      <text class="user-greeting">欢迎使用健康档案</text>
+    </view>
+  </view>
+
+  <!-- 统计数据 -->
+  <view class="stats-grid">
+    <view class="stat-item" bindtap="goToCheckups">
+      <text class="stat-value">{{stats.checkupCount}}</text>
+      <text class="stat-label">体检报告</text>
+    </view>
+    <view class="stat-item" bindtap="goToIndicators">
+      <text class="stat-value">{{stats.indicatorCount}}</text>
+      <text class="stat-label">健康指标</text>
+    </view>
+    <view class="stat-item" bindtap="goToConversations">
+      <text class="stat-value">{{stats.conversationCount}}</text>
+      <text class="stat-label">AI咨询</text>
+    </view>
+  </view>
+
+  <!-- 快捷操作 -->
+  <view class="quick-actions card">
+    <view class="card-title">快捷操作</view>
+    <view class="action-grid">
+      <view class="action-item" bindtap="goToUpload">
+        <view class="action-icon upload-icon">+</view>
+        <text class="action-text">上传报告</text>
+      </view>
+      <view class="action-item" bindtap="goToIntegration">
+        <view class="action-icon integrate-icon">∫</view>
+        <text class="action-text">数据整合</text>
+      </view>
+      <view class="action-item" bindtap="goToAIAdvice">
+        <view class="action-icon ai-icon">AI</view>
+        <text class="action-text">AI咨询</text>
+      </view>
+      <view class="action-item" bindtap="goToManualInput">
+        <view class="action-icon manual-icon">✎</view>
+        <text class="action-text">手动输入</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 最新报告 -->
+  <view class="recent-checkups card">
+    <view class="card-title flex-between">
+      <text>最新报告</text>
+      <text class="more-link" bindtap="goToCheckups">更多 ></text>
+    </view>
+    <view class="checkup-list">
+      <block wx:if="{{recentCheckups.length > 0}}">
+        <view class="checkup-item"
+              wx:for="{{recentCheckups}}"
+              wx:key="id"
+              bindtap="goToCheckupDetail"
+              data-id="{{item.id}}">
+          <view class="checkup-header">
+            <text class="checkup-hospital">{{item.hospital}}</text>
+            <text class="checkup-date">{{item.checkup_date}}</text>
+          </view>
+          <view class="checkup-info">
+            <text class="indicator-count">{{item.indicators_count}}项指标</text>
+            <view class="status-badge status-{{item.status}}">
+              {{item.status === 'completed' ? '已完成' : '处理中'}}
+            </view>
+          </view>
+        </view>
+      </block>
+      <view class="empty-container" wx:else>
+        <text class="empty-text">暂无体检报告</text>
+        <button class="btn-primary mt-20" bindtap="goToUpload">上传第一份报告</button>
+      </view>
+    </view>
+  </view>
+</view>

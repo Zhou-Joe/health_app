@@ -1,0 +1,39 @@
+<!--pages/login/login.wxml-->
+<view class="login-container">
+  <view class="login-header">
+    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
+    <text class="app-name">健康档案</text>
+    <text class="app-desc">智能健康管理系统</text>
+  </view>
+
+  <view class="login-form">
+    <view class="form-item">
+      <input class="input-field"
+             placeholder="请输入用户名"
+             value="{{username}}"
+             bindinput="onUsernameInput" />
+    </view>
+
+    <view class="form-item">
+      <input class="input-field"
+             placeholder="请输入密码"
+             password
+             value="{{password}}"
+             bindinput="onPasswordInput" />
+    </view>
+
+    <button class="login-btn"
+            bindtap="handleLogin"
+            loading="{{loading}}">
+      {{loading ? '登录中...' : '登录'}}
+    </button>
+
+    <view class="login-tips">
+      <text class="tip-text">测试账号：直接输入任意用户名和密码即可</text>
+    </view>
+  </view>
+
+  <view class="login-footer">
+    <text class="footer-text">登录即表示同意《用户协议》和《隐私政策》</text>
+  </view>
+</view>

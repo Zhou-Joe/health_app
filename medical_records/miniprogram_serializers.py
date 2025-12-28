@@ -1,0 +1,72 @@
+from rest_framework import serializers
+from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing
+from django.contrib.auth.models import User
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined']
+
+class HealthIndicatorSerializer(serializers.ModelSerializer):
+    """健康指标序列化器"""
+    class Meta:
+        model = HealthIndicator
+        fields = [
+            'id', 'indicator_name', 'indicator_type', 'value',
+            'unit', 'reference_range', 'status'
+        ]
+
+class HealthCheckupSerializer(serializers.ModelSerializer):
+    """体检记录序列化器"""
+    indicators = HealthIndicatorSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = HealthCheckup
+        fields = [
+            'id', 'user', 'checkup_date', 'hospital', 'report_file',
+            'created_at', 'indicators'
+        ]
+        read_only_fields = ['user']
+
+class HealthAdviceSerializer(serializers.ModelSerializer):
+    """健康建议序列化器"""
+    class Meta:
+        model = HealthAdvice
+        fields = [
+            'id', 'user', 'checkup', 'advice_type', 'advice_content',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['user']
+
+class DocumentProcessingSerializer(serializers.ModelSerializer):
+    """文档处理状态序列化器"""
+
+    class Meta:
+        model = DocumentProcessing
+        fields = [
+            'id', 'status', 'progress', 'error_message', 'workflow_type',
+            'ocr_result', 'ai_result', 'vl_model_result',
+            'created_at', 'updated_at'
+        ]
+
+class MiniProgramCheckupListSerializer(serializers.ModelSerializer):
+    """小程序体检记录列表序列化器"""
+    indicators_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HealthCheckup
+        fields = [
+            'id', 'checkup_date', 'hospital', 'report_file',
+            'created_at', 'indicators_count'
+        ]
+        read_only_fields = ['user']
+
+    def get_indicators_count(self, obj):
+        return obj.healthindicator_set.count()
+
+class SystemSettingsSerializer(serializers.ModelSerializer):
+    """系统设置序列化器"""
+
+    class Meta:
+        model = SystemSettings
+        fields = ['key', 'value']

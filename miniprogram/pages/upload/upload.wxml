@@ -1,0 +1,83 @@
+<!--pages/upload/upload.wxml-->
+<view class="upload-container">
+  <view class="upload-card card">
+    <view class="card-title">上传体检报告</view>
+
+    <!-- 上传区域 -->
+    <view class="upload-area" bindtap="chooseFile">
+      <image wx:if="{{!filePath}}" class="upload-icon" src="/images/upload.png"></image>
+      <text wx:if="{{!filePath}}" class="upload-text">点击上传PDF或图片</text>
+      <view wx:else class="file-preview">
+        <image class="file-image" src="{{filePath}}" mode="aspectFit"></image>
+        <view class="file-remove" bindtap="removeFile" catchtap="removeFile">×</view>
+      </view>
+    </view>
+
+    <!-- 表单信息 -->
+    <view class="form-section">
+      <view class="form-item">
+        <text class="form-label">体检日期</text>
+        <picker mode="date" value="{{checkupDate}}" bindchange="onDateChange">
+          <view class="form-value">{{checkupDate || '请选择日期'}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">体检机构</text>
+        <input class="form-input"
+               placeholder="请输入体检机构名称"
+               value="{{hospital}}"
+               bindinput="onHospitalInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">科室</text>
+        <input class="form-input"
+               placeholder="请输入科室（可选）"
+               value="{{department}}"
+               bindinput="onDepartmentInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">处理模式</text>
+        <picker range="{{workflows}}" range-key="label" value="{{workflowIndex}}" bindchange="onWorkflowChange">
+          <view class="form-value">{{workflows[workflowIndex].label}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <!-- 常用医院 -->
+    <view class="common-hospitals" wx:if="{{commonHospitals.length > 0}}">
+      <text class="section-label">常用机构</text>
+      <view class="hospital-tags">
+        <view class="hospital-tag"
+              wx:for="{{commonHospitals}}"
+              wx:key="name"
+              bindtap="selectHospital"
+              data-name="{{item.name}}">
+          {{item.name}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <button class="submit-btn btn-primary"
+            bindtap="handleSubmit"
+            loading="{{uploading}}"
+            disabled="{{!filePath || uploading}}">
+      {{uploading ? '上传中...' : '开始上传'}}
+    </button>
+  </view>
+
+  <!-- 处理进度 -->
+  <view class="progress-card card" wx:if="{{showProgress}}">
+    <view class="card-title">处理进度</view>
+    <view class="progress-info">
+      <text class="progress-status">{{statusText}}</text>
+      <text class="progress-percent">{{progress}}%</text>
+    </view>
+    <progress percent="{{progress}}" stroke-width="8" activeColor="#4A90E2" />
+    <text class="progress-tip" wx:if="{{progress < 100}}">正在处理中，请稍候...</text>
+    <button class="view-result-btn mt-20" wx:else bindtap="viewResult">查看结果</button>
+  </view>
+</view>

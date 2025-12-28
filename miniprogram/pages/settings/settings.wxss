@@ -1,0 +1,11 @@
+.settings-container { padding: 20rpx; }
+.user-card { display: flex; flex-direction: column; align-items: center; padding: 40rpx; margin-bottom: 20rpx; }
+.avatar { width: 120rpx; height: 120rpx; border-radius: 60rpx; margin-bottom: 20rpx; background-color: #F0F0F0; }
+.username { font-size: 32rpx; font-weight: 600; color: #333; }
+.settings-list { margin-bottom: 20rpx; }
+.setting-item { display: flex; justify-content: space-between; align-items: center; padding: 24rpx 0; border-bottom: 1rpx solid #F0F0F0; }
+.setting-item:last-child { border-bottom: none; }
+.item-label { font-size: 28rpx; color: #333; }
+.item-value { font-size: 26rpx; color: #999; }
+.item-arrow { font-size: 32rpx; color: #999; }
+.logout-btn { width: 100%; margin-top: 40rpx; }

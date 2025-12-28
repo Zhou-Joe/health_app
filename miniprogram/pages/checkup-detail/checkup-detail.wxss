@@ -1,0 +1,20 @@
+.detail-container { padding: 20rpx; }
+.info-card { margin-bottom: 20rpx; }
+.info-row { display: flex; justify-content: space-between; padding: 20rpx 0; border-bottom: 1rpx solid #F0F0F0; }
+.info-row:last-child { border-bottom: none; }
+.label { font-size: 28rpx; color: #666; }
+.value { font-size: 28rpx; color: #333; }
+.stats-card { display: flex; justify-content: space-around; margin-bottom: 20rpx; }
+.stat-item { text-align: center; }
+.stat-value { font-size: 48rpx; font-weight: 600; display: block; }
+.stat-label { font-size: 24rpx; color: #999; margin-top: 8rpx; }
+.indicators-card { margin-bottom: 20rpx; }
+.add-btn { font-size: 28rpx; color: #4A90E2; }
+.indicator-list { margin-top: 20rpx; }
+.indicator-item { padding: 24rpx; background: #F8F9FA; border-radius: 12rpx; margin-bottom: 16rpx; }
+.indicator-header { display: flex; justify-content: space-between; margin-bottom: 12rpx; }
+.indicator-name { font-size: 30rpx; font-weight: 500; color: #333; }
+.indicator-value { margin-bottom: 8rpx; }
+.value { font-size: 32rpx; font-weight: 600; color: #4A90E2; }
+.unit { font-size: 26rpx; color: #666; margin-left: 8rpx; }
+.reference { font-size: 24rpx; color: #999; }

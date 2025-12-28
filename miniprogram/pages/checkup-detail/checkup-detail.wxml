@@ -1,0 +1,33 @@
+<view class="detail-container">
+  <view class="info-card card">
+    <view class="info-row"><text class="label">体检机构</text><text class="value">{{checkup.hospital || '未知'}}</text></view>
+    <view class="info-row"><text class="label">体检日期</text><text class="value">{{checkup.checkup_date}}</text></view>
+    <view class="info-row"><text class="label">科室</text><text class="value">{{checkup.department || '未知'}}</text></view>
+  </view>
+
+  <view class="stats-card card">
+    <view class="stat-item"><text class="stat-value">{{stats.total}}</text><text class="stat-label">总指标</text></view>
+    <view class="stat-item"><text class="stat-value text-success">{{stats.normal}}</text><text class="stat-label">正常</text></view>
+    <view class="stat-item"><text class="stat-value text-danger">{{stats.abnormal}}</text><text class="stat-label">异常</text></view>
+  </view>
+
+  <view class="indicators-card card">
+    <view class="card-title flex-between">
+      <text>健康指标</text>
+      <text class="add-btn" bindtap="addIndicator">+ 添加</text>
+    </view>
+    <view class="indicator-list">
+      <view class="indicator-item" wx:for="{{indicators}}" wx:key="id" bindtap="editIndicator" data-id="{{item.id}}">
+        <view class="indicator-header">
+          <text class="indicator-name">{{item.indicator_name}}</text>
+          <view class="status-badge status-{{item.status}}">{{item.status === 'normal' ? '正常' : '异常'}}</view>
+        </view>
+        <view class="indicator-value">
+          <text class="value">{{item.value}}</text>
+          <text class="unit" wx:if="{{item.unit}}">{{item.unit}}</text>
+        </view>
+        <text class="reference" wx:if="{{item.reference_range}}">参考: {{item.reference_range}}</text>
+      </view>
+    </view>
+  </view>
+</view>

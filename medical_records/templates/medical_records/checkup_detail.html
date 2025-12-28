@@ -1,0 +1,446 @@
+{% extends 'base.html' %}
+
+{% block title %}体检报告详情 - {{ checkup.hospital }} ({{ checkup.checkup_date|date:"Y-m-d" }}){% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- 返回按钮 -->
+        <div class="mb-3">
+            <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> 返回首页
+            </a>
+        </div>
+
+        {% if indicators %}
+        <!-- 指标状态统计 -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card text-center border-success">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2" style="font-size: 1.5rem;"></i>
+                            <h6 class="card-title mb-0">正常指标</h6>
+                        </div>
+                        <h2 class="text-success mb-0">{{ normal_count }}</h2>
+                        <small class="text-muted">项指标正常</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center border-danger">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-exclamation-triangle-fill text-danger me-2" style="font-size: 1.5rem;"></i>
+                            <h6 class="card-title mb-0">异常指标</h6>
+                        </div>
+                        <h2 class="text-danger mb-0">{{ abnormal_count }}</h2>
+                        <small class="text-muted">项指标异常</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center border-warning">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-center mb-2">
+                            <i class="bi bi-exclamation-circle-fill text-warning me-2" style="font-size: 1.5rem;"></i>
+                            <h6 class="card-title mb-0">关注指标</h6>
+                        </div>
+                        <h2 class="text-warning mb-0">{{ attention_count }}</h2>
+                        <small class="text-muted">项指标需关注</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 体检报告基本信息 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-file-text"></i> 体检报告详情
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>体检日期：</strong>{{ checkup.checkup_date|date:"Y年m月d日" }}</p>
+                        <p><strong>体检机构：</strong>{{ checkup.hospital }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>创建时间：</strong>{{ checkup.created_at|date:"Y-m-d H:i" }}</p>
+                        {% if checkup.report_file %}
+                        <p>
+                            <strong>报告文件：</strong>
+                            <a href="{{ checkup.report_file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="bi bi-download"></i> 下载查看
+                            </a>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if checkup.notes %}
+                <div class="mt-3">
+                    <strong>备注：</strong>
+                    <p class="mb-0">{{ checkup.notes|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 健康指标详情 -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-activity"></i> 健康指标
+                </h5>
+                <span class="badge bg-primary">{{ indicators|length }} 项指标</span>
+            </div>
+            <div class="card-body">
+                {% if indicators %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>指标名称</th>
+                                    <th>检测值</th>
+                                    <th>单位</th>
+                                    <th>参考范围</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for indicator in indicators %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ indicator.get_indicator_type_display }}</span>
+                                        {{ indicator.indicator_name }}
+                                    </td>
+                                    <td><strong>{{ indicator.value }}</strong></td>
+                                    <td>{{ indicator.unit|default:"-" }}</td>
+                                    <td>{{ indicator.reference_range|default:"-" }}</td>
+                                    <td>
+                                        {% if indicator.status == 'normal' %}
+                                            <span class="badge bg-success">正常</span>
+                                        {% elif indicator.status == 'abnormal' %}
+                                            <span class="badge bg-danger">异常</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">关注</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary edit-indicator-btn" 
+                                                data-indicator-id="{{ indicator.id }}"
+                                                data-indicator-name="{{ indicator.indicator_name }}"
+                                                data-indicator-value="{{ indicator.value }}"
+                                                data-indicator-unit="{{ indicator.unit|default:'' }}"
+                                                data-indicator-range="{{ indicator.reference_range|default:'' }}"
+                                                data-indicator-status="{{ indicator.status }}"
+                                                data-indicator-type="{{ indicator.indicator_type }}">
+                                            <i class="bi bi-pencil"></i> 编辑
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clipboard-x" style="font-size: 3rem; color: #6c757d;"></i>
+                        <p class="mt-3 text-muted">暂无详细指标数据</p>
+                        <p class="text-muted">您可以查看上传的原始报告文件获取详细信息</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="mt-4 d-flex justify-content-between">
+            <div>
+                {% if checkup.report_file %}
+                <a href="{{ checkup.report_file.url }}" class="btn btn-outline-primary" target="_blank">
+                    <i class="bi bi-eye"></i> 查看原始报告
+                </a>
+                {% endif %}
+            </div>
+            <div>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> 删除报告
+                </button>
+                <a href="{% url 'medical_records:upload_report' %}" class="btn btn-success">
+                    <i class="bi bi-plus-circle"></i> 上传新报告
+                </a>
+                <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-info">
+                    <i class="bi bi-robot"></i> 获取AI建议
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑指标模态框 -->
+<div class="modal fade" id="editIndicatorModal" tabindex="-1" aria-labelledby="editIndicatorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editIndicatorModalLabel">
+                    <i class="bi bi-pencil-square"></i> 编辑指标
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editIndicatorForm">
+                    <input type="hidden" id="editIndicatorId" name="indicator_id">
+
+                    <div class="mb-3">
+                        <label for="editIndicatorType" class="form-label">指标分类</label>
+                        <select class="form-select" id="editIndicatorType" name="indicator_type">
+                            <option value="physical_exam">体格检查</option>
+                            <option value="blood_routine">血液常规</option>
+                            <option value="biochemistry">生化检验</option>
+                            <option value="liver_function">肝功能</option>
+                            <option value="kidney_function">肾功能</option>
+                            <option value="thyroid_function">甲状腺功能</option>
+                            <option value="tumor_markers">肿瘤标志物</option>
+                            <option value="urine_exam">尿液检查</option>
+                            <option value="blood_rheology">血液流变学</option>
+                            <option value="eye_exam">眼科检查</option>
+                            <option value="ultrasound_exam">超声检查</option>
+                            <option value="imaging_exam">影像学检查</option>
+                            <option value="diagnosis">病症诊断</option>
+                            <option value="symptoms">症状描述</option>
+                            <option value="other_exam">其他检查</option>
+                        </select>
+                        <small class="form-text text-muted">选择指标所属的医学分类</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editIndicatorName" class="form-label">指标名称</label>
+                        <input type="text" class="form-control" id="editIndicatorName" name="indicator_name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editIndicatorValue" class="form-label">检测值</label>
+                        <input type="text" class="form-control" id="editIndicatorValue" name="value" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editIndicatorUnit" class="form-label">单位</label>
+                        <input type="text" class="form-control" id="editIndicatorUnit" name="unit">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editIndicatorRange" class="form-label">参考范围</label>
+                        <input type="text" class="form-control" id="editIndicatorRange" name="reference_range">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="editIndicatorStatus" class="form-label">状态</label>
+                        <select class="form-select" id="editIndicatorStatus" name="status">
+                            <option value="normal">正常</option>
+                            <option value="abnormal">异常</option>
+                            <option value="attention">关注</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> 取消
+                </button>
+                <button type="button" class="btn btn-primary" id="saveIndicatorBtn">
+                    <i class="bi bi-check-circle"></i> 保存更改
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">确认删除</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>确定要删除这份体检报告吗？此操作不可恢复。</p>
+                <p class="text-danger">
+                    <strong>警告：</strong>删除后，所有相关的健康指标数据也将被删除。
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash"></i> 确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 为表格行添加点击高亮效果
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+    
+    // ========== 编辑指标功能 ==========
+    const editIndicatorModal = new bootstrap.Modal(document.getElementById('editIndicatorModal'));
+    const editIndicatorBtns = document.querySelectorAll('.edit-indicator-btn');
+    const saveIndicatorBtn = document.getElementById('saveIndicatorBtn');
+    
+    // 点击编辑按钮打开模态框并填充数据
+    editIndicatorBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const indicatorId = this.getAttribute('data-indicator-id');
+            const indicatorType = this.getAttribute('data-indicator-type');
+            const indicatorName = this.getAttribute('data-indicator-name');
+            const indicatorValue = this.getAttribute('data-indicator-value');
+            const indicatorUnit = this.getAttribute('data-indicator-unit');
+            const indicatorRange = this.getAttribute('data-indicator-range');
+            const indicatorStatus = this.getAttribute('data-indicator-status');
+
+            document.getElementById('editIndicatorId').value = indicatorId;
+            document.getElementById('editIndicatorType').value = indicatorType;
+            document.getElementById('editIndicatorName').value = indicatorName;
+            document.getElementById('editIndicatorValue').value = indicatorValue;
+            document.getElementById('editIndicatorUnit').value = indicatorUnit;
+            document.getElementById('editIndicatorRange').value = indicatorRange;
+            document.getElementById('editIndicatorStatus').value = indicatorStatus;
+
+            editIndicatorModal.show();
+        });
+    });
+    
+    // 保存指标修改
+    if (saveIndicatorBtn) {
+        saveIndicatorBtn.addEventListener('click', function() {
+            const indicatorId = document.getElementById('editIndicatorId').value;
+            const indicatorType = document.getElementById('editIndicatorType').value;
+            const indicatorName = document.getElementById('editIndicatorName').value;
+            const indicatorValue = document.getElementById('editIndicatorValue').value;
+            const indicatorUnit = document.getElementById('editIndicatorUnit').value;
+            const indicatorRange = document.getElementById('editIndicatorRange').value;
+            const indicatorStatus = document.getElementById('editIndicatorStatus').value;
+
+            // 验证必填字段
+            if (!indicatorName || !indicatorValue) {
+                alert('请填写指标名称和检测值');
+                return;
+            }
+
+            // 禁用按钮防止重复点击
+            saveIndicatorBtn.disabled = true;
+            saveIndicatorBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+
+            // 发送更新请求
+            fetch(`/checkup/indicator/${indicatorId}/update/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    indicator_type: indicatorType,
+                    indicator_name: indicatorName,
+                    value: indicatorValue,
+                    unit: indicatorUnit,
+                    reference_range: indicatorRange,
+                    status: indicatorStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 更新成功，关闭模态框并刷新页面
+                    editIndicatorModal.hide();
+                    window.location.reload();
+                } else {
+                    // 更新失败，显示错误信息
+                    alert('保存失败: ' + (data.message || '未知错误'));
+                    saveIndicatorBtn.disabled = false;
+                    saveIndicatorBtn.innerHTML = '<i class="bi bi-check-circle"></i> 保存更改';
+                }
+            })
+            .catch(error => {
+                console.error('保存请求失败:', error);
+                alert('保存请求失败，请稍后重试');
+                saveIndicatorBtn.disabled = false;
+                saveIndicatorBtn.innerHTML = '<i class="bi bi-check-circle"></i> 保存更改';
+            });
+        });
+    }
+    
+    // ========== 删除功能 ==========
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', function() {
+            // 获取当前体检报告ID
+            const pathParts = window.location.pathname.split('/');
+            const checkupId = pathParts[pathParts.length - 2];
+            
+            // 禁用按钮防止重复点击
+            confirmDeleteBtn.disabled = true;
+            confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 删除中...';
+            
+            // 发送删除请求
+            fetch(`/checkup/${checkupId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 删除成功，跳转到首页
+                    window.location.href = "{% url 'medical_records:dashboard' %}";
+                } else {
+                    // 删除失败，显示错误信息
+                    alert('删除失败: ' + (data.message || '未知错误'));
+                    confirmDeleteBtn.disabled = false;
+                    confirmDeleteBtn.innerHTML = '<i class="bi bi-trash"></i> 确认删除';
+                }
+            })
+            .catch(error => {
+                console.error('删除请求失败:', error);
+                alert('删除请求失败，请稍后重试');
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.innerHTML = '<i class="bi bi-trash"></i> 确认删除';
+            });
+        });
+    }
+    
+    // 获取CSRF Token的辅助函数
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

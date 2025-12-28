@@ -1,0 +1,27 @@
+<view class="edit-container">
+  <view class="form-card card">
+    <view class="form-item">
+      <text class="label">指标名称 *</text>
+      <input class="input" value="{{formData.indicator_name}}" bindinput="onNameInput" placeholder="如：血红蛋白" />
+    </view>
+    <view class="form-item">
+      <text class="label">检测值 *</text>
+      <input class="input" value="{{formData.value}}" bindinput="onValueInput" placeholder="如：135" />
+    </view>
+    <view class="form-item">
+      <text class="label">单位</text>
+      <input class="input" value="{{formData.unit}}" bindinput="onUnitInput" placeholder="如：g/L" />
+    </view>
+    <view class="form-item">
+      <text class="label">参考范围</text>
+      <input class="input" value="{{formData.reference_range}}" bindinput="onRefInput" placeholder="如：110-150" />
+    </view>
+    <view class="form-item">
+      <text class="label">状态</text>
+      <picker range="{{statusOptions}}" bindchange="onStatusChange">
+        <view class="picker-value">{{statusOptions[statusIndex]}}</view>
+      </picker>
+    </view>
+  </view>
+  <button class="submit-btn btn-primary" bindtap="handleSubmit">保存</button>
+</view>
