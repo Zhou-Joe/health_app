@@ -71,6 +71,9 @@ coverage.xml
 node_modules/
 npm-debug.log
 
+# WeChat Miniprogram
+miniprogram/project.private.config.json
+
 # Temporary files
 *.tmp
 *.temp
