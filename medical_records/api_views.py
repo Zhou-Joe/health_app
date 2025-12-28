@@ -856,6 +856,9 @@ def integrate_data(request):
 【禁止修改的字段】
 - 参考范围（reference_range）：不要返回此字段，保持原值不变
 
+【重要：添加修改理由】
+每个变更都必须包含"reason"字段，用简洁的中文说明修改的理由（1-2句话）。
+
 数据：
 {json.dumps(indicators_summary, ensure_ascii=False, indent=2)}
 
@@ -864,20 +867,24 @@ def integrate_data(request):
     "changes": [
         {{
             "indicator_id": 123,
-            "indicator_name": "统一后的名称"
+            "indicator_name": "统一后的名称",
+            "reason": "将'身长'统一为'身高'，保持命名一致性"
         }},
         {{
             "indicator_id": 456,
             "value": "修正后的值",
-            "unit": "标准单位"
+            "unit": "标准单位",
+            "reason": "单位从非标准的'公斤'统一为'kg'"
         }},
         {{
             "indicator_id": 789,
-            "status": "normal"
+            "status": "normal",
+            "reason": "数值120在参考范围90-120内，状态应修正为正常"
         }},
         {{
             "indicator_id": 101,
-            "indicator_type": "blood_routine"
+            "indicator_type": "blood_routine",
+            "reason": "白细胞计数属于血液常规检查，分类应更正为blood_routine"
         }}
     ]
 }}
@@ -885,9 +892,10 @@ def integrate_data(request):
 【关键要求】
 1.只返回真正需要更正的指标
 2.已经正确的指标不要出现在changes中
-3.每个对象只包含indicator_id和需要修改的字段（只限indicator_name、value、unit、status、indicator_type）
-4.绝对不要返回reference_range字段
-5.纯JSON格式，无markdown"""
+3.每个对象必须包含indicator_id、需要修改的字段（只限indicator_name、value、unit、status、indicator_type）和reason
+4.reason字段必须用简洁的中文说明修改理由
+5.绝对不要返回reference_range字段
+6.纯JSON格式，无markdown"""
 
         print(f"[数据整合] Prompt构建完成，长度: {len(prompt)} 字符")
         print(f"[数据整合] 开始调用LLM...")
@@ -1011,11 +1019,15 @@ def integrate_data(request):
                     actual_changes['indicator_type'] = change['indicator_type']
                     print(f"[数据整合]   指标{indicator_id}: 分类 {indicator.indicator_type} -> {change['indicator_type']}")
 
+                # 提取reason字段（如果存在）
+                reason = change.get('reason', '')
+
                 # 添加到变更列表
                 validated_changes.append({
                     'indicator_id': indicator_id,
                     'original': original_data,
-                    'changes': actual_changes
+                    'changes': actual_changes,
+                    'reason': reason  # 保存修改理由
                 })
 
             print(f"[数据整合] ✓ 验证完成，有效变更: {len(validated_changes)}")

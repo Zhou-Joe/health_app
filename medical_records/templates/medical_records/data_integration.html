@@ -381,6 +381,7 @@ function createChangeItem(change, index) {
     const hasRefRangeChange = change.changes && change.changes.reference_range;
     const hasStatusChange = change.changes && change.changes.status;
     const hasTypeChange = change.changes && change.changes.indicator_type;
+    const hasReason = change.reason && change.reason.trim().length > 0;
 
     div.innerHTML = `
         <div class="card-body">
@@ -435,6 +436,14 @@ function createChangeItem(change, index) {
                     ` : `<span class="text-muted">${getTypeName(change.original.indicator_type)} ${isUnchanged ? '(无变化)' : ''}</span>`}
                 </div>
             </div>
+            ${hasReason ? `
+            <div class="row mt-2">
+                <div class="col-12">
+                    <small class="text-primary"><i class="bi bi-lightbulb"></i> 修改理由：</small><br>
+                    <span class="text-muted">${escapeHtml(change.reason)}</span>
+                </div>
+            </div>
+            ` : ''}
         </div>
     `;
     return div;
