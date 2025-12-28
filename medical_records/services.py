@@ -340,14 +340,26 @@ class DocumentProcessingService:
                     print(f"✅ OpenAI兼容API调用成功")
                     print(f"📄 LLM响应长度: {len(llm_response_text)} 字符")
 
+                    # 清理响应，移除可能的markdown代码块标记
+                    cleaned_response = llm_response_text.strip()
+                    if cleaned_response.startswith('```json'):
+                        cleaned_response = cleaned_response[7:]
+                    elif cleaned_response.startswith('```'):
+                        cleaned_response = cleaned_response[3:]
+                    if cleaned_response.endswith('```'):
+                        cleaned_response = cleaned_response[:-3]
+                    cleaned_response = cleaned_response.strip()
+
+                    print(f"🧹 清理后的响应前200字符: {cleaned_response[:200]}...")
+
                     # 尝试解析JSON
                     try:
-                        structured_data = json.loads(llm_response_text)
+                        structured_data = json.loads(cleaned_response)
                         print(f"✅ JSON解析成功，包含 {len(structured_data.get('indicators', []))} 个指标")
                         return structured_data
                     except json.JSONDecodeError as e:
                         print(f"❌ JSON解析失败: {str(e)}")
-                        print(f"📄 LLM响应内容: {llm_response_text[:500]}...")
+                        print(f"📄 完整LLM响应内容:\n{llm_response_text}")
                         raise Exception(f"LLM返回的不是有效的JSON格式: {str(e)}")
                 else:
                     raise Exception("API返回格式错误：没有choices字段")
