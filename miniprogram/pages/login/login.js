@@ -36,7 +36,7 @@ Page({
       util.showToast('登录成功', 'success')
 
       setTimeout(() => {
-        wx.switchTab({
+        wx.reLaunch({
           url: '/pages/dashboard/dashboard'
         })
       }, 1000)
