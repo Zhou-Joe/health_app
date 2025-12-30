@@ -1314,3 +1314,1032 @@ def apply_integration(request):
             'error': f'应用更改失败: {str(e)}',
             'traceback': traceback.format_exc()
         }, status=500)
+
+@login_required
+def stream_ai_advice(request):
+    """流式输出AI健康建议（使用LangChain）"""
+    import json
+    import traceback
+    from django.http import StreamingHttpResponse
+    from .models import SystemSettings
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    try:
+        # 获取请求数据
+        data = json.loads(request.body)
+        question = data.get('question', '').strip()
+
+        if not question:
+            return JsonResponse({
+                'success': False,
+                'error': '问题不能为空'
+            }, status=400)
+
+        # 获取对话ID（可选）
+        conversation_id = data.get('conversation_id')
+        conversation = None
+        if conversation_id:
+            try:
+                conversation = Conversation.objects.get(id=conversation_id, user=request.user, is_active=True)
+            except Conversation.DoesNotExist:
+                pass
+
+        # 获取选择的报告ID
+        selected_report_ids = data.get('selected_report_ids', [])
+        selected_reports = None
+        if selected_report_ids:
+            from .models import HealthCheckup
+            selected_reports = HealthCheckup.objects.filter(
+                id__in=selected_report_ids,
+                user=request.user
+            )
+
+        # 获取AI医生设置
+        provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
+
+        # 初始化变量
+        api_url = None
+        api_key = None
+        model_name = None
+
+        # 根据 provider 获取不同的配置
+        if provider == 'gemini':
+            gemini_config = SystemSettings.get_gemini_config()
+            api_key = gemini_config['api_key']
+            model_name = gemini_config['model_name']
+        else:
+            api_url = SystemSettings.get_setting('ai_doctor_api_url')
+            api_key = SystemSettings.get_setting('ai_doctor_api_key')
+            model_name = SystemSettings.get_setting('ai_doctor_model_name')
+
+        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+        max_tokens = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
+
+        # 验证配置
+        if provider == 'gemini':
+            if not api_key:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Gemini API密钥未配置'
+                }, status=500)
+        else:
+            if not api_url or not model_name or not api_key:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI医生API未配置'
+                }, status=500)
+
+        # 获取对话上下文
+        from .views import get_conversation_context, format_health_data_for_prompt
+        conversation_context = get_conversation_context(request.user, conversation)
+
+        # 构建prompt
+        prompt_parts = [
+            "你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。",
+            f"\n当前问题：{question}"
+        ]
+
+        # 添加个人信息
+        try:
+            user_profile = request.user.userprofile
+            if user_profile.birth_date or user_profile.gender:
+                prompt_parts.append("\n个人信息：")
+                prompt_parts.append(f"性别：{user_profile.get_gender_display()}")
+                if user_profile.age:
+                    prompt_parts.append(f"年龄：{user_profile.age}岁")
+        except:
+            pass
+
+        # 添加对话上下文
+        if conversation_context:
+            prompt_parts.append("\n对话历史：")
+            for ctx in conversation_context:
+                prompt_parts.append(f"{ctx['time']} 问：{ctx['question']}")
+                prompt_parts.append(f"答：{ctx['answer']}")
+
+        # 添加健康数据
+        if selected_report_ids and len(selected_report_ids) > 0:
+            from .views import get_selected_reports_health_data
+            health_data = get_selected_reports_health_data(request.user, selected_reports)
+            if health_data:
+                health_data_text = format_health_data_for_prompt(health_data)
+                prompt_parts.append(f"\n用户健康数据：\n{health_data_text}")
+                prompt_parts.extend([
+                    "\n请基于以上信息：",
+                    "1. 结合对话历史，理解用户的连续关注点",
+                    "2. 分析用户的健康状况和趋势",
+                    "3. 针对用户的具体问题提供专业建议",
+                    "4. 注意观察指标的历史变化趋势",
+                    "5. 给出实用的生活方式和医疗建议",
+                    "6. 如有异常指标，请特别说明并建议应对措施",
+                    "\n请用中文回答，语气专业但平易近人，建议要具体可行。注意这仅供参考，不能替代面诊。"
+                ])
+        else:
+            prompt_parts.extend([
+                "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。",
+                "\n请基于以上问题：",
+                "1. 结合对话历史，理解用户的关注点",
+                "2. 提供一般性的健康建议和知识",
+                "3. 针对用户的具体问题给出专业建议",
+                "4. 建议何时需要就医或专业咨询",
+                "5. 给出实用的生活方式和预防措施",
+                "\n请用中文回答，语气专业但平易近人，建议要具体可行。注意这仅供参考，不能替代面诊。"
+            ])
+
+        prompt = "".join(prompt_parts)
+
+        # 生成流式响应
+        def generate():
+            """生成流式响应"""
+            nonlocal conversation
+            full_response = ""
+            error_msg = None
+
+            try:
+                # 根据提供商选择不同的流式调用方式
+                if provider == 'gemini':
+                    # 使用 LangChain 的 ChatGoogleGenerativeAI
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    from langchain_core.messages import HumanMessage
+
+                    llm = ChatGoogleGenerativeAI(
+                        model=model_name,
+                        google_api_key=api_key,
+                        temperature=0.7,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    # 发送消息
+                    messages = [HumanMessage(content=prompt)]
+
+                    # 流式输出
+                    for chunk in llm.stream(messages):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            # Gemini 返回的 content 可能是列表或字符串
+                            chunk_content = chunk.content
+
+                            # 如果是列表，提取文本内容
+                            if isinstance(chunk_content, list):
+                                content_text = ""
+                                for item in chunk_content:
+                                    if isinstance(item, str):
+                                        content_text += item
+                                    elif hasattr(item, 'text'):
+                                        content_text += item.text
+                                    elif isinstance(item, dict) and 'text' in item:
+                                        content_text += item['text']
+                                content = content_text
+                            else:
+                                # 如果已经是字符串，直接使用
+                                content = str(chunk_content)
+
+                            full_response += content
+
+                            # 发送SSE格式的数据
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    # 流式输出完成
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+                else:
+                    # 使用 OpenAI 兼容格式（LangChain）
+                    from langchain_openai import ChatOpenAI
+                    from langchain_core.messages import HumanMessage
+
+                    # 处理 API URL，避免重复路径
+                    # LangChain 会自动添加 /chat/completions，所以如果 URL 中已包含，需要移除
+                    base_url = api_url
+                    if '/chat/completions' in base_url:
+                        # 如果 URL 已包含 /chat/completions，移除它
+                        base_url = base_url.split('/chat/completions')[0]
+                    elif base_url.endswith('/'):
+                        # 移除末尾的斜杠
+                        base_url = base_url.rstrip('/')
+
+                    # 初始化LangChain LLM
+                    llm = ChatOpenAI(
+                        model=model_name,
+                        api_key=api_key,
+                        base_url=base_url,
+                        temperature=0.3,
+                        max_tokens=max_tokens,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    # 发送消息
+                    messages = [HumanMessage(content=prompt)]
+
+                    # 流式输出
+                    for chunk in llm.stream(messages):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            content = chunk.content
+                            full_response += content
+
+                            # 发送SSE格式的数据
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    # 流式输出完成
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+            except Exception as e:
+                # 发送错误信息
+                error_msg = str(e)
+                yield f"data: {json.dumps({'error': error_msg, 'done': True}, ensure_ascii=False)}\n\n"
+
+            # 保存到数据库（在流式完成后）
+            try:
+                if full_response and not error_msg:
+                    # 创建或获取对话
+                    from .models import Conversation
+                    if not conversation:
+                        question_text = question[:50]
+                        if len(question) > 50:
+                            question_text += '...'
+                        conversation = Conversation.create_new_conversation(request.user, f"健康咨询: {question_text}")
+
+                    # 保存AI建议
+                    advice = HealthAdvice.objects.create(
+                        user=request.user,
+                        conversation=conversation,
+                        question=question,
+                        answer=full_response,
+                        prompt_sent=prompt,
+                        conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
+                    )
+
+                    # 发送保存成功的消息
+                    yield f"data: {json.dumps({'saved': True, 'advice_id': advice.id, 'conversation_id': conversation.id}, ensure_ascii=False)}\n\n"
+
+            except Exception as save_error:
+                # 保存失败，但流式输出已完成
+                yield f"data: {json.dumps({'save_error': str(save_error)}, ensure_ascii=False)}\n\n"
+
+        # 返回流式响应
+        response = StreamingHttpResponse(generate(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'  # 禁用Nginx缓冲
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def stream_upload_and_process(request):
+    """流式上传并处理体检报告（带实时进度反馈）"""
+    from django.http import StreamingHttpResponse
+    import time
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    def generate():
+        import json
+        import os
+        import tempfile
+
+        try:
+            # 1. 验证文件
+            if 'file' not in request.FILES:
+                yield f"data: {json.dumps({'error': '没有上传文件'}, ensure_ascii=False)}\n\n"
+                return
+
+            file = request.FILES['file']
+
+            # 检查文件类型
+            is_pdf = file.name.lower().endswith('.pdf')
+            is_image = is_image_file(file.name)
+
+            if not is_pdf and not is_image:
+                yield f"data: {json.dumps({'error': '只支持PDF和图片格式的文件'}, ensure_ascii=False)}\n\n"
+                return
+
+            # 检查文件大小
+            if file.size > 10 * 1024 * 1024:
+                yield f"data: {json.dumps({'error': '文件大小不能超过10MB'}, ensure_ascii=False)}\n\n"
+                return
+
+            yield f"data: {json.dumps({'status': 'validating', 'message': '文件验证通过'}, ensure_ascii=False)}\n\n"
+
+            # 获取表单数据
+            checkup_date = request.POST.get('checkup_date')
+            hospital = request.POST.get('hospital', '未知机构')
+
+            # 获取工作流类型
+            from .models import SystemSettings
+            default_workflow = SystemSettings.get_default_workflow()
+            workflow_type = request.POST.get('workflow_type', default_workflow)
+
+            if not checkup_date:
+                yield f"data: {json.dumps({'error': '请提供体检日期'}, ensure_ascii=False)}\n\n"
+                return
+
+            yield f"data: {json.dumps({'status': 'creating_records', 'message': '创建体检记录...'}, ensure_ascii=False)}\n\n"
+
+            # 获取报告描述
+            report_description = request.POST.get('report_description', '') or file.name
+
+            # 创建体检报告记录
+            health_checkup = HealthCheckup.objects.create(
+                user=request.user,
+                checkup_date=checkup_date,
+                hospital=hospital,
+                report_file=file,
+                notes=report_description
+            )
+
+            # 创建文档处理记录
+            document_processing = DocumentProcessing.objects.create(
+                user=request.user,
+                health_checkup=health_checkup,
+                workflow_type=workflow_type,
+                status='pending',
+                progress=0
+            )
+
+            # 保存文件到临时位置
+            import os
+            file_extension = os.path.splitext(file.name)[1]
+
+            if is_image:
+                if workflow_type == 'vl_model':
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
+                        for chunk in file.chunks():
+                            tmp_file.write(chunk)
+                        tmp_file_path = tmp_file.name
+                else:
+                    temp_image_path = None
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_image:
+                        for chunk in file.chunks():
+                            temp_image.write(chunk)
+                        temp_image_path = temp_image.name
+
+                    from .utils import convert_image_file_to_pdf
+                    pdf_data = convert_image_file_to_pdf(temp_image_path)
+
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_file:
+                        tmp_file.write(pdf_data)
+                        tmp_file_path = tmp_file.name
+
+                    try:
+                        os.unlink(temp_image_path)
+                    except:
+                        pass
+            else:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
+                    for chunk in file.chunks():
+                        tmp_file.write(chunk)
+                    tmp_file_path = tmp_file.name
+
+            yield f"data: {json.dumps({'status': 'file_saved', 'message': '文件已保存，开始处理...'}, ensure_ascii=False)}\n\n"
+
+            # 根据工作流类型选择处理方式
+            if workflow_type == 'vl_model':
+                # 多模态大模型工作流
+                yield f"data: {json.dumps({'status': 'vlm_start', 'message': '🤖 开始多模态大模型分析...'}, ensure_ascii=False)}\n\n"
+
+                from .services import VisionLanguageModelService
+                vlm_service = VisionLanguageModelService(document_processing)
+
+                try:
+                    # 执行多模态大模型处理
+                    structured_data = vlm_service.process_with_vision_model(tmp_file_path)
+
+                    # 保存数据
+                    yield f"data: {json.dumps({'status': 'saving_start', 'message': '💾 正在保存到数据库...'}, ensure_ascii=False)}\n\n"
+                    saved_count = vlm_service.save_vision_indicators(structured_data)
+
+                    # 清理临时文件
+                    try:
+                        os.unlink(tmp_file_path)
+                    except:
+                        pass
+
+                    # 发送完成消息
+                    yield f"data: {json.dumps({'status': 'complete', 'message': f'✅ 处理完成！成功保存 {saved_count} 个指标', 'checkup_id': health_checkup.id, 'indicators_count': saved_count}, ensure_ascii=False)}\n\n"
+
+                except Exception as e:
+                    import traceback
+                    error_trace = traceback.format_exc()
+                    yield f"data: {json.dumps({'error': f'多模态大模型处理失败: {str(e)}', 'trace': error_trace}, ensure_ascii=False)}\n\n"
+                    return
+            else:
+                # OCR+LLM 工作流（传统模式）
+                service = DocumentProcessingService(document_processing)
+
+                # 发送OCR开始消息
+                yield f"data: {json.dumps({'status': 'ocr_start', 'message': '🔍 开始OCR文字识别...'}, ensure_ascii=False)}\n\n"
+
+                # 执行OCR
+                ocr_text = service.perform_ocr(tmp_file_path)
+                yield f"data: {json.dumps({'status': 'ocr_complete', 'message': f'✅ OCR识别完成，识别了 {len(ocr_text)} 个字符'}, ensure_ascii=False)}\n\n"
+
+                # 发送AI分析开始消息
+                yield f"data: {json.dumps({'status': 'ai_start', 'message': '🤖 AI正在分析数据...'}, ensure_ascii=False)}\n\n"
+
+                # 执行AI分析 - 使用流式输出
+                try:
+                    # 获取LLM配置
+                    from .models import SystemSettings
+                    llm_config = SystemSettings.get_llm_config()
+                    llm_provider = llm_config.get('provider', 'openai')
+
+                    # 构建prompt
+                    prompt = service._build_llm_prompt(ocr_text)
+
+                    timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+                    llm_response = ""
+
+                    if llm_provider == 'gemini':
+                        # 获取Gemini配置
+                        gemini_config = SystemSettings.get_gemini_config()
+                        api_key = gemini_config.get('api_key', '')
+                        model_name = gemini_config.get('model_name', 'gemini-2.5-flash-exp')
+
+                        if not api_key:
+                            raise Exception("Gemini API密钥未配置")
+
+                        # 使用流式调用
+                        from langchain_google_genai import ChatGoogleGenerativeAI
+                        from langchain_core.messages import HumanMessage
+
+                        llm = ChatGoogleGenerativeAI(
+                            model=model_name,
+                            google_api_key=api_key,
+                            temperature=0.1,
+                            timeout=timeout,
+                            streaming=True
+                        )
+
+                        messages = [HumanMessage(content=prompt)]
+
+                        print(f"[智能上传] 开始流式调用Gemini，prompt长度: {len(prompt)}")
+
+                        # 流式输出token
+                        chunk_count = 0
+                        for chunk in llm.stream(messages):
+                            chunk_count += 1
+                            if hasattr(chunk, 'content') and chunk.content:
+                                # Gemini 返回的 content 可能是列表或字符串
+                                chunk_content = chunk.content
+
+                                # 如果是列表，提取文本内容
+                                if isinstance(chunk_content, list):
+                                    content_text = ""
+                                    for item in chunk_content:
+                                        if isinstance(item, str):
+                                            content_text += item
+                                        elif hasattr(item, 'text'):
+                                            content_text += item.text
+                                        elif isinstance(item, dict) and 'text' in item:
+                                            content_text += item['text']
+                                    content = content_text
+                                else:
+                                    # 如果已经是字符串，直接使用
+                                    content = str(chunk_content)
+
+                                llm_response += content
+
+                                if content:
+                                    # 实时发送token给前端
+                                    yield f"data: {json.dumps({'status': 'llm_token', 'token': content}, ensure_ascii=False)}\n\n"
+                                else:
+                                    print(f"[智能上传] 第{chunk_count}个chunk的content为空")
+
+                        print(f"[智能上传] 流式调用完成，共处理{chunk_count}个chunk，响应长度: {len(llm_response)}")
+
+                        # 检查响应是否为空
+                        if not llm_response or len(llm_response.strip()) == 0:
+                            raise Exception("Gemini返回空响应，请检查API配置和网络连接")
+
+                    else:
+                        # 获取OpenAI兼容配置
+                        api_key = llm_config.get('api_key', '')
+                        api_url = llm_config.get('api_url', '')
+                        model_name = llm_config.get('model_name', 'gpt-4o-mini')
+
+                        if not api_key or not api_url:
+                            raise Exception("OpenAI兼容API配置不完整")
+
+                        # 使用流式调用OpenAI兼容模式
+                        from langchain_openai import ChatOpenAI
+                        from langchain_core.messages import HumanMessage
+
+                        # 处理 API URL
+                        base_url = api_url
+                        if '/chat/completions' in base_url:
+                            base_url = base_url.split('/chat/completions')[0]
+                        elif base_url.endswith('/'):
+                            base_url = base_url.rstrip('/')
+
+                        llm = ChatOpenAI(
+                            model=model_name,
+                            api_key=api_key,
+                            base_url=base_url,
+                            temperature=0.1,
+                            timeout=timeout,
+                            streaming=True
+                        )
+
+                        messages = [HumanMessage(content=prompt)]
+
+                        # 流式输出token
+                        for chunk in llm.stream(messages):
+                            if hasattr(chunk, 'content') and chunk.content:
+                                content = chunk.content
+                                llm_response += content
+                                # 实时发送token给前端
+                                yield f"data: {json.dumps({'status': 'llm_token', 'token': content}, ensure_ascii=False)}\n\n"
+
+                    # 解析LLM响应
+                    print(f"[智能上传] LLM响应长度: {len(llm_response)} 字符")
+                    print(f"[智能上传] 响应前500字符: {llm_response[:500]}")
+
+                    if not llm_response or len(llm_response.strip()) == 0:
+                        raise Exception("LLM返回空响应，请检查API配置和网络连接")
+
+                    # 清理响应中的markdown代码块标记
+                    cleaned_response = llm_response.strip()
+                    if cleaned_response.startswith('```'):
+                        import re
+                        cleaned_response = re.sub(r'^```\w*\n?', '', cleaned_response)
+                        cleaned_response = re.sub(r'\n?```$', '', cleaned_response)
+
+                    # 解析JSON
+                    structured_data = json.loads(cleaned_response)
+
+                    # 保存LLM原始结果用于调试
+                    service.document_processing.ai_result = structured_data
+                    service.document_processing.save()
+                    print(f"LLM结果已保存，包含 {len(structured_data.get('indicators', []))} 个指标")
+
+                    indicators_count = len(structured_data.get('indicators', []))
+                    yield f"data: {json.dumps({'status': 'ai_complete', 'message': f'✅ AI分析完成，提取了 {indicators_count} 个指标'}, ensure_ascii=False)}\n\n"
+
+                except Exception as e:
+                    import traceback
+                    error_trace = traceback.format_exc()
+                    response_preview = llm_response[:500] if llm_response else '无响应'
+                    yield f"data: {json.dumps({'error': f'AI分析失败: {str(e)}', 'response_preview': response_preview, 'response_length': len(llm_response) if llm_response else 0}, ensure_ascii=False)}\n\n"
+                    return
+
+                # 发送保存开始消息
+                yield f"data: {json.dumps({'status': 'saving_start', 'message': '💾 正在保存到数据库...'}, ensure_ascii=False)}\n\n"
+
+                # 保存数据
+                saved_count = service.save_health_indicators(structured_data)
+
+                # 计算处理时间
+                end_time = time.time()
+
+                # 清理临时文件
+                try:
+                    os.unlink(tmp_file_path)
+                except:
+                    pass
+
+                # 发送完成消息
+                yield f"data: {json.dumps({'status': 'complete', 'message': f'✅ 处理完成！成功保存 {saved_count} 个指标', 'checkup_id': health_checkup.id, 'indicators_count': saved_count}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            yield f"data: {json.dumps({'error': str(e), 'trace': error_trace}, ensure_ascii=False)}\n\n"
+
+    response = StreamingHttpResponse(generate(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
+
+
+@login_required
+def stream_integrate_data(request):
+    """流式数据整合（带实时AI思考过程）"""
+    from django.http import StreamingHttpResponse
+    import time
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    def generate():
+        try:
+            import json
+            import re
+            from .services import call_llm_for_integration, call_gemini_api
+            from .models import SystemSettings
+
+            # 获取请求数据
+            data = json.loads(request.body)
+            checkup_ids = data.get('checkup_ids', [])
+            user_prompt = data.get('user_prompt', '').strip()
+
+            if not checkup_ids:
+                yield f"data: {json.dumps({'error': '请选择要整合的体检报告'}, ensure_ascii=False)}\n\n"
+                return
+
+            yield f"data: {json.dumps({'status': 'validating', 'message': '验证报告数据...'}, ensure_ascii=False)}\n\n"
+
+            # 验证报告所有权
+            checkups = HealthCheckup.objects.filter(
+                id__in=checkup_ids,
+                user=request.user
+            )
+
+            if checkups.count() != len(checkup_ids):
+                yield f"data: {json.dumps({'error': '部分报告不存在或无权访问'}, ensure_ascii=False)}\n\n"
+                return
+
+            # 获取所有指标
+            indicators = HealthIndicator.objects.filter(
+                checkup__in=checkups
+            ).select_related('checkup')
+
+            yield f"data: {json.dumps({'status': 'loading_data', 'message': f'加载了 {indicators.count()} 个指标'}, ensure_ascii=False)}\n\n"
+
+            # 按指标名称分组
+            indicators_by_name = {}
+            for indicator in indicators:
+                name_key = indicator.indicator_name.lower().strip()
+                if name_key not in indicators_by_name:
+                    indicators_by_name[name_key] = []
+                indicators_by_name[name_key].append(indicator)
+
+            yield f"data: {json.dumps({'status': 'grouping', 'message': f'分组完成，共 {len(indicators_by_name)} 组指标'}, ensure_ascii=False)}\n\n"
+
+            # 准备发送给LLM的数据
+            indicators_summary = []
+            for name_key, inds in indicators_by_name.items():
+                variants = []
+                for ind in inds:
+                    variants.append({
+                        'id': ind.id,
+                        'name': ind.indicator_name,
+                        'value': ind.value,
+                        'unit': ind.unit,
+                        'reference_range': ind.reference_range,
+                        'status': ind.status,
+                        'type': ind.indicator_type
+                    })
+                indicators_summary.append({
+                    'key': name_key,
+                    'variants': variants
+                })
+
+            # 构建Prompt
+            prompt = f"""分析{len(indicators_by_name)}组健康指标，只处理需要更正的指标：
+
+【首要任务：对齐命名】
+命名统一是最重要的任务！必须仔细检查相同指标是否有不同名称，将所有变体名称对齐到其中一个已有名称，不要创造新名称。
+示例：
+- "身高"和"身长"同时存在 → 统一为"身高"（选其中一个已有的）
+- "血红蛋白"和"HGB"同时存在 → 统一为"血红蛋白"（选其中一个已有的）
+- "空腹血糖"和"血糖"同时存在 → 统一为其中任意一个
+
+【其他需要更正的情况】
+1.单位缺失或不统一（如"kg"和"公斤"）→统一标准单位
+2.状态错误：必须仔细检查！特别注意描述性的指标值
+   - 如果value是描述性文字（如"未见异常"、"正常"、"阳性"等）→ status应设为对应状态
+   - 如果value明显超出参考范围 → status应为"abnormal"或"attention"
+   - 如果value在参考范围内 → status应为"normal"
+   - 如果有参考范围但status标记错误 → 必须更正
+3.分类错误或不统一：统一为最准确的分类
+
+【可选的指标分类（indicator_type）】
+必须从以下分类中选择，优先选择最具体的分类，最后才使用other：
+1. 一般检查 - general_exam: 一般检查（身高、体重、BMI、血压、心率、体温等）
+2. 血液检验 - blood_routine: 血常规；biochemistry: 生化检验；liver_function: 肝功能；kidney_function: 肾功能；thyroid: 甲状腺；cardiac: 心脏标志物；tumor_markers: 肿瘤标志物；infection: 感染炎症；blood_rheology: 血液流变；coagulation: 凝血功能
+3. 体液检验 - urine: 尿液检查；stool: 粪便检查；pathology: 病理检查
+4. 影像学检查 - ultrasound: 超声检查；X_ray: X线检查；CT_MRI: CT和MRI检查；endoscopy: 内镜检查
+5. 专科检查 - special_organs: 专科检查（眼科视力/眼压、耳鼻喉听力检查、口腔牙齿等）
+6. 兜底分类 - other: 其他检查（仅当无法归入以上任何类别时使用）
+
+【不需要更正的情况】
+- 名称已经一致（没有不同变体）
+- 单位已经是标准单位
+- 状态判断正确
+- 分类已经准确
+
+【禁止修改的字段】
+- 参考范围（reference_range）：不要返回此字段，保持原值不变
+
+【重要：添加修改理由】
+每个变更都必须包含"reason"字段，用简洁的中文说明修改的理由（1-2句话）。
+
+数据：
+{json.dumps(indicators_summary, ensure_ascii=False, indent=2)}
+
+返回格式（只包含需要更正的指标和字段）：
+{{
+    "changes": [
+        {{
+            "indicator_id": 123,
+            "indicator_name": "统一后的名称",
+            "reason": "将'身长'统一为'身高'，保持命名一致性"
+        }},
+        {{
+            "indicator_id": 456,
+            "value": "修正后的值",
+            "unit": "标准单位",
+            "reason": "单位从非标准的'公斤'统一为'kg'"
+        }},
+        {{
+            "indicator_id": 789,
+            "status": "normal",
+            "reason": "数值120在参考范围90-120内，状态应修正为正常"
+        }},
+        {{
+            "indicator_id": 101,
+            "indicator_type": "blood_routine",
+            "reason": "白细胞计数属于血液常规检查，分类应更正为blood_routine"
+        }}
+    ]
+}}
+
+【关键要求】
+1.只返回真正需要更正的指标
+2.已经正确的指标不要出现在changes中
+3.每个对象必须包含indicator_id、需要修改的字段（只限indicator_name、value、unit、status、indicator_type）和reason
+4.reason字段必须用简洁的中文说明修改理由
+5.绝对不要返回reference_range字段
+6.纯JSON格式，无markdown"""
+
+            if user_prompt:
+                prompt += f"""
+
+【用户特别要求】
+{user_prompt}
+
+请严格按照上述用户要求进行数据整合。"""
+
+            yield f"data: {json.dumps({'status': 'prompt_ready', 'message': f'📋 Prompt构建完成，长度: {len(prompt)} 字符'}, ensure_ascii=False)}\n\n"
+
+            # 获取LLM提供商配置
+            llm_config = SystemSettings.get_llm_config()
+            llm_provider = llm_config.get('provider', 'openai')
+
+            yield f"data: {json.dumps({'status': 'calling_llm', 'message': f'🤖 正在调用 {llm_provider.upper()} API...'}, ensure_ascii=False)}\n\n"
+
+            # 调用LLM
+            timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+
+            try:
+                if llm_provider == 'gemini':
+                    # 获取Gemini配置
+                    gemini_config = SystemSettings.get_gemini_config()
+                    api_key = gemini_config.get('api_key', '')
+                    model_name = gemini_config.get('model_name', 'gemini-2.5-flash-exp')
+
+                    if not api_key:
+                        raise Exception("Gemini API密钥未配置")
+
+                    yield f"data: {json.dumps({'status': 'llm_thinking', 'message': '💭 Gemini正在分析数据...'}, ensure_ascii=False)}\n\n"
+
+                    # 使用流式调用
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    from langchain_core.messages import HumanMessage
+
+                    llm = ChatGoogleGenerativeAI(
+                        model=model_name,
+                        google_api_key=api_key,
+                        temperature=0.7,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages = [HumanMessage(content=prompt)]
+                    llm_response = ""
+
+                    # 流式输出token
+                    for chunk in llm.stream(messages):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            # Gemini 返回的 content 可能是列表或字符串
+                            chunk_content = chunk.content
+
+                            # 如果是列表，提取文本内容
+                            if isinstance(chunk_content, list):
+                                content_text = ""
+                                for item in chunk_content:
+                                    if isinstance(item, str):
+                                        content_text += item
+                                    elif hasattr(item, 'text'):
+                                        content_text += item.text
+                                    elif isinstance(item, dict) and 'text' in item:
+                                        content_text += item['text']
+                                content = content_text
+                            else:
+                                # 如果已经是字符串，直接使用
+                                content = str(chunk_content)
+
+                            llm_response += content
+
+                            if content:
+                                # 实时发送token给前端
+                                yield f"data: {json.dumps({'status': 'llm_token', 'token': content}, ensure_ascii=False)}\n\n"
+
+                    # 检查响应是否为空
+                    if not llm_response or len(llm_response.strip()) == 0:
+                        raise Exception("Gemini返回空响应，请检查API配置和网络连接")
+                else:
+                    # 获取OpenAI兼容配置
+                    api_key = llm_config.get('api_key', '')
+                    api_url = llm_config.get('api_url', '')
+                    model_name = llm_config.get('model_name', 'gpt-4o-mini')
+
+                    if not api_key or not api_url:
+                        raise Exception("OpenAI兼容API配置不完整")
+
+                    yield f"data: {json.dumps({'status': 'llm_thinking', 'message': '💭 LLM正在分析数据...'}, ensure_ascii=False)}\n\n"
+
+                    # 使用流式调用OpenAI兼容模式
+                    from langchain_openai import ChatOpenAI
+                    from langchain_core.messages import HumanMessage
+
+                    # 处理 API URL
+                    base_url = api_url
+                    if '/chat/completions' in base_url:
+                        base_url = base_url.split('/chat/completions')[0]
+                    elif base_url.endswith('/'):
+                        base_url = base_url.rstrip('/')
+
+                    llm = ChatOpenAI(
+                        model=model_name,
+                        api_key=api_key,
+                        base_url=base_url,
+                        temperature=0.7,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages = [HumanMessage(content=prompt)]
+                    llm_response = ""
+
+                    # 流式输出token
+                    for chunk in llm.stream(messages):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            content = chunk.content
+                            llm_response += content
+                            # 实时发送token给前端
+                            yield f"data: {json.dumps({'status': 'llm_token', 'token': content}, ensure_ascii=False)}\n\n"
+
+                yield f"data: {json.dumps({'status': 'llm_complete', 'message': f'✅ LLM返回响应，长度: {len(llm_response)} 字符'}, ensure_ascii=False)}\n\n"
+
+            except Exception as e:
+                yield f"data: {json.dumps({'error': f'调用LLM失败: {str(e)}'}, ensure_ascii=False)}\n\n"
+                return
+
+            # 解析LLM响应
+            try:
+                yield f"data: {json.dumps({'status': 'parsing', 'message': '📊 正在解析LLM响应...'}, ensure_ascii=False)}\n\n"
+
+                cleaned_response = llm_response.strip()
+                print(f"[数据整合] 原始响应长度: {len(llm_response)} 字符")
+                print(f"[数据整合] 清理后响应长度: {len(cleaned_response)} 字符")
+                print(f"[数据整合] 响应前500字符: {cleaned_response[:500]}")
+
+                if not cleaned_response:
+                    raise Exception("LLM返回空响应")
+
+                if cleaned_response.startswith('```'):
+                    cleaned_response = re.sub(r'^```\w*\n?', '', cleaned_response)
+                    cleaned_response = re.sub(r'\n?```$', '', cleaned_response)
+
+                json_match = re.search(r'\{[\s\S]*\}', cleaned_response)
+                if json_match:
+                    result_json = json.loads(json_match.group())
+                else:
+                    result_json = json.loads(cleaned_response)
+
+                changes = result_json.get('changes', [])
+
+                yield f"data: {json.dumps({'status': 'parsed', 'message': f'✅ 解析完成，LLM建议更新 {len(changes)} 个指标'}, ensure_ascii=False)}\n\n"
+
+                # 验证变更
+                validated_changes = []
+                for change in changes:
+                    if not isinstance(change, dict):
+                        continue
+
+                    indicator_id = change.get('indicator_id')
+                    if not indicator_id:
+                        continue
+
+                    try:
+                        indicator = HealthIndicator.objects.get(id=indicator_id)
+                    except HealthIndicator.DoesNotExist:
+                        continue
+
+                    original_data = {
+                        'indicator_name': indicator.indicator_name,
+                        'value': indicator.value,
+                        'unit': indicator.unit or '',
+                        'reference_range': indicator.reference_range or '',
+                        'status': indicator.status,
+                        'indicator_type': indicator.indicator_type or ''
+                    }
+
+                    actual_changes = {}
+                    if 'indicator_name' in change:
+                        actual_changes['indicator_name'] = change['indicator_name']
+                    if 'value' in change:
+                        actual_changes['value'] = str(change['value'])
+                    if 'unit' in change:
+                        actual_changes['unit'] = change['unit']
+                    if 'status' in change:
+                        actual_changes['status'] = change['status']
+                    if 'indicator_type' in change:
+                        actual_changes['indicator_type'] = change['indicator_type']
+
+                    reason = change.get('reason', '')
+
+                    validated_changes.append({
+                        'indicator_id': indicator_id,
+                        'original': original_data,
+                        'changes': actual_changes,
+                        'reason': reason
+                    })
+
+                # 收集未变更的指标
+                changed_indicator_ids = set(change['indicator_id'] for change in validated_changes)
+                unchanged_indicators = []
+                for indicator in indicators:
+                    if indicator.id not in changed_indicator_ids:
+                        original_data = {
+                            'indicator_name': indicator.indicator_name,
+                            'value': indicator.value,
+                            'unit': indicator.unit or '',
+                            'reference_range': indicator.reference_range or '',
+                            'status': indicator.status,
+                            'indicator_type': indicator.indicator_type or ''
+                        }
+                        unchanged_indicators.append({
+                            'indicator_id': indicator.id,
+                            'original': original_data,
+                            'changes': {},
+                            'unchanged': True
+                        })
+
+                all_indicators = validated_changes + unchanged_indicators
+
+                # 发送最终结果
+                yield f"data: {json.dumps({'status': 'done', 'message': '✅ 整合完成！', 'total_indicators': indicators.count(), 'unique_groups': len(indicators_by_name), 'changed_count': len(validated_changes), 'unchanged_count': len(unchanged_indicators), 'changes': validated_changes, 'all_indicators': all_indicators}, ensure_ascii=False)}\n\n"
+
+            except json.JSONDecodeError as e:
+                yield f"data: {json.dumps({'error': f'JSON解析错误: {str(e)}', 'response_preview': llm_response[:1000], 'response_length': len(llm_response)}, ensure_ascii=False)}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': f'解析失败: {str(e)}', 'response_preview': llm_response[:500] if llm_response else '无响应'}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            import traceback
+            yield f"data: {json.dumps({'error': str(e), 'trace': traceback.format_exc()[:1000]}, ensure_ascii=False)}\n\n"
+
+    response = StreamingHttpResponse(generate(), content_type='text/event-stream')
+    response['Cache-Control'] = 'no-cache'
+    response['X-Accel-Buffering'] = 'no'
+    return response
+
+
+@require_http_methods(["POST"])
+@login_required
+def update_checkup_notes(request, checkup_id):
+    """更新体检报告的描述（notes字段）"""
+    try:
+        import json
+
+        # 验证报告所有权
+        checkup = get_object_or_404(HealthCheckup, id=checkup_id, user=request.user)
+
+        # 获取新的notes内容
+        data = json.loads(request.body)
+        new_notes = data.get('notes', '').strip()
+
+        # 更新notes
+        checkup.notes = new_notes
+        checkup.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '报告描述已更新',
+            'notes': new_notes
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'更新失败: {str(e)}'
+        }, status=500)

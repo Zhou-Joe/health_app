@@ -126,13 +126,8 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="ai-doctor-tab" data-bs-toggle="tab" data-bs-target="#ai-doctor-panel" type="button" role="tab">
-                            <i class="bi bi-robot"></i> AI医生
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="multimodal-tab" data-bs-toggle="tab" data-bs-target="#multimodal-panel" type="button" role="tab">
-                            <i class="bi bi-eye"></i> 多模态模型
+                        <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" data-bs-target="#workflow-panel" type="button" role="tab">
+                            <i class="bi bi-diagram-3"></i> 工作流
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -141,8 +136,18 @@
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="workflow-tab" data-bs-toggle="tab" data-bs-target="#workflow-panel" type="button" role="tab">
-                            <i class="bi bi-diagram-3"></i> 工作流
+                        <button class="nav-link" id="multimodal-tab" data-bs-toggle="tab" data-bs-target="#multimodal-panel" type="button" role="tab">
+                            <i class="bi bi-eye"></i> 多模态模型
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="ai-doctor-tab" data-bs-toggle="tab" data-bs-target="#ai-doctor-panel" type="button" role="tab">
+                            <i class="bi bi-robot"></i> AI医生
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="gemini-tab" data-bs-toggle="tab" data-bs-target="#gemini-panel" type="button" role="tab">
+                            <i class="bi bi-google"></i> Gemini配置
                         </button>
                     </li>
                 </ul>
@@ -204,7 +209,7 @@
                             </div>
                             <div class="info-box">
                                 <i class="bi bi-info-circle"></i>
-                                选择AI医生使用的API服务提供商。不同提供商需要不同的配置。
+                                选择AI医生使用的API服务提供商。如果选择Gemini，请前往"Gemini配置"标签页配置API密钥和模型名称。
                             </div>
                             <div class="mb-3">
                                 <label for="{{ form.ai_doctor_provider.id_for_label }}" class="form-label fw-bold">
@@ -249,11 +254,22 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Gemini配置 -->
-                        <div class="section-card d-none" id="gemini-ai-doctor-config">
+                    <!-- Gemini配置面板 -->
+                    <div class="tab-pane fade" id="gemini-panel" role="tabpanel">
+                        <div class="section-card">
                             <div class="section-title">
-                                <i class="bi bi-google"></i> Google Gemini 配置
+                                <i class="bi bi-google"></i> Google Gemini API 配置
+                            </div>
+                            <div class="info-box">
+                                <i class="bi bi-info-circle"></i>
+                                <strong>Gemini API配置说明：</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li><strong>AI医生</strong>：当AI医生选择Gemini提供商时使用此配置</li>
+                                    <li><strong>多模态模型</strong>：当多模态模型选择Gemini提供商时使用此配置</li>
+                                    <li><strong>数据整合LLM</strong>：当数据整合LLM选择Gemini提供商时使用此配置</li>
+                                </ul>
                             </div>
                             <div class="info-box">
                                 <small>
@@ -264,17 +280,30 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="{{ form.gemini_api_key.id_for_label }}" class="form-label">Gemini API密钥</label>
+                                        <label for="{{ form.gemini_api_key.id_for_label }}" class="form-label fw-bold">Gemini API密钥</label>
                                         {{ form.gemini_api_key }}
+                                        {% if form.gemini_api_key.errors %}
+                                            <div class="text-danger">{{ form.gemini_api_key.errors }}</div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">Google Gemini API的访问密钥</small>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="{{ form.gemini_model_name.id_for_label }}" class="form-label">模型名称</label>
+                                        <label for="{{ form.gemini_model_name.id_for_label }}" class="form-label fw-bold">模型名称</label>
                                         {{ form.gemini_model_name }}
+                                        {% if form.gemini_model_name.errors %}
+                                            <div class="text-danger">{{ form.gemini_model_name.errors }}</div>
+                                        {% endif %}
+                                        <small class="form-text text-muted">例如：gemini-1.5-flash、gemini-1.5-pro等</small>
                                     </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="bi bi-lightbulb"></i>
+                            <strong>提示：</strong> 配置好Gemini API后，可以在"AI医生"、"多模态模型"、"数据整合"标签页中选择使用Gemini提供商。
                         </div>
                     </div>
 
@@ -287,7 +316,7 @@
                             </div>
                             <div class="info-box">
                                 <i class="bi bi-info-circle"></i>
-                                多模态模型用于直接从文档图片中提取健康数据。选择合适的提供商以获得最佳效果。
+                                多模态模型用于直接从文档图片中提取健康数据。如果选择Gemini，请前往"Gemini配置"标签页配置API密钥和模型名称。
                             </div>
                             <div class="mb-3">
                                 <label for="{{ form.vl_model_provider.id_for_label }}" class="form-label fw-bold">
@@ -331,21 +360,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Gemini Vision配置 -->
-                        <div class="section-card d-none" id="gemini-vl-config">
-                            <div class="section-title">
-                                <i class="bi bi-google"></i> Google Gemini Vision 配置
-                            </div>
-                            <div class="info-box">
-                                <small>
-                                    <strong>说明：</strong>Gemini Vision会使用上方的Gemini API配置。确保已正确配置Gemini API密钥。
-                                </small>
-                            </div>
-                            <div class="alert alert-info">
-                                <i class="bi bi-check-circle"></i> Gemini Vision使用与AI医生相同的Gemini API配置
-                            </div>
-                        </div>
                     </div>
 
                     <!-- 数据整合LLM面板 -->
@@ -362,6 +376,7 @@
                                     <li><strong>数据整合功能</strong>：智能分析和标准化多份体检报告的指标名称、单位、参考范围等</li>
                                     <li><strong>文档处理（OCR+LLM）</strong>：从体检报告OCR文本中提取健康指标数据</li>
                                 </ul>
+                                <small class="text-muted mt-2 d-block">如果选择Gemini提供商，请前往"Gemini配置"标签页配置API密钥和模型名称。</small>
                             </div>
                             <div class="mb-3">
                                 <label for="{{ form.llm_provider.id_for_label }}" class="form-label fw-bold">
@@ -430,21 +445,6 @@
                                         {{ form.llm_api_key }}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Gemini配置 -->
-                        <div class="section-card d-none" id="gemini-llm-config">
-                            <div class="section-title">
-                                <i class="bi bi-google"></i> Google Gemini 配置
-                            </div>
-                            <div class="info-box">
-                                <small>
-                                    <strong>说明：</strong>数据整合使用与AI医生相同的Gemini API配置。
-                                </small>
-                            </div>
-                            <div class="alert alert-info">
-                                <i class="bi bi-check-circle"></i> 数据整合使用与AI医生相同的Gemini API配置
                             </div>
                         </div>
                     </div>
@@ -570,18 +570,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // AI医生提供商切换
     const aiDoctorProvider = document.getElementById('id_ai_doctor_provider');
     const openaiAiDoctorConfig = document.getElementById('openai-ai-doctor-config');
-    const geminiAiDoctorConfig = document.getElementById('gemini-ai-doctor-config');
     const aiDoctorBadge = document.getElementById('ai-doctor-badge');
 
     function updateAiDoctorConfig() {
         if (aiDoctorProvider.value === 'gemini') {
             openaiAiDoctorConfig.classList.add('d-none');
-            geminiAiDoctorConfig.classList.remove('d-none');
             aiDoctorBadge.textContent = 'Gemini';
             aiDoctorBadge.className = 'provider-badge gemini';
         } else {
             openaiAiDoctorConfig.classList.remove('d-none');
-            geminiAiDoctorConfig.classList.add('d-none');
             aiDoctorBadge.textContent = 'OpenAI';
             aiDoctorBadge.className = 'provider-badge openai';
         }
@@ -595,18 +592,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // 多模态模型提供商切换
     const vlModelProvider = document.getElementById('id_vl_model_provider');
     const openaiVlConfig = document.getElementById('openai-vl-config');
-    const geminiVlConfig = document.getElementById('gemini-vl-config');
     const vlModelBadge = document.getElementById('vl-model-badge');
 
     function updateVlModelConfig() {
         if (vlModelProvider.value === 'gemini') {
             openaiVlConfig.classList.add('d-none');
-            geminiVlConfig.classList.remove('d-none');
             vlModelBadge.textContent = 'Gemini';
             vlModelBadge.className = 'provider-badge gemini';
         } else {
             openaiVlConfig.classList.remove('d-none');
-            geminiVlConfig.classList.add('d-none');
             vlModelBadge.textContent = 'OpenAI';
             vlModelBadge.className = 'provider-badge openai';
         }
@@ -620,18 +614,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // 数据整合LLM提供商切换
     const llmProvider = document.getElementById('id_llm_provider');
     const openaiLlmConfig = document.getElementById('openai-llm-config');
-    const geminiLlmConfig = document.getElementById('gemini-llm-config');
     const llmBadge = document.getElementById('llm-badge');
 
     function updateLlmConfig() {
         if (llmProvider.value === 'gemini') {
             openaiLlmConfig.classList.add('d-none');
-            geminiLlmConfig.classList.remove('d-none');
             llmBadge.textContent = 'Gemini';
             llmBadge.className = 'provider-badge gemini';
         } else {
             openaiLlmConfig.classList.remove('d-none');
-            geminiLlmConfig.classList.add('d-none');
             llmBadge.textContent = 'OpenAI';
             llmBadge.className = 'provider-badge openai';
         }
@@ -778,7 +769,7 @@ async function testConnection() {
                             ]
                         }]
                     };
-                    const geminiVlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${settings.gemini_model_name}:generateContent?key=${settings.gemini_api_key}`, {
+                    const geminiVlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${settings.vl_model_name}:generateContent?key=${settings.gemini_api_key}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(geminiVlData),

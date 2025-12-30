@@ -157,6 +157,133 @@ class DocumentProcessingService:
             self.update_progress('failed', 0, error_msg, is_error=True)
             raise
 
+    def process_with_llm_stream(self, ocr_text, yield_fn):
+        """调用LLM进行数据结构化处理（流式输出版本）"""
+        import json
+        from .models import SystemSettings
+
+        try:
+            # 获取LLM配置
+            llm_config = SystemSettings.get_llm_config()
+            llm_provider = llm_config.get('provider', 'openai')
+
+            # 构建prompt
+            prompt = self._build_llm_prompt(ocr_text)
+            print(f"📋 构建完成Prompt，长度: {len(prompt)} 字符")
+
+            timeout = self.ai_timeout
+            structured_data = None
+
+            if llm_provider == 'gemini':
+                # 获取Gemini配置
+                gemini_config = SystemSettings.get_gemini_config()
+                api_key = gemini_config.get('api_key', '')
+                model_name = gemini_config.get('model_name', 'gemini-2.5-flash-exp')
+
+                if not api_key:
+                    raise Exception("Gemini API密钥未配置")
+
+                # 使用流式调用
+                from langchain_google_genai import ChatGoogleGenerativeAI
+                from langchain_core.messages import HumanMessage
+
+                llm = ChatGoogleGenerativeAI(
+                    model=model_name,
+                    google_api_key=api_key,
+                    temperature=0.1,
+                    timeout=timeout,
+                    streaming=True
+                )
+
+                messages = [HumanMessage(content=prompt)]
+                llm_response = ""
+
+                # 流式输出token
+                for chunk in llm.stream(messages):
+                    if hasattr(chunk, 'content') and chunk.content:
+                        chunk_content = chunk.content
+
+                        if isinstance(chunk_content, list):
+                            for item in chunk_content:
+                                if isinstance(item, str):
+                                    llm_response += item
+                                    # 实时发送token给前端
+                                    yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': item}, ensure_ascii=False)}\n\n")
+                                elif hasattr(item, 'text'):
+                                    llm_response += item.text
+                                    yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': item.text}, ensure_ascii=False)}\n\n")
+                        else:
+                            llm_response += str(chunk_content)
+                            yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': str(chunk_content)}, ensure_ascii=False)}\n\n")
+
+            else:
+                # 获取OpenAI兼容配置
+                api_key = llm_config.get('api_key', '')
+                api_url = llm_config.get('api_url', '')
+                model_name = llm_config.get('model_name', 'gpt-4o-mini')
+
+                if not api_key or not api_url:
+                    raise Exception("OpenAI兼容API配置不完整")
+
+                # 使用流式调用OpenAI兼容模式
+                from langchain_openai import ChatOpenAI
+                from langchain_core.messages import HumanMessage
+
+                # 处理 API URL
+                base_url = api_url
+                if '/chat/completions' in base_url:
+                    base_url = base_url.split('/chat/completions')[0]
+                elif base_url.endswith('/'):
+                    base_url = base_url.rstrip('/')
+
+                llm = ChatOpenAI(
+                    model=model_name,
+                    api_key=api_key,
+                    base_url=base_url,
+                    temperature=0.1,
+                    timeout=timeout,
+                    streaming=True
+                )
+
+                messages = [HumanMessage(content=prompt)]
+                llm_response = ""
+
+                # 流式输出token
+                for chunk in llm.stream(messages):
+                    if hasattr(chunk, 'content') and chunk.content:
+                        content = chunk.content
+                        llm_response += content
+                        # 实时发送token给前端
+                        yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': content}, ensure_ascii=False)}\n\n")
+
+            # 解析LLM响应
+            print(f"LLM响应长度: {len(llm_response)} 字符")
+
+            # 清理响应中的markdown代码块标记
+            cleaned_response = llm_response.strip()
+            if cleaned_response.startswith('```'):
+                import re
+                cleaned_response = re.sub(r'^```\w*\n?', '', cleaned_response)
+                cleaned_response = re.sub(r'\n?```$', '', cleaned_response)
+
+            # 解析JSON
+            structured_data = json.loads(cleaned_response)
+
+            # 保存LLM原始结果用于调试
+            self.document_processing.ai_result = structured_data
+            self.document_processing.save()
+            print(f"LLM结果已保存，包含 {len(structured_data.get('indicators', []))} 个指标")
+
+            return structured_data
+
+        except Exception as e:
+            # 保存错误信息到数据库
+            error_msg = f"LLM处理失败: {str(e)}"
+            self.document_processing.error_message = error_msg
+            self.document_processing.save()
+            print(f"LLM处理失败: {error_msg}")
+            raise
+
     def _call_real_llm(self, ocr_text):
         """调用LLM服务进行文档分析"""
         print(f"\n{'='*60}")
@@ -1258,8 +1385,8 @@ class VisionLanguageModelService:
             if not gemini_api_key:
                 raise Exception("未配置Gemini API密钥，请在系统设置中配置")
 
-            # 使用 Gemini 模型名称或配置的多模态模型名称
-            model_name = SystemSettings.get_setting('gemini_model_name', self.vl_model_name)
+            # 使用多模态模型配置的模型名称（而不是数据整合的gemini_model_name）
+            model_name = self.vl_model_name
 
             # 读取并编码图片
             with open(image_path, 'rb') as f:
@@ -2221,6 +2348,122 @@ def call_gemini_api(prompt, system_message=None, timeout=None):
         raise Exception(f"Gemini API请求超时（{timeout}秒）")
     except Exception as e:
         print(f"[Gemini API调用] ✗ 调用失败: {str(e)}")
+        raise Exception(f"调用Gemini API失败: {str(e)}")
+
+
+def call_gemini_api_stream(prompt, system_message=None, timeout=None):
+    """
+    调用 Google Gemini API - 流式版本
+
+    Args:
+        prompt: 发送给Gemini的提示词
+        system_message: 系统消息（可选）
+        timeout: 超时时间（秒），默认使用系统配置
+
+    Yields:
+        str: Gemini的响应文本片段
+    """
+    import requests
+    import json
+    from .models import SystemSettings
+
+    # 获取Gemini配置
+    gemini_config = SystemSettings.get_gemini_config()
+    api_key = gemini_config['api_key']
+    model_name = gemini_config['model_name']
+
+    if not api_key:
+        raise Exception("Gemini API密钥未配置，请在系统设置中配置")
+
+    # 使用统一超时配置
+    if timeout is None:
+        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+
+    # 从系统设置读取max_tokens
+    max_tokens = int(SystemSettings.get_setting('llm_max_tokens', '16000'))
+
+    print(f"\n{'='*80}")
+    print(f"[Gemini API流式调用] 开始")
+    print(f"[Gemini API流式调用] 模型: {model_name}")
+    print(f"[Gemini API流式调用] 超时: {timeout}秒")
+    print(f"[Gemini API流式调用] 最大Tokens: {max_tokens}")
+
+    # 构建请求内容
+    parts = []
+
+    # 添加系统消息（如果有）
+    if system_message:
+        parts.append({"text": system_message})
+
+    # 添加用户提示
+    parts.append({"text": prompt})
+
+    # Gemini API 请求格式（streamGenerateContent）
+    gemini_data = {
+        "contents": [{
+            "parts": parts
+        }],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": max_tokens
+        }
+    }
+
+    # 构建API URL - 使用 streamGenerateContent
+    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?key={api_key}"
+
+    print(f"[Gemini API流式调用] 请求URL: {api_url}")
+    print(f"[Gemini API流式调用] Prompt长度: {len(prompt)} 字符")
+
+    try:
+        import time
+        start_time = time.time()
+
+        response = requests.post(
+            api_url,
+            json=gemini_data,
+            headers={"Content-Type": "application/json"},
+            timeout=timeout,
+            stream=True
+        )
+
+        if response.status_code == 200:
+            print(f"[Gemini API流式调用] ✓ 开始接收流式响应")
+            total_chars = 0
+
+            for line in response.iter_lines():
+                if line:
+                    line = line.decode('utf-8')
+                    if line.startswith('data: '):
+                        try:
+                            data = json.loads(line[6:])
+                            # Gemini 流式响应格式
+                            if 'candidates' in data and len(data['candidates']) > 0:
+                                candidate = data['candidates'][0]
+                                if 'content' in candidate and 'parts' in candidate['content']:
+                                    for part in candidate['content']['parts']:
+                                        if 'text' in part:
+                                            text = part['text']
+                                            total_chars += len(text)
+                                            yield text
+                        except json.JSONDecodeError:
+                            continue
+
+            end_time = time.time()
+            duration = end_time - start_time
+            print(f"[Gemini API流式调用] ✓ 完成")
+            print(f"[Gemini API流式调用] 总响应长度: {total_chars} 字符")
+            print(f"[Gemini API流式调用] 总响应时间: {duration:.2f}秒")
+        else:
+            print(f"[Gemini API流式调用] ✗ API返回错误")
+            print(f"[Gemini API流式调用] 错误详情: {response.text}")
+            raise Exception(f"Gemini API返回错误: {response.status_code} - {response.text}")
+
+    except requests.exceptions.Timeout:
+        print(f"[Gemini API流式调用] ✗ 请求超时（{timeout}秒）")
+        raise Exception(f"Gemini API请求超时（{timeout}秒）")
+    except Exception as e:
+        print(f"[Gemini API流式调用] ✗ 调用失败: {str(e)}")
         raise Exception(f"调用Gemini API失败: {str(e)}")
 
 

@@ -35,7 +35,7 @@ def logout_view(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('medical_records.urls')),
+    path('', include('medical_records.urls', namespace='medical_records')),
     path('api/miniprogram/', include('medical_records.miniprogram_urls')),
 
     # 认证相关URL

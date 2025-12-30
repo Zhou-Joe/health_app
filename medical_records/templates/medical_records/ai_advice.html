@@ -245,6 +245,11 @@
                                                 <div class="d-flex justify-content-between align-items-start">
                                                     <div>
                                                         <strong>{{ report.hospital|default:"未知医院" }}</strong>
+                                                        {% if report.notes %}
+                                                            <span class="badge bg-light text-dark border ms-2">
+                                                                <i class="bi bi-card-text"></i> {{ report.notes }}
+                                                            </span>
+                                                        {% endif %}
                                                         <div class="text-muted small">
                                                             <i class="bi bi-calendar"></i> {{ report.checkup_date|date:"Y年m月d日" }}
                                                             {% if report.indicator_set.all %}
@@ -997,8 +1002,8 @@ function refreshAdviceHistory() {
     });
 }
 
-// 表单提交处理
-document.getElementById('adviceForm').addEventListener('submit', function(e) {
+// 表单提交处理 - 使用流式响应
+document.getElementById('adviceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
     const textarea = document.querySelector('textarea[name="question"]');
@@ -1022,131 +1027,143 @@ document.getElementById('adviceForm').addEventListener('submit', function(e) {
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('submitBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>处理中...';
 
-    // 提交表单
+    // 收集表单数据
     const formData = new FormData(this);
 
     // 添加对话相关信息
     const conversationMode = document.querySelector('input[name="conversation_mode"]:checked');
     if (conversationMode && conversationMode.value === 'continue_conversation') {
-        // 如果选择继续对话，添加选中的对话ID
         const selectedConversation = document.querySelector('.conversation-item.border-primary');
         if (selectedConversation) {
             const conversationId = selectedConversation.getAttribute('data-conversation-id');
             formData.append('conversation_id', conversationId);
         } else {
             alert('请选择一个要继续的对话');
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-send"></i> 获取建议';
+            document.getElementById('loadingCard').style.display = 'none';
             return;
         }
     }
 
-    fetch(this.action, {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Received data:', data); // 调试信息
-        console.log('Success status:', data.success); // 调试信息
-        console.log('Error info:', data.error); // 调试信息
-        if (data.success) {
-            // 显示结果
-            document.getElementById('userQuestion').textContent = data.question;
+    // 收集选择的报告ID
+    const selectedReportIds = [];
+    document.querySelectorAll('input[name="selected_reports"]:checked').forEach(checkbox => {
+        selectedReportIds.push(checkbox.value);
+    });
+    if (selectedReportIds.length > 0) {
+        formData.append('selected_report_ids', JSON.stringify(selectedReportIds));
+    }
 
-            // 将Markdown转换为HTML
-            const aiAnswerHtml = marked.parse(data.answer);
-            document.getElementById('aiAnswer').innerHTML = aiAnswerHtml;
+    try {
+        // 使用流式API
+        const streamUrl = '{% url "medical_records:api_stream_ai_advice" %}';
 
-            document.getElementById('promptContent').textContent = data.prompt;
-            document.getElementById('responseTime').textContent = data.created_at;
+        // 准备请求数据
+        const requestData = {
+            question: question,
+            conversation_mode: formData.get('conversation_mode'),
+            report_mode: formData.get('report_mode'),
+            selected_report_ids: selectedReportIds
+        };
 
-            // 显示对话历史
-            if (data.conversation_context && data.conversation_context.length > 0) {
-                const historyHtml = data.conversation_context.map((ctx, index) => `
-                    <div class="mb-2">
-                        <div class="text-muted small">${ctx.time}</div>
-                        <div><strong>问：</strong>${ctx.question}</div>
-                        <div><strong>答：</strong>${ctx.answer.substring(0, 100)}${ctx.answer.length > 100 ? '...' : ''}</div>
-                        ${index < data.conversation_context.length - 1 ? '<hr class="my-2">' : ''}
-                    </div>
-                `).join('');
-                document.getElementById('historyContent').innerHTML = historyHtml;
-                document.getElementById('conversationHistory').style.display = 'block';
-            } else {
-                document.getElementById('conversationHistory').style.display = 'none';
-            }
-
-            // 隐藏加载状态，显示结果
-            document.getElementById('loadingCard').style.display = 'none';
-            document.getElementById('resultCard').style.display = 'block';
-
-            // 滚动到结果区域
-            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
-
-            // 清空表单
-            textarea.value = '';
-
-            // 刷新页面以更新历史记录
-            setTimeout(() => {
-                window.location.reload();
-            }, 3000);
-        } else {
-            // 显示详细错误信息
-            let errorMessage = data.error || '未知错误';
-
-            if (data.form_errors) {
-                // 表单验证错误
-                const formErrorDetails = Object.entries(data.form_errors)
-                    .map(([field, errors]) => `${field}: ${errors.join(', ')}`)
-                    .join('\\n');
-                errorMessage += '\\n\\n详细错误：\\n' + formErrorDetails;
-            }
-
-            if (data.technical_error) {
-                // 技术错误详情
-                errorMessage += '\\n\\n技术详情：' + data.technical_error;
-            }
-
-            // 显示错误结果卡片
-            document.getElementById('userQuestion').textContent = data.question || '未知问题';
-            document.getElementById('aiAnswer').innerHTML = `
-                <div class="alert alert-danger">
-                    <h5><i class="bi bi-exclamation-triangle"></i> AI医生服务暂时不可用</h5>
-                    <p><strong>错误信息：</strong>${errorMessage}</p>
-                    ${data.prompt ? `
-                        <details class="mt-3">
-                            <summary><i class="bi bi-code"></i> 查看发送给AI的内容</summary>
-                            <pre class="mt-2 p-3 bg-dark text-light rounded" style="font-size: 0.9em; max-height: 300px; overflow-y: auto;">${data.prompt}</pre>
-                        </details>
-                    ` : ''}
-                    <div class="mt-3">
-                        <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
-                            <i class="bi bi-arrow-clockwise"></i> 重新尝试
-                        </button>
-                        <button class="btn btn-outline-secondary btn-sm ms-2" onclick="document.getElementById('loadingCard').style.display='none'; document.getElementById('resultCard').style.display='none';">
-                            <i class="bi bi-x"></i> 关闭
-                        </button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('responseTime').textContent = new Date().toLocaleString();
-            document.getElementById('conversationHistory').style.display = 'none';
-
-            // 隐藏加载状态，显示错误结果
-            document.getElementById('loadingCard').style.display = 'none';
-            document.getElementById('resultCard').style.display = 'block';
-
-            // 滚动到结果区域
-            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+        const conversationIdInput = formData.get('conversation_id');
+        if (conversationIdInput) {
+            requestData.conversation_id = conversationIdInput;
         }
-    })
-    .catch(error => {
+
+        const response = await fetch(streamUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        // 切换到流式显示状态
+        document.getElementById('loadingCard').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'block';
+        document.getElementById('userQuestion').textContent = question;
+        document.getElementById('aiAnswer').innerHTML = '<div class="text-muted"><i class="bi bi-three-dots"></i> AI医生正在思考...</div>';
+        document.getElementById('responseTime').textContent = new Date().toLocaleString();
+        document.getElementById('conversationHistory').style.display = 'none';
+
+        // 滚动到结果区域
+        document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+
+        // 读取流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullAnswer = '';
+        let isMarkdownMode = true;
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+
+                        if (data.error) {
+                            // 显示错误
+                            document.getElementById('aiAnswer').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <h5><i class="bi bi-exclamation-triangle"></i> AI医生服务暂时不可用</h5>
+                                    <p><strong>错误信息：</strong>${data.error}</p>
+                                </div>
+                            `;
+                            isMarkdownMode = false;
+                        } else if (data.content) {
+                            // 流式内容
+                            fullAnswer += data.content;
+
+                            // 显示累积内容（暂时不解析Markdown以提高性能）
+                            document.getElementById('aiAnswer').textContent = fullAnswer;
+
+                            // 自动滚动到底部
+                            const aiAnswerDiv = document.getElementById('aiAnswer');
+                            aiAnswerDiv.scrollTop = aiAnswerDiv.scrollHeight;
+                        } else if (data.done) {
+                            // 流式完成，将Markdown转换为HTML
+                            const aiAnswerHtml = marked.parse(fullAnswer);
+                            document.getElementById('aiAnswer').innerHTML = aiAnswerHtml;
+                        } else if (data.saved) {
+                            // 保存成功
+                            console.log('已保存到数据库，advice_id:', data.advice_id, 'conversation_id:', data.conversation_id);
+
+                            // 延迟刷新页面以更新历史记录
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 3000);
+                        } else if (data.save_error) {
+                            console.error('保存失败:', data.save_error);
+                        }
+                    } catch (parseError) {
+                        console.error('解析SSE数据失败:', parseError, line);
+                    }
+                }
+            }
+        }
+
+        // 清空表单
+        textarea.value = '';
+
+    } catch (error) {
         console.error('Error:', error);
 
         // 显示网络错误
-        document.getElementById('userQuestion').textContent = textarea.value || '未知问题';
+        document.getElementById('userQuestion').textContent = question;
         document.getElementById('aiAnswer').innerHTML = `
             <div class="alert alert-danger">
                 <h5><i class="bi bi-exclamation-triangle"></i> 网络或服务器错误</h5>
@@ -1165,16 +1182,13 @@ document.getElementById('adviceForm').addEventListener('submit', function(e) {
         document.getElementById('responseTime').textContent = new Date().toLocaleString();
         document.getElementById('conversationHistory').style.display = 'none';
 
-        // 隐藏加载状态，显示错误
         document.getElementById('loadingCard').style.display = 'none';
         document.getElementById('resultCard').style.display = 'block';
-    })
-    .finally(() => {
+    } finally {
         // 恢复按钮状态
         document.getElementById('submitBtn').disabled = false;
         document.getElementById('submitBtn').innerHTML = '<i class="bi bi-send"></i> 获取建议';
-        document.getElementById('loadingCard').style.display = 'none';
-    });
+    }
 });
 
 // 自动调整文本框高度

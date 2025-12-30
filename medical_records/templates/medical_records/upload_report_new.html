@@ -55,6 +55,18 @@
                             </div>
                         </div>
 
+                        <!-- 报告描述 -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label for="report_description" class="form-label">
+                                    <i class="bi bi-card-text"></i> 报告描述
+                                </label>
+                                <input type="text" class="form-control" id="report_description" name="report_description"
+                                       placeholder="例如：年度体检报告、入职体检等（默认为文件名）" maxlength="200">
+                                <div class="form-text">可选，留空将使用上传的文件名作为描述</div>
+                            </div>
+                        </div>
+
                         <!-- 工作流模式选择 -->
                         <div class="row mb-4">
                             <div class="col-12">
@@ -246,9 +258,37 @@
 
                     <!-- 进度条 -->
                     <div class="progress mb-3" style="height: 25px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
                              id="progressBar" role="progressbar" style="width: 0%">
                             <span id="progressText">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- 实时处理日志 -->
+                    <div class="card bg-dark text-light mb-3">
+                        <div class="card-body py-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="card-title mb-0 small">
+                                    <i class="bi bi-terminal-fill text-success"></i> 实时处理日志
+                                </h6>
+                                <span class="badge bg-success small" id="uploadLogStatus">运行中</span>
+                            </div>
+                            <div id="uploadProgressLog"
+                                 style="max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8em; line-height: 1.4; background: #1e1e1e; padding: 10px; border-radius: 4px;">
+                                <div class="text-secondary">等待开始...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LLM输出区域 -->
+                    <div class="card bg-light mb-3" id="uploadLLMOutputCard" style="display: none;">
+                        <div class="card-body">
+                            <h6 class="card-title mb-3">
+                                <i class="bi bi-robot text-primary"></i> AI正在分析体检报告
+                            </h6>
+                            <div id="uploadLLMOutput"
+                                 style="max-height: 200px; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9em; line-height: 1.6; padding: 15px; background: white; border: 1px solid #dee2e6; border-radius: 5px; color: #333;">
+                            </div>
                         </div>
                     </div>
 
@@ -642,6 +682,14 @@ function handleFileSelect(file) {
     document.getElementById('fileName').textContent = file.name;
     document.getElementById('fileSize').textContent = formatFileSize(file.size);
 
+    // 自动填充报告描述（如果用户还没有填写）
+    const reportDescription = document.getElementById('report_description');
+    if (!reportDescription.value || reportDescription.value.trim() === '') {
+        // 去掉文件扩展名作为默认描述
+        const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        reportDescription.value = fileNameWithoutExt;
+    }
+
     // 启用提交按钮
     document.getElementById('submitBtn').disabled = false;
 }
@@ -828,6 +876,12 @@ async function uploadFile() {
     formData.append('file', fileInput.files[0]);
     formData.append('checkup_date', document.getElementById('checkup_date').value);
 
+    // 添加报告描述字段
+    const reportDescription = document.getElementById('report_description').value.trim();
+    if (reportDescription) {
+        formData.append('report_description', reportDescription);
+    }
+
     // 添加医院字段
     const hospital = document.getElementById('hospital').value;
     if (hospital) {
@@ -849,8 +903,21 @@ async function uploadFile() {
         <div><strong>体检日期：</strong>${document.getElementById('checkup_date').value}</div>
     `;
 
+    // 清空日志
+    const uploadProgressLog = document.getElementById('uploadProgressLog');
+    if (uploadProgressLog) {
+        uploadProgressLog.innerHTML = '<div class="text-secondary">准备开始...</div>';
+    }
+
+    // 隐藏OCR结果区域（如果存在）
+    const ocrResults = document.getElementById('ocrResults');
+    if (ocrResults) {
+        ocrResults.style.display = 'none';
+    }
+
     try {
-        const response = await fetch('{% url "medical_records:api_upload" %}', {
+        // 使用流式API
+        const response = await fetch('{% url "medical_records:api_stream_upload" %}', {
             method: 'POST',
             body: formData,
             headers: {
@@ -858,15 +925,184 @@ async function uploadFile() {
             }
         });
 
-        const result = await response.json();
-
-        if (result.success) {
-            currentProcessingId = result.processing_id;
-            startProgressMonitoring();
-        } else {
-            showError(result.error);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        // 读取流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let finalResult = null;
+        let buffer = '';
+        let uploadLLMOutputBuffer = '';
+
+        // HTML转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 追加LLM token到输出区域
+        function appendUploadLLMToken(token) {
+            const llmOutput = document.getElementById('uploadLLMOutput');
+            if (!llmOutput) return;
+
+            uploadLLMOutputBuffer += token;
+
+            // 转义HTML特殊字符并显示
+            llmOutput.innerHTML = escapeHtml(uploadLLMOutputBuffer)
+                .replace(/\n/g, '<br>')
+                .replace(/\{/g, '<span style="color: #66d9ef;">{</span>')
+                .replace(/\}/g, '<span style="color: #66d9ef;">}</span>')
+                .replace(/"([^"]+)":/g, '<span style="color: #a6e22e;">"$1"</span>:')
+                .replace(/: "([^"]+)"/g, ': <span style="color: #fd971f;">"$1"</span>');
+
+            // 自动滚动到底部
+            llmOutput.scrollTop = llmOutput.scrollHeight;
+        }
+
+        // 添加日志条目
+        function addUploadLogEntry(message, type = 'info') {
+            const progressLog = document.getElementById('uploadProgressLog');
+            if (!progressLog) return;
+
+            const timestamp = new Date().toLocaleTimeString();
+
+            const colors = {
+                'info': '#61dafb',
+                'success': '#4ade80',
+                'warning': '#fbbf24',
+                'error': '#f87171'
+            };
+
+            const color = colors[type] || colors['info'];
+
+            const entry = document.createElement('div');
+            entry.style.cssText = `
+                margin-bottom: 8px;
+                padding: 8px;
+                background: rgba(255, 255, 255, 0.05);
+                border-left: 3px solid ${color};
+                border-radius: 3px;
+                color: ${color};
+                font-family: 'Courier New', monospace;
+            `;
+            entry.innerHTML = `
+                <span style="opacity: 0.6; font-size: 0.85em;">${timestamp}</span>
+                <span style="margin-left: 10px; font-weight: bold;">[${type.toUpperCase()}]</span>
+                <span style="margin-left: 8px;">${message}</span>
+            `;
+
+            progressLog.appendChild(entry);
+            progressLog.scrollTop = progressLog.scrollHeight;
+        }
+
+        // 更新进度条
+        function updateUploadProgress(percent) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            if (progressBar) {
+                progressBar.style.width = percent + '%';
+                progressBar.setAttribute('aria-valuenow', percent);
+            }
+
+            if (progressText) {
+                progressText.textContent = percent + '%';
+            }
+        }
+
+        // 处理SSE消息的函数
+        function processUploadSSELine(line) {
+            if (!line.trim()) return;
+
+            if (line.startsWith('data: ')) {
+                try {
+                    const jsonStr = line.slice(6).trim();
+                    if (!jsonStr) return;
+
+                    const data = JSON.parse(jsonStr);
+
+                    if (data.error) {
+                        addUploadLogEntry('❌ 错误: ' + data.error, 'error');
+                        showError('上传失败：' + data.error);
+                        return;
+                    } else if (data.status === 'validating') {
+                        addUploadLogEntry('✓ ' + data.message, 'info');
+                        updateUploadProgress(10);
+                    } else if (data.status === 'creating_records') {
+                        addUploadLogEntry('📝 ' + data.message, 'info');
+                        updateUploadProgress(20);
+                    } else if (data.status === 'file_saved') {
+                        addUploadLogEntry('💾 ' + data.message, 'info');
+                        updateUploadProgress(30);
+                    } else if (data.status === 'vlm_start') {
+                        addUploadLogEntry(data.message, 'warning');
+                        updateUploadProgress(40);
+                    } else if (data.status === 'ocr_start') {
+                        addUploadLogEntry(data.message, 'warning');
+                        updateUploadProgress(40);
+                    } else if (data.status === 'ocr_complete') {
+                        addUploadLogEntry('✓ ' + data.message, 'success');
+                        updateUploadProgress(60);
+                    } else if (data.status === 'ai_start') {
+                        addUploadLogEntry(data.message, 'warning');
+                        // 显示LLM输出区域
+                        const llmCard = document.getElementById('uploadLLMOutputCard');
+                        if (llmCard) llmCard.style.display = 'block';
+                        updateUploadProgress(70);
+                    } else if (data.status === 'llm_token') {
+                        // 实时显示LLM输出的token
+                        appendUploadLLMToken(data.token);
+                    } else if (data.status === 'ai_complete') {
+                        addUploadLogEntry('✓ ' + data.message, 'success');
+                        updateUploadProgress(85);
+                    } else if (data.status === 'saving_start') {
+                        addUploadLogEntry(data.message, 'info');
+                        updateUploadProgress(90);
+                    } else if (data.status === 'complete') {
+                        finalResult = data;
+                        addUploadLogEntry('✅ ' + data.message, 'success');
+                        updateUploadProgress(100);
+                    }
+                } catch (parseError) {
+                    console.warn('跳过无法解析的SSE消息:', parseError.message);
+                }
+            }
+        }
+
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+                if (buffer.trim()) {
+                    processUploadSSELine(buffer);
+                    buffer = '';
+                }
+                break;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+                processUploadSSELine(line);
+            }
+        }
+
+        if (finalResult) {
+            showSuccess({
+                health_checkup_id: finalResult.checkup_id,
+                indicators_count: finalResult.indicators_count
+            });
+        }
+
     } catch (error) {
+        console.error('上传失败:', error);
         showError('上传失败: ' + error.message);
     }
 }

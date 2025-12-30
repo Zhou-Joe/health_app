@@ -40,12 +40,30 @@ def dashboard(request):
 
     # 获取用户最近的体检报告（侧边栏用）
     recent_checkups = HealthCheckup.objects.filter(user=user).order_by('-checkup_date')[:5]
-    
+
     # 获取所有体检报告（用于我的体检报告卡片）
     all_checkups = HealthCheckup.objects.filter(user=user).order_by('-checkup_date')
-    
+
     # 获取体检记录总数
     total_checkups = all_checkups.count()
+
+    # 为每个checkup添加指标状态统计
+    from django.db.models import Count, Q
+    checkups_with_stats = []
+    for checkup in list(all_checkups[:10]):
+        indicators = HealthIndicator.objects.filter(checkup=checkup)
+        stats = indicators.aggregate(
+            normal_count=Count('id', filter=Q(status='normal')),
+            attention_count=Count('id', filter=Q(status='attention')),
+            abnormal_count=Count('id', filter=Q(status='abnormal'))
+        )
+        checkups_with_stats.append({
+            'checkup': checkup,
+            'normal_count': stats['normal_count'] or 0,
+            'attention_count': stats['attention_count'] or 0,
+            'abnormal_count': stats['abnormal_count'] or 0,
+            'total_count': indicators.count()
+        })
 
     # 获取最近的异常指标（侧边栏用）
     abnormal_indicators = HealthIndicator.objects.filter(
@@ -215,7 +233,7 @@ def dashboard(request):
         'key_indicators': _get_key_indicators_summary(user),
 
         # 我的体检报告卡片数据
-        'all_checkups': list(all_checkups[:10]),  # 最多传递10条记录用于显示
+        'all_checkups': checkups_with_stats,  # 使用带统计的数据
     }
 
     return render(request, 'medical_records/dashboard.html', context)
@@ -807,6 +825,10 @@ def format_health_data_for_prompt(health_data):
                     unit = indicator.get('unit', '')
                     status = indicator.get('status', '')
 
+                    # 确保 value 是字符串
+                    if not isinstance(value, str):
+                        value = str(value) if value is not None else ''
+
                     # 基础格式：指标名称：数值 单位
                     line = f"    {name}：{value}"
                     if unit:
@@ -1210,14 +1232,40 @@ def checkup_detail(request, checkup_id):
 @login_required
 def data_integration(request):
     """数据整合页面 - 选择多份报告进行AI智能整合"""
-    # 获取用户的所有体检报告，按日期降序排列
-    checkups = HealthCheckup.objects.filter(
-        user=request.user
-    ).prefetch_related('healthindicator_set').order_by('-checkup_date')
+    from django.contrib.auth.models import User
+
+    is_admin = request.user.is_superuser or request.user.is_staff
+    selected_user_id = request.GET.get('user_id')
+
+    if is_admin:
+        # Admin用户可以查看所有用户
+        users = User.objects.all().order_by('username')
+
+        # 如果选择了特定用户，只显示该用户的报告
+        if selected_user_id:
+            try:
+                selected_user = User.objects.get(id=selected_user_id)
+                checkups = HealthCheckup.objects.filter(
+                    user=selected_user
+                ).prefetch_related('healthindicator_set').order_by('-checkup_date')
+            except User.DoesNotExist:
+                checkups = HealthCheckup.objects.none()
+        else:
+            # 默认显示所有用户的报告
+            checkups = HealthCheckup.objects.all().prefetch_related('healthindicator_set').order_by('-checkup_date')
+    else:
+        # 普通用户只能查看自己的报告
+        users = None
+        checkups = HealthCheckup.objects.filter(
+            user=request.user
+        ).prefetch_related('healthindicator_set').order_by('-checkup_date')
 
     context = {
         'checkups': checkups,
         'page_title': '智能数据整合',
+        'is_admin': is_admin,
+        'users': users,
+        'selected_user_id': int(selected_user_id) if selected_user_id else None,
     }
 
     return render(request, 'medical_records/data_integration.html', context)
@@ -1643,11 +1691,18 @@ def export_checkups_pdf(request):
             messages.error(request, '无效的报告ID')
             return redirect('medical_records:data_integration')
 
-        # 获取体检报告
-        checkups = HealthCheckup.objects.filter(
-            user=request.user,
-            id__in=checkup_id_list
-        ).order_by('-checkup_date')
+        # Admin用户可以导出所有报告，普通用户只能导出自己的报告
+        is_admin = request.user.is_superuser or request.user.is_staff
+
+        if is_admin:
+            checkups = HealthCheckup.objects.filter(
+                id__in=checkup_id_list
+            ).order_by('-checkup_date')
+        else:
+            checkups = HealthCheckup.objects.filter(
+                user=request.user,
+                id__in=checkup_id_list
+            ).order_by('-checkup_date')
 
         if not checkups.exists():
             messages.error(request, '未找到指定的报告')
@@ -1681,11 +1736,18 @@ def export_checkups_word(request):
             messages.error(request, '无效的报告ID')
             return redirect('medical_records:data_integration')
 
-        # 获取体检报告
-        checkups = HealthCheckup.objects.filter(
-            user=request.user,
-            id__in=checkup_id_list
-        ).order_by('-checkup_date')
+        # Admin用户可以导出所有报告，普通用户只能导出自己的报告
+        is_admin = request.user.is_superuser or request.user.is_staff
+
+        if is_admin:
+            checkups = HealthCheckup.objects.filter(
+                id__in=checkup_id_list
+            ).order_by('-checkup_date')
+        else:
+            checkups = HealthCheckup.objects.filter(
+                user=request.user,
+                id__in=checkup_id_list
+            ).order_by('-checkup_date')
 
         if not checkups.exists():
             messages.error(request, '未找到指定的报告')

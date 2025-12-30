@@ -339,7 +339,13 @@ async function loadExistingCheckups() {
                     const indicatorCount = checkup.indicator_count || 0;
                     const indicatorText = indicatorCount > 0 ? ` (${indicatorCount}个指标)` : '';
 
-                    option.textContent = `${checkup.checkup_date} - ${checkup.hospital}${indicatorText}`;
+                    // 添加报告描述
+                    let descText = '';
+                    if (checkup.notes) {
+                        descText = ` [${checkup.notes}]`;
+                    }
+
+                    option.textContent = `${checkup.checkup_date} - ${checkup.hospital}${descText}${indicatorText}`;
                     selectElement.appendChild(option);
                 });
             } else {

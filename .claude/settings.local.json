@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py makemigrations:*)",
+      "Bash(python manage.py migrate:*)",
+      "Bash(python manage.py init_hospitals:*)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(pkill:*)",
+      "Bash(python3:*)",
+      "Bash(source:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(pip install:*)",
+      "Bash(./venv/bin/pip:*)",
+      "Bash(netstat:*)",
+      "Bash(ss:*)",
+      "Bash(apt-get update:*)",
+      "Bash(apt-get install:*)",
+      "Bash(cat:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=health_report.settings python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

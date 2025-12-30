@@ -4,11 +4,17 @@ from .models import HealthCheckup, HealthIndicator, HealthAdvice, DocumentProces
 
 @admin.register(HealthCheckup)
 class HealthCheckupAdmin(admin.ModelAdmin):
-    list_display = ['user', 'checkup_date', 'hospital', 'created_at']
+    list_display = ['user', 'checkup_date', 'hospital', 'notes_preview', 'created_at']
     list_filter = ['checkup_date', 'hospital', 'created_at']
     search_fields = ['user__username', 'hospital', 'notes']
     date_hierarchy = 'checkup_date'
     ordering = ['-checkup_date']
+
+    def notes_preview(self, obj):
+        if obj.notes and len(obj.notes) > 30:
+            return obj.notes[:30] + '...'
+        return obj.notes or '-'
+    notes_preview.short_description = '备注'
 
 
 @admin.register(HealthIndicator)

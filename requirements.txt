@@ -24,3 +24,12 @@ psycopg2-binary==2.9.9
 # Additional utilities for Docker deployment
 gunicorn==23.0.0
 whitenoise==6.8.2
+
+# LLM and LangChain
+langchain==1.2.0
+langchain-openai==1.1.6
+langchain-community==0.4.1
+langchain-core==1.2.5
+langchain-google-genai==4.1.2
+langgraph==1.0.5
+sse-starlette==2.1.3

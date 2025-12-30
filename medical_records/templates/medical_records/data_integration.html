@@ -56,6 +56,40 @@
 
 {% block content %}
 <div class="container">
+    <!-- Admin用户选择器 -->
+    {% if is_admin %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-person-badge"></i> 管理员控制台
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <label for="userSelect" class="form-label fw-bold">选择用户查看报告</label>
+                            <select class="form-select" id="userSelect" onchange="changeUser()">
+                                <option value="">所有用户</option>
+                                {% for user in users %}
+                                <option value="{{ user.id }}" {% if selected_user_id == user.id %}selected{% endif %}>
+                                    {{ user.username }}{% if user.first_name %} ({{ user.first_name }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                作为管理员，您可以查看和导出所有用户的体检报告
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- 页面标题 -->
     <div class="row mb-4">
         <div class="col-12">
@@ -67,11 +101,11 @@
                     <p class="text-muted mb-0">选择多份体检报告，AI将自动统一指标名称、单位、参考范围等信息</p>
                 </div>
                 <div class="btn-group">
-                    <button class="btn btn-outline-danger" onclick="exportAllCheckups()">
-                        <i class="bi bi-file-earmark-pdf"></i> 导出所有报告
+                    <button class="btn btn-outline-danger" onclick="exportSelectedCheckupsPdf()">
+                        <i class="bi bi-file-earmark-pdf"></i> 导出选中报告
                     </button>
-                    <button class="btn btn-outline-primary" onclick="exportAllCheckupsWord()">
-                        <i class="bi bi-file-earmark-word"></i> 导出所有报告(Word)
+                    <button class="btn btn-outline-primary" onclick="exportSelectedCheckupsWord()">
+                        <i class="bi bi-file-earmark-word"></i> 导出选中报告(Word)
                     </button>
                 </div>
             </div>
@@ -133,10 +167,22 @@
                     <div class="card checkup-card position-relative" data-checkup-id="{{ checkup.id }}">
                         <input type="checkbox" class="form-check-input checkup-checkbox" value="{{ checkup.id }}">
                         <div class="card-body">
+                            {% if is_admin %}
+                            <p class="card-text small mb-1">
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-person"></i> {{ checkup.user.username }}
+                                </span>
+                            </p>
+                            {% endif %}
+                            {% if checkup.notes %}
                             <h6 class="card-title mb-1">
+                                <i class="bi bi-card-text"></i> {{ checkup.notes|truncatewords:15 }}
+                            </h6>
+                            {% endif %}
+                            <p class="card-text text-muted small mb-2">
                                 <i class="bi bi-calendar3"></i>
                                 {{ checkup.checkup_date|date:"Y年m月d日" }}
-                            </h6>
+                            </p>
                             <p class="card-text text-muted small mb-2">
                                 <i class="bi bi-hospital"></i> {{ checkup.hospital }}
                             </p>
@@ -191,15 +237,58 @@
     <div id="step2-content" class="integration-progress">
         <div class="row">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">Loading...</span>
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-3 text-white" role="status">
+                                <span class="visually-hidden">处理中...</span>
+                            </div>
+                            <h5 class="mb-0" id="progressTitle">AI正在分析数据...</h5>
                         </div>
-                        <h5>AI正在分析数据...</h5>
-                        <p class="text-muted" id="progressText">正在读取报告数据，请稍候...</p>
-                        <div class="progress mt-3" style="height: 10px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                    <div class="card-body py-4">
+                        <!-- 进度百分比 -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted fw-bold">处理进度</small>
+                                <small class="text-muted fw-bold" id="progressPercent">0%</small>
+                            </div>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                     role="progressbar"
+                                     id="progressBar"
+                                     style="width: 0%">
+                                    <span class="text-white fw-bold" id="progressBarText">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LLM输出区域 -->
+                        <div class="card bg-light mb-3" id="llmOutputCard" style="display: none;">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    <i class="bi bi-robot text-primary"></i> AI思考过程
+                                </h6>
+                                <div id="llmOutput"
+                                     style="max-height: 200px; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9em; line-height: 1.6; padding: 15px; background: white; border: 1px solid #dee2e6; border-radius: 5px; color: #333;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 进度日志 -->
+                        <div class="card bg-dark text-light">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-title mb-0 small">
+                                        <i class="bi bi-terminal-fill text-success"></i> 实时处理日志
+                                    </h6>
+                                    <span class="badge bg-success small" id="logStatus">运行中</span>
+                                </div>
+                                <div id="progressLog"
+                                     style="max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8em; line-height: 1.4; background: #1e1e1e; padding: 10px; border-radius: 4px;">
+                                    <div class="text-secondary">等待开始...</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -265,6 +354,21 @@
 <script>
 let selectedCheckups = new Set();
 let integrationResult = null;
+
+// 切换用户（仅管理员）
+function changeUser() {
+    const userSelect = document.getElementById('userSelect');
+    const userId = userSelect.value;
+    const currentUrl = new URL(window.location.href);
+
+    if (userId) {
+        currentUrl.searchParams.set('user_id', userId);
+    } else {
+        currentUrl.searchParams.delete('user_id');
+    }
+
+    window.location.href = currentUrl.toString();
+}
 
 // 页面加载完成
 document.addEventListener('DOMContentLoaded', function() {
@@ -389,47 +493,35 @@ function exportSelectedCheckups() {
     modal.show();
 }
 
-// 导出所有报告为PDF
-function exportAllCheckups() {
-    // 获取所有报告ID
-    const allCheckupIds = [];
-    document.querySelectorAll('.checkup-checkbox').forEach(checkbox => {
-        allCheckupIds.push(checkbox.value);
-    });
-
-    if (allCheckupIds.length === 0) {
-        alert('暂无体检报告可导出');
+// 导出选中的报告为PDF
+function exportSelectedCheckupsPdf() {
+    if (selectedCheckups.size === 0) {
+        alert('请至少选择一份报告');
         return;
     }
 
-    if (!confirm(`确定要导出所有 ${allCheckupIds.length} 份报告吗？`)) {
+    if (!confirm(`确定要导出选中的 ${selectedCheckups.size} 份报告吗？`)) {
         return;
     }
 
     // 直接触发下载
-    const url = "{% url 'medical_records:export_checkups_pdf' %}?checkup_ids=" + allCheckupIds.join(',');
+    const url = "{% url 'medical_records:export_checkups_pdf' %}?checkup_ids=" + Array.from(selectedCheckups).join(',');
     window.location.href = url;
 }
 
-// 导出所有报告为Word
-function exportAllCheckupsWord() {
-    // 获取所有报告ID
-    const allCheckupIds = [];
-    document.querySelectorAll('.checkup-checkbox').forEach(checkbox => {
-        allCheckupIds.push(checkbox.value);
-    });
-
-    if (allCheckupIds.length === 0) {
-        alert('暂无体检报告可导出');
+// 导出选中的报告为Word
+function exportSelectedCheckupsWord() {
+    if (selectedCheckups.size === 0) {
+        alert('请至少选择一份报告');
         return;
     }
 
-    if (!confirm(`确定要导出所有 ${allCheckupIds.length} 份报告吗？`)) {
+    if (!confirm(`确定要导出选中的 ${selectedCheckups.size} 份报告吗？`)) {
         return;
     }
 
     // 直接触发下载
-    const url = "{% url 'medical_records:export_checkups_word' %}?checkup_ids=" + allCheckupIds.join(',');
+    const url = "{% url 'medical_records:export_checkups_word' %}?checkup_ids=" + Array.from(selectedCheckups).join(',');
     window.location.href = url;
 }
 
@@ -448,8 +540,12 @@ async function startIntegration() {
     document.getElementById('step2-content').style.display = 'block';
     updateStepIndicator(2);
 
+    // 清空日志
+    const progressLog = document.getElementById('progressLog');
+    progressLog.innerHTML = '<div class="text-muted">准备开始...</div>';
+
     try {
-        // 调用后端API
+        // 调用流式后端API
         const checkupIds = Array.from(selectedCheckups);
         const requestData = {
             checkup_ids: checkupIds
@@ -460,7 +556,7 @@ async function startIntegration() {
             requestData.user_prompt = userPrompt;
         }
 
-        const response = await fetch('{% url "medical_records:api_integrate_data" %}', {
+        const response = await fetch('{% url "medical_records:api_stream_integrate" %}', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),
@@ -469,33 +565,257 @@ async function startIntegration() {
             body: JSON.stringify(requestData)
         });
 
-        const result = await response.json();
-
-        if (result.success) {
-            integrationResult = result;
-            displayResults(result);
-        } else {
-            alert('整合失败：' + (result.error || '未知错误'));
-            location.reload();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        // 定义所有变量
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let resultData = null;
+        let progress = 0;
+        let buffer = ''; // 用于处理跨chunk的不完整JSON
+        let llmOutputBuffer = ''; // LLM输出缓冲
+
+        // 追加LLM token到输出区域
+        function appendLLMToken(token) {
+            const llmOutput = document.getElementById('llmOutput');
+            if (!llmOutput) return;
+
+            llmOutputBuffer += token;
+
+            // 转义HTML特殊字符并显示
+            llmOutput.innerHTML = escapeHtml(llmOutputBuffer)
+                .replace(/\n/g, '<br>')
+                .replace(/\{/g, '<span style="color: #66d9ef;">{</span>')
+                .replace(/\}/g, '<span style="color: #66d9ef;">}</span>')
+                .replace(/"([^"]+)":/g, '<span style="color: #a6e22e;">"$1"</span>:')
+                .replace(/: "([^"]+)"/g, ': <span style="color: #fd971f;">"$1"</span>');
+
+            // 自动滚动到底部
+            llmOutput.scrollTop = llmOutput.scrollHeight;
+        }
+
+        // 处理SSE消息的函数
+        function processSSELine(line) {
+            if (!line.trim()) return;
+
+            if (line.startsWith('data: ')) {
+                try {
+                    const jsonStr = line.slice(6).trim();
+                    if (!jsonStr) return;
+
+                    const data = JSON.parse(jsonStr);
+
+                    if (data.error) {
+                        // 显示错误
+                        addLogEntry('❌ 错误: ' + data.error, 'error');
+                        updateLogStatus('错误', 'danger');
+                        alert('整合失败：' + data.error);
+                        location.reload();
+                        return;
+                    } else if (data.status === 'validating') {
+                        addLogEntry('✓ ' + data.message, 'info');
+                        updateProgress(10);
+                    } else if (data.status === 'loading_data') {
+                        addLogEntry('📊 ' + data.message, 'info');
+                        updateProgress(20);
+                    } else if (data.status === 'grouping') {
+                        addLogEntry('📋 ' + data.message, 'info');
+                        updateProgress(30);
+                    } else if (data.status === 'prompt_ready') {
+                        addLogEntry('💾 ' + data.message, 'info');
+                        updateProgress(40);
+                    } else if (data.status === 'calling_llm') {
+                        addLogEntry(data.message, 'warning');
+                        document.getElementById('progressTitle').textContent = data.message;
+                        updateProgress(50);
+                    } else if (data.status === 'llm_thinking') {
+                        addLogEntry('⏳ ' + data.message, 'warning');
+                        // 显示LLM输出区域
+                        const llmCard = document.getElementById('llmOutputCard');
+                        if (llmCard) llmCard.style.display = 'block';
+                        updateProgress(60);
+                    } else if (data.status === 'llm_token') {
+                        // 实时显示LLM输出的token
+                        appendLLMToken(data.token);
+                    } else if (data.status === 'llm_complete') {
+                        addLogEntry('✓ ' + data.message, 'success');
+                        updateProgress(70);
+                    } else if (data.status === 'parsing') {
+                        addLogEntry('🔍 ' + data.message, 'info');
+                        updateProgress(80);
+                    } else if (data.status === 'parsed') {
+                        addLogEntry('✓ ' + data.message, 'success');
+                        updateProgress(90);
+                    } else if (data.status === 'done') {
+                        // 完成接收数据
+                        resultData = data;
+                        addLogEntry('✅ ' + data.message, 'success');
+                        updateLogStatus('完成', 'success');
+                        updateProgress(100);
+                        // 添加调试日志
+                        console.log('收到完成状态，数据:', resultData);
+                        console.log('变更数量:', resultData.changed_count);
+                        console.log('所有指标数量:', resultData.all_indicators?.length);
+                    }
+                } catch (parseError) {
+                    // 只在开发模式下输出详细错误，避免日志过多
+                    console.warn('跳过无法解析的SSE消息:', parseError.message);
+                    // 不要让解析错误中断整个流程
+                }
+            }
+        }
+
+        // 读取流式响应
+        while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+                // 处理缓冲区中剩余的数据
+                if (buffer.trim()) {
+                    processSSELine(buffer);
+                    buffer = '';
+                }
+                break;
+            }
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            // 按行分割，但保留未完成的行到buffer
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // 保留最后一行（可能不完整）
+
+            for (const line of lines) {
+                processSSELine(line);
+            }
+        }
+
+        // 确保在数据接收完成后处理结果
+        console.log('流式读取完成，resultData:', resultData);
+
+        if (resultData) {
+            console.log('准备调用 displayResults');
+
+            // 添加一个小延迟，确保DOM完全准备好
+            setTimeout(() => {
+                try {
+                    integrationResult = resultData;
+                    displayResults(resultData);
+                } catch (displayError) {
+                    console.error('displayResults 执行失败:', displayError);
+                    addLogEntry('❌ 显示结果失败: ' + displayError.message, 'error');
+                }
+            }, 300);
+        } else {
+            console.error('未接收到完成数据');
+            addLogEntry('❌ 未接收到完整的响应数据', 'error');
+        }
+
     } catch (error) {
         console.error('整合请求失败:', error);
+        addLogEntry('❌ 网络错误: ' + error.message, 'error');
         alert('请求失败，请稍后重试');
         location.reload();
     }
 }
 
+// 添加日志条目
+function addLogEntry(message, type = 'info') {
+    const progressLog = document.getElementById('progressLog');
+    const timestamp = new Date().toLocaleTimeString();
+
+    // 定义不同类型的颜色和图标
+    const styles = {
+        'info': {
+            color: '#61dafb',  // 亮蓝色
+            icon: 'ℹ️',
+            prefix: '[INFO]'
+        },
+        'success': {
+            color: '#4ade80',  // 亮绿色
+            icon: '✅',
+            prefix: '[SUCCESS]'
+        },
+        'warning': {
+            color: '#fbbf24',  // 亮黄色
+            icon: '⚠️',
+            prefix: '[WARNING]'
+        },
+        'error': {
+            color: '#f87171',  // 亮红色
+            icon: '❌',
+            prefix: '[ERROR]'
+        }
+    };
+
+    const style = styles[type] || styles['info'];
+
+    const entry = document.createElement('div');
+    entry.style.cssText = `
+        margin-bottom: 8px;
+        padding: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-left: 3px solid ${style.color};
+        border-radius: 3px;
+        color: ${style.color};
+        font-family: 'Courier New', monospace;
+    `;
+    entry.innerHTML = `
+        <span style="opacity: 0.6; font-size: 0.85em;">${timestamp}</span>
+        <span style="margin-left: 10px; font-weight: bold;">${style.prefix}</span>
+        <span style="margin-left: 8px;">${message}</span>
+    `;
+
+    progressLog.appendChild(entry);
+    progressLog.scrollTop = progressLog.scrollHeight;
+}
+
+// 更新日志状态标签
+function updateLogStatus(text, color) {
+    const logStatus = document.getElementById('logStatus');
+    if (logStatus) {
+        logStatus.textContent = text;
+        logStatus.className = `badge bg-${color}`;
+    }
+}
+
+// 更新进度条
+function updateProgress(percent) {
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressBarText = document.getElementById('progressBarText');
+
+    progressBar.style.width = percent + '%';
+    progressBar.setAttribute('aria-valuenow', percent);
+
+    if (progressPercent) {
+        progressPercent.textContent = percent + '%';
+    }
+
+    if (progressBarText) {
+        progressBarText.textContent = percent + '%';
+    }
+}
+
 // 显示结果
 function displayResults(result) {
+    console.log('displayResults 被调用，参数:', result);
+
     // 切换到第三步
     document.getElementById('step2-content').style.display = 'none';
     document.getElementById('step3-content').style.display = 'block';
     updateStepIndicator(3);
 
     // 更新统计
+    console.log('total_indicators:', result.total_indicators);
+    console.log('changed_count:', result.changed_count);
+    console.log('unchanged_count:', result.unchanged_count);
+
     document.getElementById('totalIndicators').textContent = result.total_indicators;
-    document.getElementById('changedIndicators').textContent = result.changed_count || result.changes.length;
-    document.getElementById('unchangedIndicators').textContent = result.unchanged_count || (result.total_indicators - (result.changed_count || result.changes.length));
+    document.getElementById('changedIndicators').textContent = result.changed_count || result.changes?.length || 0;
+    document.getElementById('unchangedIndicators').textContent = result.unchanged_count || (result.total_indicators - (result.changed_count || result.changes?.length || 0));
 
     // 显示变更列表
     const changesList = document.getElementById('changesList');
@@ -504,7 +824,9 @@ function displayResults(result) {
     // 使用 all_indicators 如果存在，否则使用 changes（兼容旧版本）
     const indicatorsToDisplay = result.all_indicators || result.changes;
 
-    if (indicatorsToDisplay.length === 0) {
+    console.log('准备显示的指标数量:', indicatorsToDisplay?.length);
+
+    if (!indicatorsToDisplay || indicatorsToDisplay.length === 0) {
         changesList.innerHTML = '<div class="alert alert-info mb-0"><i class="bi bi-info-circle"></i> 没有需要更新的指标</div>';
         return;
     }
@@ -513,6 +835,8 @@ function displayResults(result) {
         const changeItem = createChangeItem(change, index);
         changesList.appendChild(changeItem);
     });
+
+    console.log('显示完成，共渲染了', indicatorsToDisplay.length, '个指标');
 }
 
 // 创建变更项

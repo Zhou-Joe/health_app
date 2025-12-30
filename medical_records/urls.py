@@ -36,6 +36,10 @@ urlpatterns = [
     path('api/checkups/', api_views.get_user_checkups, name='api_user_checkups'),
     path('api/integrate-data/', api_views.integrate_data, name='api_integrate_data'),
     path('api/apply-integration/', api_views.apply_integration, name='api_apply_integration'),
+    path('api/stream-advice/', api_views.stream_ai_advice, name='api_stream_ai_advice'),
+    path('api/stream-upload/', api_views.stream_upload_and_process, name='api_stream_upload'),
+    path('api/stream-integrate/', api_views.stream_integrate_data, name='api_stream_integrate'),
+    path('api/checkup/<int:checkup_id>/update-notes/', api_views.update_checkup_notes, name='api_update_checkup_notes'),
 
     # 导出功能
     path('conversations/<int:conversation_id>/export/pdf/', views.export_conversation_pdf, name='export_conversation_pdf'),
