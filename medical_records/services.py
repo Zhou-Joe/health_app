@@ -49,7 +49,12 @@ class DocumentProcessingService:
                 # 根据工作流类型选择backend
                 workflow_type = getattr(self.document_processing, 'workflow_type', 'ocr_llm')
                 if workflow_type == 'vlm_transformers':
-                    backend = 'vlm-transformers'  # 使用VLM-Transformers模式
+                    # 检查是否是Mac系统
+                    is_mac_system = SystemSettings.get_setting('is_mac_system', 'false').lower() == 'true'
+                    if is_mac_system:
+                        backend = 'vlm-mlx-engine'  # Mac系统使用MLX引擎
+                    else:
+                        backend = 'vlm-transformers'  # 非Mac系统使用Transformers
                 else:
                     backend = 'pipeline'  # 传统OCR模式
                     

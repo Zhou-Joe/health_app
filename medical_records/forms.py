@@ -381,6 +381,14 @@ class SystemSettingsForm(forms.Form):
         help_text='多模态模型最大输出token数量，建议4000'
     )
 
+    # 系统配置
+    is_mac_system = forms.BooleanField(
+        label='Mac系统',
+        required=False,
+        initial=False,
+        help_text='如果MinerU服务运行在Mac系统上，请勾选此项。VLM模式将使用vlm-mlx-engine后端'
+    )
+
     # 工作流配置
     default_workflow = forms.ChoiceField(
         label='默认处理工作流',
@@ -422,6 +430,9 @@ class SystemSettingsForm(forms.Form):
         self.fields['vl_model_name'].initial = SystemSettings.get_setting('vl_model_name', 'zai-org/GLM-4.6V')
         self.fields['vl_model_max_tokens'].initial = int(SystemSettings.get_setting('vl_model_max_tokens', '4000'))
 
+        # 加载系统配置
+        self.fields['is_mac_system'].initial = SystemSettings.get_setting('is_mac_system', 'false').lower() == 'true'
+
         # 加载工作流设置
         self.fields['default_workflow'].initial = SystemSettings.get_setting('default_workflow', 'ocr_llm')
 
@@ -452,6 +463,9 @@ class SystemSettingsForm(forms.Form):
         SystemSettings.set_setting('vl_model_api_key', self.cleaned_data['vl_model_api_key'], '多模态模型API密钥')
         SystemSettings.set_setting('vl_model_name', self.cleaned_data['vl_model_name'], '多模态模型名称')
         SystemSettings.set_setting('vl_model_max_tokens', str(self.cleaned_data['vl_model_max_tokens']), '多模态模型最大输出令牌数')
+
+        # 保存系统配置
+        SystemSettings.set_setting('is_mac_system', 'true' if self.cleaned_data['is_mac_system'] else 'false', 'Mac系统')
 
         # 保存工作流设置
         SystemSettings.set_setting('default_workflow', self.cleaned_data['default_workflow'], '默认处理工作流')

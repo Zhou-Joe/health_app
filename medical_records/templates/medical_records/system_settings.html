@@ -190,6 +190,22 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="is_mac_system" 
+                                                   id="id_is_mac_system"
+                                                   {% if form.is_mac_system.value %}checked{% endif %}>
+                                            <label class="form-check-label fw-bold" for="id_is_mac_system">
+                                                {{ form.is_mac_system.label }}
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">{{ form.is_mac_system.help_text }}</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="alert alert-info">
@@ -551,7 +567,7 @@
 // 为表单字段添加CSS类
 document.addEventListener('DOMContentLoaded', function() {
     const formFields = [
-        'mineru_api_url', 'document_max_tokens',
+        'mineru_api_url', 'document_max_tokens', 'is_mac_system',
         'llm_provider', 'llm_api_url', 'llm_api_key', 'llm_model_name',
         'ai_doctor_provider', 'ai_doctor_api_url', 'ai_doctor_api_key', 'ai_doctor_model_name', 'ai_doctor_max_tokens',
         'gemini_api_key', 'gemini_model_name',
