@@ -188,153 +188,33 @@
                 <div class="col-12">
                     <div class="card dashboard-card">
                         <div class="card-header">
-                            <h5 class="mb-0">
-                                <i class="bi bi-graph-up"></i> 健康趋势分析 - 按指标分类
-                            </h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-graph-up"></i> 健康趋势分析 - 按指标分类
+                                </h5>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'medical_records:export_health_trends_pdf' %}"
+                                       class="btn btn-outline-danger"
+                                       title="导出为PDF">
+                                        <i class="bi bi-file-earmark-pdf"></i> 导出PDF
+                                    </a>
+                                    <a href="{% url 'medical_records:export_health_trends_word' %}"
+                                       class="btn btn-outline-primary"
+                                       title="导出为Word">
+                                        <i class="bi bi-file-earmark-word"></i> 导出Word
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
                             <!-- 图表切换标签 -->
                             <ul class="nav nav-tabs mb-3" id="chartTabs" role="tablist">
-                                <!-- 基础检查类别 -->
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="physical-tab" data-bs-toggle="tab" data-bs-target="#physical" type="button" role="tab">
-                                        <i class="bi bi-person"></i> 体格检查
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="blood-tab" data-bs-toggle="tab" data-bs-target="#blood" type="button" role="tab">
-                                        <i class="bi bi-droplet"></i> 血液常规
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="biochemistry-tab" data-bs-toggle="tab" data-bs-target="#biochemistry" type="button" role="tab">
-                                        <i class="bi bi-cpu"></i> 生化检验
-                                    </button>
-                                </li>
-
-                                <!-- 器官功能类别 -->
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="liver-tab" data-bs-toggle="tab" data-bs-target="#liver" type="button" role="tab">
-                                        <i class="bi bi-liver"></i> 肝功能
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="kidney-tab" data-bs-toggle="tab" data-bs-target="#kidney" type="button" role="tab">
-                                        <i class="bi bi-gear"></i> 肾功能
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="thyroid-tab" data-bs-toggle="tab" data-bs-target="#thyroid" type="button" role="tab">
-                                        <i class="bi bi-lightning"></i> 甲状腺
-                                    </button>
-                                </li>
-
-                                <!-- 其他检查类别 -->
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="tumor-tab" data-bs-toggle="tab" data-bs-target="#tumor" type="button" role="tab">
-                                        <i class="bi bi-shield-exclamation"></i> 肿瘤标志
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="urine-tab" data-bs-toggle="tab" data-bs-target="#urine" type="button" role="tab">
-                                        <i class="bi bi-moisture"></i> 尿液检查
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="rheology-tab" data-bs-toggle="tab" data-bs-target="#rheology" type="button" role="tab">
-                                        <i class="bi bi-water"></i> 血液流变
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="eye-tab" data-bs-toggle="tab" data-bs-target="#eye" type="button" role="tab">
-                                        <i class="bi bi-eye"></i> 眼科检查
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="other-tab" data-bs-toggle="tab" data-bs-target="#other" type="button" role="tab">
-                                        <i class="bi bi-clipboard"></i> 其他检查
-                                    </button>
-                                </li>
+                                <!-- 动态生成的标签按钮 -->
                             </ul>
 
                             <!-- 标签内容 -->
                             <div class="tab-content" id="chartTabContent">
-                                <!-- 体格检查标签页 -->
-                                <div class="tab-pane fade show active" id="physical" role="tabpanel">
-                                    <div class="row" id="physical-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 血液常规标签页 -->
-                                <div class="tab-pane fade" id="blood" role="tabpanel">
-                                    <div class="row" id="blood-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 生化检验标签页 -->
-                                <div class="tab-pane fade" id="biochemistry" role="tabpanel">
-                                    <div class="row" id="biochemistry-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 肝功能标签页 -->
-                                <div class="tab-pane fade" id="liver" role="tabpanel">
-                                    <div class="row" id="liver-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 肾功能标签页 -->
-                                <div class="tab-pane fade" id="kidney" role="tabpanel">
-                                    <div class="row" id="kidney-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 甲状腺功能标签页 -->
-                                <div class="tab-pane fade" id="thyroid" role="tabpanel">
-                                    <div class="row" id="thyroid-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 肿瘤标志物标签页 -->
-                                <div class="tab-pane fade" id="tumor" role="tabpanel">
-                                    <div class="row" id="tumor-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 尿液检查标签页 -->
-                                <div class="tab-pane fade" id="urine" role="tabpanel">
-                                    <div class="row" id="urine-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 血液流变学标签页 -->
-                                <div class="tab-pane fade" id="rheology" role="tabpanel">
-                                    <div class="row" id="rheology-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 眼科检查标签页 -->
-                                <div class="tab-pane fade" id="eye" role="tabpanel">
-                                    <div class="row" id="eye-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
-
-                                <!-- 其他检查标签页 -->
-                                <div class="tab-pane fade" id="other" role="tabpanel">
-                                    <div class="row" id="other-individual-charts">
-                                        <!-- 动态生成的表格将显示在这里 -->
-                                    </div>
-                                </div>
+                                <!-- 动态生成的标签内容 -->
                             </div>
                         </div>
                     </div>
@@ -351,9 +231,67 @@
 const chartData = {{ chart_data|safe }};
 const rawData = chartData; // 保持向后兼容
 
+// 从Django传递的动态指标分类列表
+const indicatorTypeList = {{ indicator_type_list|safe }};
+console.log('Indicator type list from Django:', indicatorTypeList);
+
 // 从Django传递的动态指标分类映射
 const dynamicIndicatorMapping = {{ indicator_type_mapping|safe }};
 console.log('Dynamic indicator mapping from Django:', dynamicIndicatorMapping);
+
+// 动态生成标签按钮和内容面板
+function generateDynamicTabs() {
+    const tabsContainer = document.getElementById('chartTabs');
+    const contentContainer = document.getElementById('chartTabContent');
+
+    if (!tabsContainer || !contentContainer) {
+        console.error('Tabs container or content container not found');
+        return;
+    }
+
+    // 清空现有内容
+    tabsContainer.innerHTML = '';
+    contentContainer.innerHTML = '';
+
+    // 为每个指标类型创建标签按钮和内容面板
+    indicatorTypeList.forEach((indicatorType, index) => {
+        const type = indicatorType.type;
+        const displayName = indicatorType.display_name;
+        const isActive = index === 0 ? 'active' : '';
+        const isShow = index === 0 ? 'show active' : '';
+
+        // 创建标签按钮
+        const tabButton = document.createElement('li');
+        tabButton.className = 'nav-item';
+        tabButton.role = 'presentation';
+        tabButton.innerHTML = `
+            <button class="nav-link ${isActive}"
+                    id="${type}-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#${type}"
+                    type="button"
+                    role="tab">
+                <i class="bi bi-bar-chart"></i> ${displayName}
+            </button>
+        `;
+        tabsContainer.appendChild(tabButton);
+
+        // 创建标签内容面板
+        const tabPane = document.createElement('div');
+        tabPane.className = `tab-pane fade ${isShow}`;
+        tabPane.id = type;
+        tabPane.role = 'tabpanel';
+        tabPane.innerHTML = `
+            <div class="row" id="${type}-individual-charts">
+                <!-- 动态生成的表格将显示在这里 -->
+            </div>
+        `;
+        contentContainer.appendChild(tabPane);
+    });
+}
+
+// 页面加载时生成动态标签
+generateDynamicTabs();
 
 // 计算变化量
 function calculateChange(values) {
@@ -469,252 +407,34 @@ function createTableForIndicator(indicatorName, indicatorData) {
     return tableHtml;
 }
 
-// 体格检查表格
-function createPhysicalTable() {
+// 通用的指标类型表格生成函数
+function createIndicatorTypeTable(indicatorType) {
     const rawData = chartData.raw_data || [];
-    const container = document.getElementById('physical-individual-charts');
+    const container = document.getElementById(`${indicatorType}-individual-charts`);
     if (!container) return;
 
-    const physicalIndicators = ['收缩压', '舒张压', '心率', '身高', '体重', '体重指数', '腰围', '臀围', '呼吸频率'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (physicalIndicators.some(pi => indicator.indicator_name.includes(pi))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无体格检查数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 血液常规表格
-function createBloodTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('blood-individual-charts');
-    if (!container) return;
-
-    const bloodIndicators = ['白细胞计数', '红细胞计数', '血红蛋白浓度', '血小板计数',
-                           '中性粒细胞百分比', '淋巴细胞百分比', '单核细胞百分比'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (bloodIndicators.some(bi => indicator.indicator_name.includes(bi))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无血液常规数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 生化检验表格
-function createBiochemistryTables() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('biochemistry-individual-charts');
-    if (!container) return;
-
-    const biochemistryIndicators = ['葡萄糖', '总胆固醇', '甘油三酯', '高密度脂蛋白胆固醇',
-                                   '低密度脂蛋白胆固醇', '载脂蛋白A1', '载脂蛋白B', '尿酸',
-                                   '肌酐', '尿素', '总胆红素', '直接胆红素', '间接胆红素'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (biochemistryIndicators.some(bi => indicator.indicator_name.includes(bi))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无生化检验数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 肝功能表格
-function createLiverTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('liver-individual-charts');
-    if (!container) return;
-
-    const liverIndicators = ['丙氨酸氨基转移酶', '天门冬氨酸氨基转移酶', 'γ-谷氨酰转移酶'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (liverIndicators.some(li => indicator.indicator_name.includes(li))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无肝功能数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 肾功能表格
-function createKidneyTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('kidney-individual-charts');
-    if (!container) return;
-
-    const kidneyIndicators = rawData
-        .filter(item => item.type === 'kidney_function')
+    // 过滤出该类型的所有指标
+    const typeIndicators = rawData
+        .filter(item => item.type === indicatorType)
         .map(item => item.indicator_name);
 
     let html = '';
-    rawData.forEach(indicator => {
-        if (kidneyIndicators.includes(indicator.indicator_name)) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
+    // 去重并生成表格
+    const uniqueIndicatorNames = [...new Set(typeIndicators)];
+    uniqueIndicatorNames.forEach(indicatorName => {
+        const indicatorData = rawData.find(item =>
+            item.indicator_name === indicatorName && item.type === indicatorType
+        );
+        if (indicatorData) {
+            html += createTableForIndicator(indicatorName, indicatorData);
         }
     });
 
     if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无肾功能数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 甲状腺功能表格
-function createThyroidTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('thyroid-individual-charts');
-    if (!container) return;
-
-    const thyroidIndicators = rawData
-        .filter(item => item.type === 'thyroid_function')
-        .map(item => item.indicator_name);
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (indicator.type === 'thyroid_function' || thyroidIndicators.some(ti => indicator.indicator_name.includes(ti))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无甲状腺功能数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 肿瘤标志物表格
-function createTumorTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('tumor-individual-charts');
-    if (!container) return;
-
-    const tumorIndicators = ['甲胎蛋白', '癌胚抗原', 'CA125', 'CA153', 'CA199', 'PSA', 'fPSA'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (tumorIndicators.some(ti => indicator.indicator_name.includes(ti))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无肿瘤标志物数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 尿液检查表格
-function createUrineTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('urine-individual-charts');
-    if (!container) return;
-
-    const urineIndicators = ['尿比重', '尿pH值', '尿蛋白', '尿糖', '尿酮体', '尿潜血', '尿白细胞'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (urineIndicators.some(ui => indicator.indicator_name.includes(ui))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无尿液检查数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 血液流变学表格
-function createRheologyTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('rheology-individual-charts');
-    if (!container) return;
-
-    const rheologyIndicators = ['全血粘度低切', '全血粘度中切', '全血粘度高切', '血浆粘度', '红细胞压积'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (rheologyIndicators.some(ri => indicator.indicator_name.includes(ri))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无血液流变学数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 眼科检查表格
-function createEyeTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('eye-individual-charts');
-    if (!container) return;
-
-    const eyeIndicators = ['裸眼视力左', '裸眼视力右', '矫正视力左', '矫正视力右', '眼压左', '眼压右'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (indicator.type === 'eye_exam' || eyeIndicators.some(ei => indicator.indicator_name.includes(ei))) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无眼科检查数据</div>';
-    } else {
-        container.innerHTML = html;
-    }
-}
-
-// 其他检查表格
-function createOtherTable() {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById('other-individual-charts');
-    if (!container) return;
-
-    const knownTypes = ['physical_exam', 'blood_routine', 'biochemistry', 'liver_function',
-                        'kidney_function', 'thyroid_function', 'tumor_markers', 'urine_exam',
-                        'blood_rheology', 'eye_exam'];
-
-    let html = '';
-    rawData.forEach(indicator => {
-        if (!knownTypes.includes(indicator.type)) {
-            html += createTableForIndicator(indicator.indicator_name, indicator);
-        }
-    });
-
-    if (!html) {
-        container.innerHTML = '<div class="col-12 text-center text-muted py-4">暂无其他检查数据</div>';
+        // 从indicatorTypeList中找到对应的显示名称
+        const typeInfo = indicatorTypeList.find(item => item.type === indicatorType);
+        const displayName = typeInfo ? typeInfo.display_name : indicatorType;
+        container.innerHTML = `<div class="col-12 text-center text-muted py-4">暂无${displayName}数据</div>`;
     } else {
         container.innerHTML = html;
     }
@@ -722,63 +442,23 @@ function createOtherTable() {
 
 // 初始化所有表格
 function initializeAllTables() {
-    createPhysicalTable();
-    createBloodTable();
-    createBiochemistryTables();
-    createLiverTable();
-    createKidneyTable();
-    createThyroidTable();
-    createTumorTable();
-    createUrineTable();
-    createRheologyTable();
-    createEyeTable();
-    createOtherTable();
+    indicatorTypeList.forEach(indicatorType => {
+        createIndicatorTypeTable(indicatorType.type);
+    });
 }
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard loaded, initializing tables...');
     initializeAllTables();
 });
 
 // 切换标签时刷新对应的表格
 document.addEventListener('shown.bs.tab', function(e) {
     const targetId = e.target.getAttribute('data-bs-target');
-    switch(targetId) {
-        case '#physical': createPhysicalTable(); break;
-        case '#blood': createBloodTable(); break;
-        case '#biochemistry': createBiochemistryTables(); break;
-        case '#liver': createLiverTable(); break;
-        case '#kidney': createKidneyTable(); break;
-        case '#thyroid': createThyroidTable(); break;
-        case '#tumor': createTumorTable(); break;
-        case '#urine': createUrineTable(); break;
-        case '#rheology': createRheologyTable(); break;
-        case '#eye': createEyeTable(); break;
-        case '#other': createOtherTable(); break;
-    }
-});
-
-// 页面加载完成后初始化表格
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Dashboard loaded, initializing tables...');
-    initializeAllTables();
-});
-
-// 标签切换时刷新对应的表格
-document.addEventListener('shown.bs.tab', function(e) {
-    const targetId = e.target.getAttribute('data-bs-target');
-    switch(targetId) {
-        case '#physical': createPhysicalTable(); break;
-        case '#blood': createBloodTable(); break;
-        case '#biochemistry': createBiochemistryTables(); break;
-        case '#liver': createLiverTable(); break;
-        case '#kidney': createKidneyTable(); break;
-        case '#thyroid': createThyroidTable(); break;
-        case '#tumor': createTumorTable(); break;
-        case '#urine': createUrineTable(); break;
-        case '#rheology': createRheologyTable(); break;
-        case '#eye': createEyeTable(); break;
-        case '#other': createOtherTable(); break;
+    if (targetId && targetId.startsWith('#')) {
+        const indicatorType = targetId.substring(1); // 去掉#号
+        createIndicatorTypeTable(indicatorType);
     }
 });
 </script>

@@ -26,50 +26,37 @@ class HealthCheckup(models.Model):
 class HealthIndicator(models.Model):
     """健康指标模型"""
     INDICATOR_TYPES = [
-        # 一般体格检查
-        ('physical_exam', '体格检查'),
+        # 一般检查
+        ('general_exam', '一般检查'),
 
-        # 血液常规检查
-        ('blood_routine', '血液常规'),
-
-        # 生化检验
+        # 血液检验
+        ('blood_routine', '血常规'),
         ('biochemistry', '生化检验'),
-
-        # 肝功能检查
         ('liver_function', '肝功能'),
-
-        # 肾功能检查
         ('kidney_function', '肾功能'),
-
-        # 甲状腺功能检查
-        ('thyroid_function', '甲状腺功能'),
-
-        # 肿瘤标志物检查
+        ('thyroid', '甲状腺'),
+        ('cardiac', '心脏标志物'),
         ('tumor_markers', '肿瘤标志物'),
+        ('infection', '感染炎症'),
+        ('blood_rheology', '血液流变'),
+        ('coagulation', '凝血功能'),
 
-        # 尿液检查
-        ('urine_exam', '尿液检查'),
-
-        # 血液流变学检查
-        ('blood_rheology', '血液流变学'),
-
-        # 眼科检查
-        ('eye_exam', '眼科检查'),
-
-        # 超声检查
-        ('ultrasound_exam', '超声检查'),
+        # 体液检验
+        ('urine', '尿液检查'),
+        ('stool', '粪便检查'),
+        ('pathology', '病理检查'),
 
         # 影像学检查
-        ('imaging_exam', '影像学检查'),
+        ('ultrasound', '超声检查'),
+        ('X_ray', 'X线检查'),
+        ('CT_MRI', 'CT和MRI'),
+        ('endoscopy', '内镜检查'),
 
-        # 病症诊断
-        ('diagnosis', '病症诊断'),
+        # 功能和专科检查
+        ('special_organs', '专科检查'),
 
-        # 症状描述
-        ('symptoms', '症状描述'),
-
-        # 其他检查
-        ('other_exam', '其他检查'),
+        # 其他
+        ('other', '其他检查'),
     ]
 
     checkup = models.ForeignKey(HealthCheckup, on_delete=models.CASCADE, verbose_name='体检报告')
@@ -315,7 +302,6 @@ class UserProfile(models.Model):
         choices=[
             ('male', '男'),
             ('female', '女'),
-            ('other', '其他'),
         ],
         blank=True,
         verbose_name='性别'
@@ -343,7 +329,6 @@ class UserProfile(models.Model):
         gender_map = {
             'male': '男',
             'female': '女',
-            'other': '其他',
         }
         return gender_map.get(self.gender, '未设置')
 

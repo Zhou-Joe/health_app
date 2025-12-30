@@ -30,6 +30,8 @@ urlpatterns = [
     path('conversations/create/', miniprogram_api.miniprogram_create_conversation, name='create_conversation'),
     path('conversations/<int:conversation_id>/', miniprogram_api.miniprogram_conversation_detail, name='conversation_detail'),
     path('conversations/<int:conversation_id>/delete/', miniprogram_api.miniprogram_delete_conversation, name='delete_conversation'),
+    path('conversations/<int:conversation_id>/export/pdf/', miniprogram_api.miniprogram_export_conversation_pdf, name='export_conversation_pdf'),
+    path('conversations/<int:conversation_id>/export/word/', miniprogram_api.miniprogram_export_conversation_word, name='export_conversation_word'),
 
     # 数据整合
     path('integrate-data/', miniprogram_api.miniprogram_integrate_data, name='integrate_data'),

@@ -162,23 +162,19 @@ def dashboard(request):
 
     # 生成动态的指标分类映射
     indicator_type_mapping = {}
+    indicator_type_list = []  # 新增：按顺序的指标类型列表
     for indicator_type, display_name in HealthIndicator.INDICATOR_TYPES:
         if indicator_type in existing_indicator_types:
-            # 根据指标类型生成对应的tab ID
-            tab_id = {
-                'physical_exam': 'physical',
-                'blood_routine': 'blood',
-                'biochemistry': 'biochemistry',
-                'liver_function': 'liver',
-                'kidney_function': 'kidney',
-                'thyroid_function': 'thyroid',
-                'tumor_markers': 'tumor',
-                'urine_exam': 'urine',
-                'blood_rheology': 'rheology',
-                'eye_exam': 'eye',
-                'other_exam': 'other'
-            }.get(indicator_type, 'other')
-            indicator_type_mapping[tab_id] = indicator_type
+            # 直接使用indicator_type作为tab_id，不再使用hardcoded映射
+            indicator_type_mapping[indicator_type] = {
+                'type': indicator_type,
+                'display_name': display_name
+            }
+            # 添加到列表中，保持顺序
+            indicator_type_list.append({
+                'type': indicator_type,
+                'display_name': display_name
+            })
 
     # 获取各类指标数据（增加到50条记录以确保包含所有历史数据）
     chart_data = prepare_chart_data(list(existing_indicator_types), limit=50)
@@ -208,6 +204,7 @@ def dashboard(request):
 
         # 动态指标分类映射
         'indicator_type_mapping': json.dumps(indicator_type_mapping),
+        'indicator_type_list': json.dumps(indicator_type_list),  # 新增：指标类型列表
 
         # 统计数据
         'total_checkups': total_checkups,
@@ -1554,3 +1551,150 @@ def update_indicator(request, indicator_id):
             'success': False,
             'message': f'更新失败: {str(e)}'
         }, status=500)
+
+
+# ==================== 导出对话为PDF/Word ====================
+@login_required
+def export_conversation_pdf(request, conversation_id):
+    """导出对话为PDF"""
+    try:
+        from .export_utils import ConversationExporter
+        from .models import Conversation
+
+        conversation = get_object_or_404(
+            Conversation,
+            id=conversation_id,
+            user=request.user
+        )
+
+        exporter = ConversationExporter(conversation_id)
+        return exporter.export_to_pdf()
+
+    except Exception as e:
+        messages.error(request, f'导出PDF失败: {str(e)}')
+        return redirect('medical_records:ai_health_advice')
+
+
+@login_required
+def export_conversation_word(request, conversation_id):
+    """导出对话为Word"""
+    try:
+        from .export_utils import ConversationExporter
+        from .models import Conversation
+
+        conversation = get_object_or_404(
+            Conversation,
+            id=conversation_id,
+            user=request.user
+        )
+
+        exporter = ConversationExporter(conversation_id)
+        return exporter.export_to_word()
+
+    except Exception as e:
+        messages.error(request, f'导出Word失败: {str(e)}')
+        return redirect('medical_records:ai_health_advice')
+
+# ==================== 导出健康趋势为PDF/Word ====================
+@login_required
+def export_health_trends_pdf(request):
+    """导出健康趋势为PDF"""
+    try:
+        from .export_utils import HealthTrendsExporter
+
+        exporter = HealthTrendsExporter(request.user)
+        return exporter.export_to_pdf()
+
+    except Exception as e:
+        messages.error(request, f'导出PDF失败: {str(e)}')
+        return redirect('medical_records:dashboard')
+
+
+@login_required
+def export_health_trends_word(request):
+    """导出健康趋势为Word"""
+    try:
+        from .export_utils import HealthTrendsExporter
+
+        exporter = HealthTrendsExporter(request.user)
+        return exporter.export_to_word()
+
+    except Exception as e:
+        messages.error(request, f'导出Word失败: {str(e)}')
+        return redirect('medical_records:dashboard')
+
+
+@login_required
+def export_checkups_pdf(request):
+    """批量导出体检报告为PDF"""
+    from .export_utils import CheckupReportsExporter
+
+    try:
+        # 获取请求中的报告ID列表
+        checkup_ids = request.GET.get('checkup_ids', '')
+        if not checkup_ids:
+            messages.error(request, '未选择任何报告')
+            return redirect('medical_records:data_integration')
+
+        # 解析报告ID
+        checkup_id_list = [int(id.strip()) for id in checkup_ids.split(',') if id.strip().isdigit()]
+
+        if not checkup_id_list:
+            messages.error(request, '无效的报告ID')
+            return redirect('medical_records:data_integration')
+
+        # 获取体检报告
+        checkups = HealthCheckup.objects.filter(
+            user=request.user,
+            id__in=checkup_id_list
+        ).order_by('-checkup_date')
+
+        if not checkups.exists():
+            messages.error(request, '未找到指定的报告')
+            return redirect('medical_records:data_integration')
+
+        # 导出
+        exporter = CheckupReportsExporter(checkups)
+        return exporter.export_to_pdf()
+
+    except Exception as e:
+        messages.error(request, f'导出PDF失败: {str(e)}')
+        return redirect('medical_records:data_integration')
+
+
+@login_required
+def export_checkups_word(request):
+    """批量导出体检报告为Word"""
+    from .export_utils import CheckupReportsExporter
+
+    try:
+        # 获取请求中的报告ID列表
+        checkup_ids = request.GET.get('checkup_ids', '')
+        if not checkup_ids:
+            messages.error(request, '未选择任何报告')
+            return redirect('medical_records:data_integration')
+
+        # 解析报告ID
+        checkup_id_list = [int(id.strip()) for id in checkup_ids.split(',') if id.strip().isdigit()]
+
+        if not checkup_id_list:
+            messages.error(request, '无效的报告ID')
+            return redirect('medical_records:data_integration')
+
+        # 获取体检报告
+        checkups = HealthCheckup.objects.filter(
+            user=request.user,
+            id__in=checkup_id_list
+        ).order_by('-checkup_date')
+
+        if not checkups.exists():
+            messages.error(request, '未找到指定的报告')
+            return redirect('medical_records:data_integration')
+
+        # 导出
+        exporter = CheckupReportsExporter(checkups)
+        return exporter.export_to_word()
+
+    except Exception as e:
+        messages.error(request, f'导出Word失败: {str(e)}')
+        return redirect('medical_records:data_integration')

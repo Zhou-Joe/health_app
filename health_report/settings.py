@@ -186,3 +186,32 @@ AI_MODEL_TIMEOUT = int(os.getenv('AI_MODEL_TIMEOUT', '300'))
 
 # Default Workflow
 DEFAULT_WORKFLOW = os.getenv('DEFAULT_WORKFLOW', 'ocr_llm')
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

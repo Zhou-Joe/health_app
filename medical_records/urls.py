@@ -36,4 +36,16 @@ urlpatterns = [
     path('api/checkups/', api_views.get_user_checkups, name='api_user_checkups'),
     path('api/integrate-data/', api_views.integrate_data, name='api_integrate_data'),
     path('api/apply-integration/', api_views.apply_integration, name='api_apply_integration'),
+
+    # 导出功能
+    path('conversations/<int:conversation_id>/export/pdf/', views.export_conversation_pdf, name='export_conversation_pdf'),
+    path('conversations/<int:conversation_id>/export/word/', views.export_conversation_word, name='export_conversation_word'),
+
+    # 健康趋势导出
+    path('dashboard/export/pdf/', views.export_health_trends_pdf, name='export_health_trends_pdf'),
+    path('dashboard/export/word/', views.export_health_trends_word, name='export_health_trends_word'),
+
+    # 批量导出体检报告
+    path('export/checkups/pdf/', views.export_checkups_pdf, name='export_checkups_pdf'),
+    path('export/checkups/word/', views.export_checkups_word, name='export_checkups_word'),
 ]

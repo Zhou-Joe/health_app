@@ -59,10 +59,22 @@
     <!-- 页面标题 -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="mb-0">
-                <i class="bi bi-layers text-primary"></i> 智能数据整合
-            </h1>
-            <p class="text-muted">选择多份体检报告，AI将自动统一指标名称、单位、参考范围等信息</p>
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1 class="mb-0">
+                        <i class="bi bi-layers text-primary"></i> 智能数据整合
+                    </h1>
+                    <p class="text-muted mb-0">选择多份体检报告，AI将自动统一指标名称、单位、参考范围等信息</p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline-danger" onclick="exportAllCheckups()">
+                        <i class="bi bi-file-earmark-pdf"></i> 导出所有报告
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="exportAllCheckupsWord()">
+                        <i class="bi bi-file-earmark-word"></i> 导出所有报告(Word)
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -104,6 +116,9 @@
                         <button class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
                             <i class="bi bi-x"></i> 清空
                         </button>
+                        <button class="btn btn-outline-danger btn-sm ms-2" id="exportButton1" onclick="exportSelectedCheckups()" disabled>
+                            <i class="bi bi-download"></i> 导出
+                        </button>
                     </div>
                 </div>
                 <small class="text-muted">已选择 <strong id="selectedCount">0</strong> 份报告</small>
@@ -139,6 +154,27 @@
                     </div>
                 </div>
             {% endif %}
+        </div>
+
+        <!-- 用户提示词（可选） -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="bi bi-chat-left-text"></i> 自定义提示词（可选）
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <label for="userPrompt" class="form-label">补充说明</label>
+                        <textarea class="form-control" id="userPrompt" rows="3"
+                                  placeholder="例如：请特别关注血压、血糖指标的异常值判断；请确保所有日期格式统一..."></textarea>
+                        <small class="form-text text-muted">
+                            <i class="bi bi-info-circle"></i> 可选。在这里添加您希望 AI 特别关注的方面，或额外的整合要求。留空则仅使用系统默认的整合规则。
+                        </small>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -213,6 +249,9 @@
                 <button class="btn btn-success btn-lg me-2" onclick="applyChanges()">
                     <i class="bi bi-check-circle"></i> 应用所有更新
                 </button>
+                <button class="btn btn-outline-danger btn-lg me-2" onclick="exportSelectedCheckups()">
+                    <i class="bi bi-download"></i> 导出报告
+                </button>
                 <button class="btn btn-outline-secondary btn-lg" onclick="location.reload()">
                     <i class="bi bi-x-circle"></i> 取消
                 </button>
@@ -275,6 +314,7 @@ function toggleCheckupSelection(card) {
 function updateSelectedCount() {
     document.getElementById('selectedCount').textContent = selectedCheckups.size;
     document.getElementById('startIntegrationBtn').disabled = selectedCheckups.size === 0;
+    document.getElementById('exportButton1').disabled = selectedCheckups.size === 0;
 }
 
 // 全选
@@ -295,12 +335,113 @@ function clearSelection() {
     });
 }
 
+// 导出选中的报告
+function exportSelectedCheckups() {
+    if (selectedCheckups.size === 0) {
+        alert('请至少选择一份报告');
+        return;
+    }
+
+    // 创建导出格式选择模态框
+    const modalHtml = `
+        <div class="modal fade" id="exportModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-download"></i> 选择导出格式
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">请选择要导出的文件格式：</p>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'medical_records:export_checkups_pdf' %}?checkup_ids=${Array.from(selectedCheckups).join(',')}"
+                               class="btn btn-outline-danger text-start">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                                <strong>导出为PDF</strong>
+                                <small class="d-block text-muted">适合打印和存档</small>
+                            </a>
+                            <a href="{% url 'medical_records:export_checkups_word' %}?checkup_ids=${Array.from(selectedCheckups).join(',')}"
+                               class="btn btn-outline-primary text-start">
+                                <i class="bi bi-file-earmark-word"></i>
+                                <strong>导出为Word</strong>
+                                <small class="d-block text-muted">可编辑格式，便于修改</small>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 移除旧的模态框
+    const oldModal = document.getElementById('exportModal');
+    if (oldModal) {
+        oldModal.remove();
+    }
+
+    // 添加新的模态框
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 显示模态框
+    const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+    modal.show();
+}
+
+// 导出所有报告为PDF
+function exportAllCheckups() {
+    // 获取所有报告ID
+    const allCheckupIds = [];
+    document.querySelectorAll('.checkup-checkbox').forEach(checkbox => {
+        allCheckupIds.push(checkbox.value);
+    });
+
+    if (allCheckupIds.length === 0) {
+        alert('暂无体检报告可导出');
+        return;
+    }
+
+    if (!confirm(`确定要导出所有 ${allCheckupIds.length} 份报告吗？`)) {
+        return;
+    }
+
+    // 直接触发下载
+    const url = "{% url 'medical_records:export_checkups_pdf' %}?checkup_ids=" + allCheckupIds.join(',');
+    window.location.href = url;
+}
+
+// 导出所有报告为Word
+function exportAllCheckupsWord() {
+    // 获取所有报告ID
+    const allCheckupIds = [];
+    document.querySelectorAll('.checkup-checkbox').forEach(checkbox => {
+        allCheckupIds.push(checkbox.value);
+    });
+
+    if (allCheckupIds.length === 0) {
+        alert('暂无体检报告可导出');
+        return;
+    }
+
+    if (!confirm(`确定要导出所有 ${allCheckupIds.length} 份报告吗？`)) {
+        return;
+    }
+
+    // 直接触发下载
+    const url = "{% url 'medical_records:export_checkups_word' %}?checkup_ids=" + allCheckupIds.join(',');
+    window.location.href = url;
+}
+
 // 开始整合
 async function startIntegration() {
     if (selectedCheckups.size === 0) {
         alert('请至少选择一份体检报告');
         return;
     }
+
+    // 获取用户提示词（可选）
+    const userPrompt = document.getElementById('userPrompt').value.trim();
 
     // 切换到第二步
     document.getElementById('step1-content').style.display = 'none';
@@ -310,15 +451,22 @@ async function startIntegration() {
     try {
         // 调用后端API
         const checkupIds = Array.from(selectedCheckups);
+        const requestData = {
+            checkup_ids: checkupIds
+        };
+
+        // 如果用户填写了提示词，添加到请求数据中
+        if (userPrompt) {
+            requestData.user_prompt = userPrompt;
+        }
+
         const response = await fetch('{% url "medical_records:api_integrate_data" %}', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                checkup_ids: checkupIds
-            })
+            body: JSON.stringify(requestData)
         });
 
         const result = await response.json();

@@ -749,6 +749,9 @@ def get_user_checkups(request):
 @login_required
 def integrate_data(request):
     """AI智能整合多份体检报告的数据"""
+    import logging
+    logger = logging.getLogger(__name__)
+
     try:
         import json
         import re
@@ -756,16 +759,23 @@ def integrate_data(request):
         from .services import call_llm_for_integration
         from .models import SystemSettings
 
-        print(f"\n{'='*80}")
-        print(f"[数据整合] API调用开始")
-        print(f"[数据整合] 用户: {request.user.username}")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"[数据整合] API调用开始")
+        logger.info(f"[数据整合] 用户: {request.user.username}")
 
         # 获取请求数据
         data = json.loads(request.body)
         checkup_ids = data.get('checkup_ids', [])
+        user_prompt = data.get('user_prompt', '').strip()  # 获取用户提示词（可选）
 
-        print(f"[数据整合] 选择的报告ID: {checkup_ids}")
-        print(f"[数据整合] 报告数量: {len(checkup_ids)}")
+        logger.info(f"[数据整合] 选择的报告ID: {checkup_ids}")
+        logger.info(f"[数据整合] 报告数量: {len(checkup_ids)}")
+
+        if user_prompt:
+            logger.info(f"[数据整合] ✓ 用户提供了自定义提示词")
+            logger.info(f"[数据整合] 用户提示词内容: {user_prompt}")
+        else:
+            logger.info(f"[数据整合] - 未提供用户提示词，使用默认规则")
 
         if not checkup_ids:
             return JsonResponse({
@@ -780,20 +790,20 @@ def integrate_data(request):
         )
 
         if checkups.count() != len(checkup_ids):
-            print(f"[数据整合] ✗ 报告验证失败")
+            logger.info(f"[数据整合] ✗ 报告验证失败")
             return JsonResponse({
                 'success': False,
                 'error': '部分报告不存在或无权访问'
             }, status=403)
 
-        print(f"[数据整合] ✓ 报告验证通过")
+        logger.info(f"[数据整合] ✓ 报告验证通过")
 
         # 获取所有指标
         indicators = HealthIndicator.objects.filter(
             checkup__in=checkups
         ).select_related('checkup')
 
-        print(f"[数据整合] 获取到指标总数: {indicators.count()}")
+        logger.info(f"[数据整合] 获取到指标总数: {indicators.count()}")
 
         # 按指标名称分组（模糊匹配）
         indicators_by_name = {}
@@ -803,7 +813,7 @@ def integrate_data(request):
                 indicators_by_name[name_key] = []
             indicators_by_name[name_key].append(indicator)
 
-        print(f"[数据整合] 指标分组数: {len(indicators_by_name)}")
+        logger.info(f"[数据整合] 指标分组数: {len(indicators_by_name)}")
 
         # 准备发送给LLM的数据
         indicators_summary = []
@@ -846,6 +856,51 @@ def integrate_data(request):
    - 如果value在参考范围内 → status应为"normal"
    - 如果有参考范围但status标记错误 → 必须更正
 3.分类错误或不统一：统一为最准确的分类
+
+【可选的指标分类（indicator_type）】
+必须从以下分类中选择，优先选择最具体的分类，最后才使用other：
+1. 一般检查
+   - general_exam: 一般检查（身高、体重、BMI、血压、心率、体温等）
+
+2. 血液检验
+   - blood_routine: 血常规（白细胞、红细胞、血红蛋白、血小板等）
+   - biochemistry: 生化检验（血糖、血脂、电解质等）
+   - liver_function: 肝功能（ALT、AST、胆红素、白蛋白等）
+   - kidney_function: 肾功能（肌酐、尿素氮、尿酸等）
+   - thyroid: 甲状腺（T3、T4、TSH等）
+   - cardiac: 心脏标志物（肌钙蛋白、BNP、CK-MB等）
+   - tumor_markers: 肿瘤标志物（CEA、AFP、CA125、CA199、PSA等）
+   - infection: 感染炎症（C反应蛋白CRP、血沉ESR等）
+   - blood_rheology: 血液流变（全血粘度、血浆粘度）
+   - coagulation: 凝血功能（PT、APTT、纤维蛋白原等）
+
+3. 体液检验
+   - urine: 尿液检查（尿常规、尿蛋白、尿糖等）
+   - stool: 粪便检查（大便常规、隐血等）
+   - pathology: 病理检查（活检病理、细胞学检查、免疫组化）
+
+4. 影像学检查
+   - ultrasound: 超声检查（B超、彩超检查发现的胆囊息肉、肝囊肿等）
+   - X_ray: X线检查（胸片、骨骼X光等）
+   - CT_MRI: CT和MRI检查
+   - endoscopy: 内镜检查（胃镜、肠镜、支气管镜等）
+
+5. 专科检查
+   - special_organs: 专科检查（眼科视力/眼压、耳鼻喉听力检查、口腔牙齿等）
+
+6. 兜底分类
+   - other: 其他检查（仅当无法归入以上任何类别时使用）
+
+【分类判断优先级】
+1. 如果是病理活检/细胞学检查 → pathology
+2. 如果是超声/B超/彩超 → ultrasound
+3. 如果是X线检查 → X_ray
+4. 如果是CT或MRI → CT_MRI
+5. 如果是内镜（胃镜肠镜） → endoscopy
+6. 如果是专科检查（眼耳鼻喉口腔等） → special_organs
+7. 如果是血液检验，按具体项目选择最细分的类别（优先级：cardiac/tumor_markers/infection/coagulation > liver/kidney/thyroid > blood_routine > biochemistry）
+8. 如果是体液检验，按样本类型（urine/stool）
+9. 如果实在无法判断 → other（但这是最后的选择）
 
 【不需要更正的情况】
 - 名称已经一致（没有不同变体）
@@ -897,13 +952,22 @@ def integrate_data(request):
 5.绝对不要返回reference_range字段
 6.纯JSON格式，无markdown"""
 
-        print(f"[数据整合] Prompt构建完成，长度: {len(prompt)} 字符")
-        print(f"[数据整合] 开始调用LLM...")
+        # 如果用户提供了自定义提示词，添加到prompt中
+        if user_prompt:
+            prompt += f"""
+
+【用户特别要求】
+{user_prompt}
+
+请严格按照上述用户要求进行数据整合。"""
+
+        logger.info(f"[数据整合] Prompt构建完成，长度: {len(prompt)} 字符")
+        logger.info(f"[数据整合] 开始调用LLM...")
 
         # 获取LLM提供商配置
         llm_config = SystemSettings.get_llm_config()
         llm_provider = llm_config.get('provider', 'openai')
-        print(f"[数据整合] LLM提供商: {llm_provider}")
+        logger.info(f"[数据整合] LLM提供商: {llm_provider}")
 
         # 调用LLM
         try:
@@ -911,22 +975,22 @@ def integrate_data(request):
 
             if llm_provider == 'gemini':
                 # 使用 Gemini API
-                print(f"[数据整合] 使用 Gemini API")
+                logger.info(f"[数据整合] 使用 Gemini API")
                 from .services import call_gemini_api
                 # Gemini不使用system_message，直接使用prompt
                 timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
                 llm_response = call_gemini_api(prompt, timeout=timeout)
             else:
                 # 使用 OpenAI 兼容格式
-                print(f"[数据整合] 使用 OpenAI 兼容格式")
+                logger.info(f"[数据整合] 使用 OpenAI 兼容格式")
                 # 使用统一的AI模型超时配置
                 timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
                 llm_response = call_llm_for_integration(prompt, timeout=timeout)
 
             llm_end = time.time()
-            print(f"[数据整合] ✓ LLM调用完成，耗时: {llm_end - llm_start:.2f}秒")
+            logger.info(f"[数据整合] ✓ LLM调用完成，耗时: {llm_end - llm_start:.2f}秒")
         except Exception as e:
-            print(f"[数据整合] ✗ LLM调用失败: {str(e)}")
+            logger.info(f"[数据整合] ✗ LLM调用失败: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'error': f'调用LLM失败: {str(e)}'
@@ -934,51 +998,51 @@ def integrate_data(request):
 
         # 解析LLM响应
         try:
-            print(f"[数据整合] 开始解析LLM响应...")
+            logger.info(f"[数据整合] 开始解析LLM响应...")
 
             # 尝试从响应中提取JSON
             # 移除可能的markdown标记
             cleaned_response = llm_response.strip()
             if cleaned_response.startswith('```'):
-                print(f"[数据整合] 检测到markdown标记，正在清理...")
+                logger.info(f"[数据整合] 检测到markdown标记，正在清理...")
                 # 移除markdown代码块标记
                 cleaned_response = re.sub(r'^```\w*\n?', '', cleaned_response)
                 cleaned_response = re.sub(r'\n?```$', '', cleaned_response)
-                print(f"[数据整合] Markdown清理完成")
+                logger.info(f"[数据整合] Markdown清理完成")
 
             # 尝试提取JSON对象
             json_match = re.search(r'\{[\s\S]*\}', cleaned_response)
             if json_match:
                 result_json = json.loads(json_match.group())
-                print(f"[数据整合] ✓ JSON提取成功（使用正则匹配）")
+                logger.info(f"[数据整合] ✓ JSON提取成功（使用正则匹配）")
             else:
                 result_json = json.loads(cleaned_response)
-                print(f"[数据整合] ✓ JSON解析成功（直接解析）")
+                logger.info(f"[数据整合] ✓ JSON解析成功（直接解析）")
 
             changes = result_json.get('changes', [])
-            print(f"[数据整合] LLM返回的变更数量: {len(changes)}")
+            logger.info(f"[数据整合] LLM返回的变更数量: {len(changes)}")
 
             # 验证返回的changes格式
             validated_changes = []
 
             for change in changes:
                 if not isinstance(change, dict):
-                    print(f"[数据整合] 跳过无效变更（非字典）")
+                    logger.info(f"[数据整合] 跳过无效变更（非字典）")
                     continue
 
                 indicator_id = change.get('indicator_id')
                 if not indicator_id:
-                    print(f"[数据整合] 跳过无效变更（无indicator_id）")
+                    logger.info(f"[数据整合] 跳过无效变更（无indicator_id）")
                     continue
 
                 # 打印LLM返回的原始数据
-                print(f"[数据整合] 处理指标{indicator_id}，LLM返回: {change}")
+                logger.info(f"[数据整合] 处理指标{indicator_id}，LLM返回: {change}")
 
                 # 验证indicator_id存在
                 try:
                     indicator = HealthIndicator.objects.get(id=indicator_id)
                 except HealthIndicator.DoesNotExist:
-                    print(f"[数据整合] 跳过无效变更（indicator_id={indicator_id}不存在）")
+                    logger.info(f"[数据整合] 跳过无效变更（indicator_id={indicator_id}不存在）")
                     continue
 
                 # 原始数据（用于前端显示）
@@ -997,27 +1061,27 @@ def integrate_data(request):
 
                 if 'indicator_name' in change:
                     actual_changes['indicator_name'] = change['indicator_name']
-                    print(f"[数据整合]   指标{indicator_id}: 名称 {indicator.indicator_name} -> {change['indicator_name']}")
+                    logger.info(f"[数据整合]   指标{indicator_id}: 名称 {indicator.indicator_name} -> {change['indicator_name']}")
 
                 if 'value' in change:
                     actual_changes['value'] = str(change['value'])
-                    print(f"[数据整合]   指标{indicator_id}: 值 {indicator.value} -> {change['value']}")
+                    logger.info(f"[数据整合]   指标{indicator_id}: 值 {indicator.value} -> {change['value']}")
 
                 if 'unit' in change:
                     actual_changes['unit'] = change['unit']
-                    print(f"[数据整合]   指标{indicator_id}: 单位 {indicator.unit} -> {change['unit']}")
+                    logger.info(f"[数据整合]   指标{indicator_id}: 单位 {indicator.unit} -> {change['unit']}")
 
                 # 忽略reference_range字段（即使LLM返回也不处理）
                 if 'reference_range' in change:
-                    print(f"[数据整合]   指标{indicator_id}: 参考范围被忽略（系统已禁用此字段更新）")
+                    logger.info(f"[数据整合]   指标{indicator_id}: 参考范围被忽略（系统已禁用此字段更新）")
 
                 if 'status' in change:
                     actual_changes['status'] = change['status']
-                    print(f"[数据整合]   指标{indicator_id}: 状态 {indicator.status} -> {change['status']}")
+                    logger.info(f"[数据整合]   指标{indicator_id}: 状态 {indicator.status} -> {change['status']}")
 
                 if 'indicator_type' in change:
                     actual_changes['indicator_type'] = change['indicator_type']
-                    print(f"[数据整合]   指标{indicator_id}: 分类 {indicator.indicator_type} -> {change['indicator_type']}")
+                    logger.info(f"[数据整合]   指标{indicator_id}: 分类 {indicator.indicator_type} -> {change['indicator_type']}")
 
                 # 提取reason字段（如果存在）
                 reason = change.get('reason', '')
@@ -1030,11 +1094,11 @@ def integrate_data(request):
                     'reason': reason  # 保存修改理由
                 })
 
-            print(f"[数据整合] ✓ 验证完成，有效变更: {len(validated_changes)}")
+            logger.info(f"[数据整合] ✓ 验证完成，有效变更: {len(validated_changes)}")
 
             # 收集已变更的indicator_id
             changed_indicator_ids = set(change['indicator_id'] for change in validated_changes)
-            print(f"[数据整合] 已变更指标ID: {changed_indicator_ids}")
+            logger.info(f"[数据整合] 已变更指标ID: {changed_indicator_ids}")
 
             # 添加所有未变更的指标
             unchanged_indicators = []
@@ -1055,13 +1119,13 @@ def integrate_data(request):
                         'unchanged': True  # 标记为无变化
                     })
 
-            print(f"[数据整合] 未变更指标数量: {len(unchanged_indicators)}")
+            logger.info(f"[数据整合] 未变更指标数量: {len(unchanged_indicators)}")
 
             # 合并变更和未变更的指标
             all_indicators = validated_changes + unchanged_indicators
 
             # 构建响应
-            print(f"[数据整合] ✓ 数据整合完成")
+            logger.info(f"[数据整合] ✓ 数据整合完成")
             print(f"{'='*80}\n")
 
             return JsonResponse({
@@ -1075,17 +1139,17 @@ def integrate_data(request):
             })
 
         except json.JSONDecodeError as e:
-            print(f"[数据整合] ✗ JSON解析错误: {str(e)}")
-            print(f"[数据整合] LLM响应内容:\n{llm_response[:1000]}")
+            logger.info(f"[数据整合] ✗ JSON解析错误: {str(e)}")
+            logger.info(f"[数据整合] LLM响应内容:\n{llm_response[:1000]}")
 
             # 检查响应是否可能被截断
             response_len = len(llm_response)
-            print(f"[数据整合] 响应总长度: {response_len} 字符")
+            logger.info(f"[数据整合] 响应总长度: {response_len} 字符")
 
             # 检查响应末尾是否为不完整的JSON
             trimmed = llm_response.strip()
             if not trimmed.endswith('}') and not trimmed.endswith(']'):
-                print(f"[数据整合] ⚠️  检测到响应可能被截断（不以}}或]结尾）")
+                logger.info(f"[数据整合] ⚠️  检测到响应可能被截断（不以}}或]结尾）")
                 error_msg = f'LLM响应被截断，max_tokens设置可能不足。当前响应长度: {response_len} 字符。建议增加max_tokens参数或减少数据量。错误详情: {str(e)}'
             else:
                 error_msg = f'LLM返回格式错误: {str(e)}'
@@ -1098,8 +1162,8 @@ def integrate_data(request):
             }, status=500)
         except Exception as e:
             import traceback
-            print(f"[数据整合] ✗ 处理失败: {str(e)}")
-            print(f"[数据整合] 错误追踪:\n{traceback.format_exc()[:1000]}")
+            logger.info(f"[数据整合] ✗ 处理失败: {str(e)}")
+            logger.info(f"[数据整合] 错误追踪:\n{traceback.format_exc()[:1000]}")
             return JsonResponse({
                 'success': False,
                 'error': f'解析LLM响应失败: {str(e)}',
@@ -1109,8 +1173,8 @@ def integrate_data(request):
 
     except Exception as e:
         import traceback
-        print(f"[数据整合] ✗ 严重错误: {str(e)}")
-        print(f"[数据整合] 错误追踪:\n{traceback.format_exc()}")
+        logger.info(f"[数据整合] ✗ 严重错误: {str(e)}")
+        logger.info(f"[数据整合] 错误追踪:\n{traceback.format_exc()}")
         return JsonResponse({
             'success': False,
             'error': f'数据整合失败: {str(e)}',

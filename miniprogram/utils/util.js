@@ -162,6 +162,14 @@ function throttle(fn, delay = 500) {
   }
 }
 
+/**
+ * 获取基础URL
+ */
+function getBaseURL() {
+  const app = getApp()
+  return app.globalData.baseUrl || ''
+}
+
 module.exports = {
   formatDate,
   formatRelativeTime,
@@ -173,5 +181,6 @@ module.exports = {
   getIndicatorTypeName,
   getIndicatorStatusInfo,
   debounce,
-  throttle
+  throttle,
+  getBaseURL
 }

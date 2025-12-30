@@ -1,4 +1,37 @@
 .chat-container { display: flex; flex-direction: column; height: 100vh; }
+
+/* 导出按钮区域 */
+.export-actions {
+  display: flex;
+  gap: 20rpx;
+  padding: 20rpx;
+  background-color: #FFF;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.export-btn {
+  flex: 1;
+  height: 70rpx;
+  line-height: 70rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+  color: #FFF;
+  font-weight: 500;
+}
+
+.pdf-btn {
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF5252 100%);
+}
+
+.word-btn {
+  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+}
+
+.export-btn[disabled] {
+  opacity: 0.6;
+}
+
 .message-list { flex: 1; padding: 20rpx; overflow-y: auto; }
 .message-row { display: flex; margin-bottom: 30rpx; }
 .message-row.user { justify-content: flex-end; }

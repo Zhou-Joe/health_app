@@ -46,9 +46,19 @@
                                 </div>
                                 <div class="ms-2">
                                     {% if advice.is_conversation %}
-                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteConversation({{ advice.conversation_id }})" title="删除整个对话">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{% url 'medical_records:export_conversation_pdf' advice.conversation_id %}"
+                                               class="btn btn-outline-danger" title="导出为PDF">
+                                                <i class="bi bi-file-earmark-pdf"></i>
+                                            </a>
+                                            <a href="{% url 'medical_records:export_conversation_word' advice.conversation_id %}"
+                                               class="btn btn-outline-primary" title="导出为Word">
+                                                <i class="bi bi-file-earmark-word"></i>
+                                            </a>
+                                            <button class="btn btn-outline-danger" onclick="deleteConversation({{ advice.conversation_id }})" title="删除整个对话">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
                                     {% else %}
                                         <button class="btn btn-outline-danger btn-sm" onclick="deleteAdvice({{ advice.id }})" title="删除此条记录">
                                             <i class="bi bi-trash"></i>
@@ -712,7 +722,7 @@ function displayMessagesInModal(messages) {
 
     // 检查是否有任何消息包含prompt_sent
     const hasAnyPrompt = messages.some(msg => msg.prompt_sent && msg.prompt_sent.trim() !== '');
-    
+
     let promptButtonHtml = '';
     if (hasAnyPrompt) {
         promptButtonHtml = `
@@ -730,11 +740,34 @@ function displayMessagesInModal(messages) {
         `;
     }
 
+    // 获取当前对话ID（从消息中获取）
+    const conversationId = messages.length > 0 && messages[0].conversation_id ? messages[0].conversation_id : null;
+
+    // 导出按钮HTML
+    let exportButtonsHtml = '';
+    if (conversationId) {
+        exportButtonsHtml = `
+            <div class="mb-3">
+                <div class="btn-group" role="group">
+                    <a href="/conversations/${conversationId}/export/pdf/"
+                       class="btn btn-outline-danger">
+                        <i class="bi bi-file-earmark-pdf"></i> 导出PDF
+                    </a>
+                    <a href="/conversations/${conversationId}/export/word/"
+                       class="btn btn-outline-primary">
+                        <i class="bi bi-file-earmark-word"></i> 导出Word
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+
     modalContent.innerHTML = `
         <div class="mb-3">
             <h5><i class="bi bi-chat-dots"></i> 对话历史</h5>
             <small class="text-muted">共 ${messages.length} 条消息</small>
         </div>
+        ${exportButtonsHtml}
         ${promptButtonHtml}
         <div class="mb-3">
             ${messagesHtml}

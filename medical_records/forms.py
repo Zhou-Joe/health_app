@@ -6,7 +6,7 @@ from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings
 
 
 class CustomUserCreationForm(forms.ModelForm):
-    """简化用户注册表单 - 只需要用户名和密码（本地使用）"""
+    """用户注册表单 - 包含用户名、密码和个人信息"""
 
     password1 = forms.CharField(
         widget=forms.PasswordInput(attrs={
@@ -22,6 +22,28 @@ class CustomUserCreationForm(forms.ModelForm):
             'placeholder': '请确认密码',
             'autocomplete': 'new-password'
         })
+    )
+
+    # 添加个人信息字段
+    birth_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='出生日期'
+    )
+
+    gender = forms.ChoiceField(
+        choices=[
+            ('male', '男'),
+            ('female', '女'),
+        ],
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        }),
+        label='性别'
     )
 
     class Meta:
@@ -60,11 +82,33 @@ class CustomUserCreationForm(forms.ModelForm):
             raise ValidationError('两次输入的密码不一致')
         return password2
 
+    def clean_birth_date(self):
+        birth_date = self.cleaned_data.get('birth_date')
+        if birth_date:
+            from datetime import date
+            if birth_date > date.today():
+                raise ValidationError('出生日期不能晚于今天')
+            # 检查年龄是否合理（不超过120岁）
+            age = date.today().year - birth_date.year - ((date.today().month, date.today().day) < (birth_date.month, birth_date.day))
+            if age > 120:
+                raise ValidationError('请输入有效的出生日期')
+        return birth_date
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
         if commit:
             user.save()
+            # 保存用户个人信息
+            birth_date = self.cleaned_data.get('birth_date')
+            gender = self.cleaned_data.get('gender')
+            if birth_date or gender:
+                profile = UserProfile.objects.get(user=user)
+                if birth_date:
+                    profile.birth_date = birth_date
+                if gender:
+                    profile.gender = gender
+                profile.save()
         return user
 
 

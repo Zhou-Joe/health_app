@@ -1,4 +1,14 @@
 <view class="chat-container">
+  <!-- 导出按钮区域 -->
+  <view class="export-actions" wx:if="{{conversationId && messages.length > 1}}">
+    <button class="export-btn pdf-btn" bindtap="exportToPDF" disabled="{{exporting}}">
+      <text>{{exporting ? '生成中...' : '导出PDF'}}</text>
+    </button>
+    <button class="export-btn word-btn" bindtap="exportToWord" disabled="{{exporting}}">
+      <text>{{exporting ? '生成中...' : '导出Word'}}</text>
+    </button>
+  </view>
+
   <scroll-view class="message-list" scroll-y scroll-into-view="msg-{{messages.length}}">
     <block wx:for="{{messages}}" wx:key="id">
       <!-- 用户消息 -->

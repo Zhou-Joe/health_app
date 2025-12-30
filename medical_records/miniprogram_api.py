@@ -869,3 +869,56 @@ def process_document_background(document_processing_id, file_path):
         document_processing.status = 'failed'
         document_processing.error_message = str(e)
         document_processing.save()
+
+# ==================== 导出对话为PDF/Word ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_export_conversation_pdf(request, conversation_id):
+    """导出对话为PDF"""
+    try:
+        from .export_utils import ConversationExporter
+
+        conversation = Conversation.objects.get(
+            id=conversation_id,
+            user=request.user
+        )
+
+        exporter = ConversationExporter(conversation_id)
+        return exporter.export_to_pdf()
+
+    except Conversation.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '对话不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'导出PDF失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_export_conversation_word(request, conversation_id):
+    """导出对话为Word"""
+    try:
+        from .export_utils import ConversationExporter
+
+        conversation = Conversation.objects.get(
+            id=conversation_id,
+            user=request.user
+        )
+
+        exporter = ConversationExporter(conversation_id)
+        return exporter.export_to_word()
+
+    except Conversation.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '对话不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'导出Word失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
