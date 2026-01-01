@@ -213,13 +213,18 @@ class DocumentProcessingService:
             print(f"   - API Key: {'已设置' if self.modelscope_api_key else '未设置'}")
 
             # 根据API URL判断服务类型并使用正确的端点
+            # 处理可能已包含完整路径的URL
+            base_url = self.modelscope_api_url.rstrip('/')
+            if '/chat/completions' not in base_url:
+                # 如果URL不包含/chat/completions，添加完整路径
+                api_url = f"{base_url}/v1/chat/completions"
+            else:
+                # 如果URL已包含/chat/completions，直接使用
+                api_url = base_url
+
             if 'siliconflow' in self.modelscope_api_url.lower():
-                # SiliconFlow API端点
-                api_url = f"{self.modelscope_api_url.rstrip('/')}/v1/chat/completions"
                 print(f"🔧 使用SiliconFlow API: {api_url}")
             else:
-                # 其他兼容OpenAI格式的API端点
-                api_url = f"{self.modelscope_api_url.rstrip('/')}/v1/chat/completions"
                 print(f"🔧 使用通用API: {api_url}")
 
             print(f"📤 请求数据大小: {len(json.dumps(llm_data))} 字符")
@@ -1329,8 +1334,14 @@ class VisionLanguageModelService:
             if self.vl_api_key:
                 headers["Authorization"] = f"Bearer {self.vl_api_key}"
 
-            # API调用使用基础地址 + /v1/chat/completions
-            api_url = f"{self.vl_api_url.rstrip('/')}/v1/chat/completions"
+            # API调用 - 处理可能已包含完整路径的URL
+            base_url = self.vl_api_url.rstrip('/')
+            if '/chat/completions' not in base_url:
+                # 如果URL不包含/chat/completions，添加完整路径
+                api_url = f"{base_url}/v1/chat/completions"
+            else:
+                # 如果URL已包含/chat/completions，直接使用
+                api_url = base_url
 
             print(f"🌐 OpenAI Vision API配置信息:")
             print(f"   - API URL: {api_url}")
@@ -1900,8 +1911,14 @@ class AIService:
             if self.llm_api_key:
                 headers["Authorization"] = f"Bearer {self.llm_api_key}"
 
-            # API调用
-            api_url = f"{self.llm_api_url.rstrip('/')}/v1/chat/completions"
+            # API调用 - 处理可能已包含完整路径的URL
+            base_url = self.llm_api_url.rstrip('/')
+            if '/chat/completions' not in base_url:
+                # 如果URL不包含/chat/completions，添加完整路径
+                api_url = f"{base_url}/v1/chat/completions"
+            else:
+                # 如果URL已包含/chat/completions，直接使用
+                api_url = base_url
             response = requests.post(
                 api_url,
                 json=llm_data,
@@ -1996,10 +2013,14 @@ def call_llm_for_integration(system_prompt, user_prompt, timeout=120):
 
     try:
         # 根据API URL判断服务类型并使用正确的端点
-        if 'siliconflow' in llm_api_url.lower():
-            api_url = f"{llm_api_url.rstrip('/')}/v1/chat/completions"
+        # 处理可能已包含完整路径的URL
+        base_url = llm_api_url.rstrip('/')
+        if '/chat/completions' not in base_url:
+            # 如果URL不包含/chat/completions，添加完整路径
+            api_url = f"{base_url}/v1/chat/completions"
         else:
-            api_url = f"{llm_api_url.rstrip('/')}/v1/chat/completions"
+            # 如果URL已包含/chat/completions，直接使用
+            api_url = base_url
 
         print(f"[数据整合 LLM调用] 完整API地址: {api_url}")
         print(f"[数据整合 LLM调用] Prompt长度: {len(prompt)} 字符")

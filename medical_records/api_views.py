@@ -1459,8 +1459,8 @@ def stream_ai_advice(request):
                     # LangChain 会自动添加 /chat/completions，所以如果 URL 中已包含，需要移除
                     base_url = api_url
                     if '/chat/completions' in base_url:
-                        # 如果 URL 已包含 /chat/completions，移除它
-                        base_url = base_url.split('/chat/completions')[0]
+                        # 如果 URL 已包含 /chat/completions，移除它（包括可能的 /v1 前缀）
+                        base_url = base_url.split('/chat/completions')[0].rstrip('/')
                     elif base_url.endswith('/'):
                         # 移除末尾的斜杠
                         base_url = base_url.rstrip('/')
@@ -1784,7 +1784,8 @@ def stream_upload_and_process(request):
                         # 处理 API URL
                         base_url = api_url
                         if '/chat/completions' in base_url:
-                            base_url = base_url.split('/chat/completions')[0]
+                            # 如果 URL 已包含 /chat/completions，移除它（包括可能的 /v1 前缀）
+                            base_url = base_url.split('/chat/completions')[0].rstrip('/')
                         elif base_url.endswith('/'):
                             base_url = base_url.rstrip('/')
 
@@ -2034,7 +2035,8 @@ def stream_integrate_data(request):
                     # 处理 API URL
                     base_url = api_url
                     if '/chat/completions' in base_url:
-                        base_url = base_url.split('/chat/completions')[0]
+                        # 如果 URL 已包含 /chat/completions，移除它（包括可能的 /v1 前缀）
+                        base_url = base_url.split('/chat/completions')[0].rstrip('/')
                     elif base_url.endswith('/'):
                         base_url = base_url.rstrip('/')
 
