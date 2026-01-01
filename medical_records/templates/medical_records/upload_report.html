@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}上传体检报告 - 个人健康管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-upload"></i> 上传体检报告
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.checkup_date.id_for_label }}" class="form-label">
+                            {{ form.checkup_date.label }}
+                        </label>
+                        {{ form.checkup_date }}
+                        {% if form.checkup_date.errors %}
+                            <div class="text-danger">
+                                {{ form.checkup_date.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.hospital.id_for_label }}" class="form-label">
+                            {{ form.hospital.label }}
+                        </label>
+                        {{ form.hospital }}
+                        {% if form.hospital.errors %}
+                            <div class="text-danger">
+                                {{ form.hospital.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.report_file.id_for_label }}" class="form-label">
+                            {{ form.report_file.label }}
+                        </label>
+                        {{ form.report_file }}
+                        {% if form.report_file.errors %}
+                            <div class="text-danger">
+                                {{ form.report_file.errors }}
+                            </div>
+                        {% endif %}
+                        <div class="form-text">支持 PDF、JPG、PNG 格式，文件大小不超过 10MB</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">
+                            {{ form.notes.label }}
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger">
+                                {{ form.notes.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 健康指标快速录入 -->
+                    <div class="mb-4">
+                        <h5>主要健康指标（可选）</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">血压 (mmHg)</label>
+                                <input type="text" class="form-control mb-2" placeholder="如: 120/80" name="blood_pressure">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">心率 (bpm)</label>
+                                <input type="text" class="form-control mb-2" placeholder="如: 72" name="heart_rate">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">体重 (kg)</label>
+                                <input type="text" class="form-control mb-2" placeholder="如: 65.5" name="weight">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">身高 (cm)</label>
+                                <input type="text" class="form-control mb-2" placeholder="如: 170" name="height">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">血糖 (mmol/L)</label>
+                                <input type="text" class="form-control mb-2" placeholder="如: 5.1" name="blood_sugar">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">胆固醇 (mmol/L)</label>
+                                <input type="text" class="form-control mb-2" placeholder="如: 4.8" name="cholesterol">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> 返回首页
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-upload"></i> 上传报告
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 上传说明 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6>上传说明</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>请选择准确的体检日期，这将用于健康趋势分析</li>
+                    <li>支持上传体检报告的扫描件或照片</li>
+                    <li>填写主要健康指标有助于系统自动生成趋势图表</li>
+                    <li>所有数据将被安全存储，仅您本人可以查看</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 文件上传验证
+    const fileInput = document.querySelector('input[type="file"]');
+
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+
+        if (file) {
+            // 检查文件大小 (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件大小不能超过 10MB');
+                this.value = '';
+                return;
+            }
+
+            // 检查文件类型
+            const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('只支持 JPG、PNG、PDF 格式的文件');
+                this.value = '';
+                return;
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import tempfile
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,6 +11,53 @@ from .models import HealthCheckup, DocumentProcessing, HealthIndicator, Conversa
 from .forms import HealthCheckupForm
 from .services import DocumentProcessingService
 from .utils import convert_image_to_pdf, is_image_file
+from .llm_prompts import (
+    DATA_INTEGRATION_SYSTEM_PROMPT,
+    DATA_INTEGRATION_USER_PROMPT_TEMPLATE,
+    AI_DOCTOR_SYSTEM_PROMPT,
+    AI_DOCTOR_USER_PROMPT_TEMPLATE_WITH_DATA,
+    AI_DOCTOR_USER_PROMPT_TEMPLATE_WITHOUT_DATA,
+    build_data_integration_prompt,
+    build_ai_doctor_prompt
+)
+
+
+def extract_json_objects(text):
+    """从文本中提取所有完整的JSON对象"""
+    json_objects = []
+    bracket_count = 0
+    in_string = False
+    escape_char = False
+    start_pos = -1
+
+    for i, char in enumerate(text):
+        if escape_char:
+            escape_char = False
+            continue
+
+        if char == '\\':
+            escape_char = True
+            continue
+
+        if char == '"' and not escape_char:
+            in_string = not in_string
+            continue
+
+        if in_string:
+            continue
+
+        if char == '{':
+            if bracket_count == 0:
+                start_pos = i
+            bracket_count += 1
+        elif char == '}':
+            bracket_count -= 1
+            if bracket_count == 0 and start_pos != -1:
+                json_str = text[start_pos:i+1]
+                json_objects.append(json_str)
+                start_pos = -1
+
+    return json_objects
 
 
 @csrf_exempt
@@ -838,130 +886,11 @@ def integrate_data(request):
                 'variants': variants
             })
 
-        # 构建Prompt，强制JSON格式输出
-        prompt = f"""分析{len(indicators_by_name)}组健康指标，只处理需要更正的指标：
+        # 构建Prompt，使用统一的提示词配置
+        indicators_data_json = json.dumps(indicators_summary, ensure_ascii=False, indent=2)
+        system_prompt, user_prompt = build_data_integration_prompt(indicators_data_json, user_prompt)
 
-【首要任务：对齐命名】
-命名统一是最重要的任务！必须仔细检查相同指标是否有不同名称，将所有变体名称对齐到其中一个已有名称，不要创造新名称。
-示例：
-- "身高"和"身长"同时存在 → 统一为"身高"（选其中一个已有的）
-- "血红蛋白"和"HGB"同时存在 → 统一为"血红蛋白"（选其中一个已有的）
-- "空腹血糖"和"血糖"同时存在 → 统一为其中任意一个
-
-【其他需要更正的情况】
-1.单位缺失或不统一（如"kg"和"公斤"）→统一标准单位
-2.状态错误：必须仔细检查！特别注意描述性的指标值
-   - 如果value是描述性文字（如"未见异常"、"正常"、"阳性"等）→ status应设为对应状态
-   - 如果value明显超出参考范围 → status应为"abnormal"或"attention"
-   - 如果value在参考范围内 → status应为"normal"
-   - 如果有参考范围但status标记错误 → 必须更正
-3.分类错误或不统一：统一为最准确的分类
-
-【可选的指标分类（indicator_type）】
-必须从以下分类中选择，优先选择最具体的分类，最后才使用other：
-1. 一般检查
-   - general_exam: 一般检查（身高、体重、BMI、血压、心率、体温等）
-
-2. 血液检验
-   - blood_routine: 血常规（白细胞、红细胞、血红蛋白、血小板等）
-   - biochemistry: 生化检验（血糖、血脂、电解质等）
-   - liver_function: 肝功能（ALT、AST、胆红素、白蛋白等）
-   - kidney_function: 肾功能（肌酐、尿素氮、尿酸等）
-   - thyroid: 甲状腺（T3、T4、TSH等）
-   - cardiac: 心脏标志物（肌钙蛋白、BNP、CK-MB等）
-   - tumor_markers: 肿瘤标志物（CEA、AFP、CA125、CA199、PSA等）
-   - infection: 感染炎症（C反应蛋白CRP、血沉ESR等）
-   - blood_rheology: 血液流变（全血粘度、血浆粘度）
-   - coagulation: 凝血功能（PT、APTT、纤维蛋白原等）
-
-3. 体液检验
-   - urine: 尿液检查（尿常规、尿蛋白、尿糖等）
-   - stool: 粪便检查（大便常规、隐血等）
-   - pathology: 病理检查（活检病理、细胞学检查、免疫组化）
-
-4. 影像学检查
-   - ultrasound: 超声检查（B超、彩超检查发现的胆囊息肉、肝囊肿等）
-   - X_ray: X线检查（胸片、骨骼X光等）
-   - CT_MRI: CT和MRI检查
-   - endoscopy: 内镜检查（胃镜、肠镜、支气管镜等）
-
-5. 专科检查
-   - special_organs: 专科检查（眼科视力/眼压、耳鼻喉听力检查、口腔牙齿等）
-
-6. 兜底分类
-   - other: 其他检查（仅当无法归入以上任何类别时使用）
-
-【分类判断优先级】
-1. 如果是病理活检/细胞学检查 → pathology
-2. 如果是超声/B超/彩超 → ultrasound
-3. 如果是X线检查 → X_ray
-4. 如果是CT或MRI → CT_MRI
-5. 如果是内镜（胃镜肠镜） → endoscopy
-6. 如果是专科检查（眼耳鼻喉口腔等） → special_organs
-7. 如果是血液检验，按具体项目选择最细分的类别（优先级：cardiac/tumor_markers/infection/coagulation > liver/kidney/thyroid > blood_routine > biochemistry）
-8. 如果是体液检验，按样本类型（urine/stool）
-9. 如果实在无法判断 → other（但这是最后的选择）
-
-【不需要更正的情况】
-- 名称已经一致（没有不同变体）
-- 单位已经是标准单位
-- 状态判断正确
-- 分类已经准确
-
-【禁止修改的字段】
-- 参考范围（reference_range）：不要返回此字段，保持原值不变
-
-【重要：添加修改理由】
-每个变更都必须包含"reason"字段，用简洁的中文说明修改的理由（1-2句话）。
-
-数据：
-{json.dumps(indicators_summary, ensure_ascii=False, indent=2)}
-
-返回格式（只包含需要更正的指标和字段）：
-{{
-    "changes": [
-        {{
-            "indicator_id": 123,
-            "indicator_name": "统一后的名称",
-            "reason": "将'身长'统一为'身高'，保持命名一致性"
-        }},
-        {{
-            "indicator_id": 456,
-            "value": "修正后的值",
-            "unit": "标准单位",
-            "reason": "单位从非标准的'公斤'统一为'kg'"
-        }},
-        {{
-            "indicator_id": 789,
-            "status": "normal",
-            "reason": "数值120在参考范围90-120内，状态应修正为正常"
-        }},
-        {{
-            "indicator_id": 101,
-            "indicator_type": "blood_routine",
-            "reason": "白细胞计数属于血液常规检查，分类应更正为blood_routine"
-        }}
-    ]
-}}
-
-【关键要求】
-1.只返回真正需要更正的指标
-2.已经正确的指标不要出现在changes中
-3.每个对象必须包含indicator_id、需要修改的字段（只限indicator_name、value、unit、status、indicator_type）和reason
-4.reason字段必须用简洁的中文说明修改理由
-5.绝对不要返回reference_range字段
-6.纯JSON格式，无markdown"""
-
-        # 如果用户提供了自定义提示词，添加到prompt中
-        if user_prompt:
-            prompt += f"""
-
-【用户特别要求】
-{user_prompt}
-
-请严格按照上述用户要求进行数据整合。"""
-
-        logger.info(f"[数据整合] Prompt构建完成，长度: {len(prompt)} 字符")
+        logger.info(f"[数据整合] Prompt构建完成，长度: {len(user_prompt)} 字符")
         logger.info(f"[数据整合] 开始调用LLM...")
 
         # 获取LLM提供商配置
@@ -979,13 +908,13 @@ def integrate_data(request):
                 from .services import call_gemini_api
                 # Gemini不使用system_message，直接使用prompt
                 timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-                llm_response = call_gemini_api(prompt, timeout=timeout)
+                llm_response = call_gemini_api(user_prompt, timeout=timeout)
             else:
                 # 使用 OpenAI 兼容格式
                 logger.info(f"[数据整合] 使用 OpenAI 兼容格式")
                 # 使用统一的AI模型超时配置
                 timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-                llm_response = call_llm_for_integration(prompt, timeout=timeout)
+                llm_response = call_llm_for_integration(system_prompt, user_prompt, timeout=timeout)
 
             llm_end = time.time()
             logger.info(f"[数据整合] ✓ LLM调用完成，耗时: {llm_end - llm_start:.2f}秒")
@@ -1000,24 +929,64 @@ def integrate_data(request):
         try:
             logger.info(f"[数据整合] 开始解析LLM响应...")
 
-            # 尝试从响应中提取JSON
-            # 移除可能的markdown标记
+            # 清理LLM响应中的thinking标签和思考过程
             cleaned_response = llm_response.strip()
+
+            # 移除markdown代码块标记
             if cleaned_response.startswith('```'):
                 logger.info(f"[数据整合] 检测到markdown标记，正在清理...")
-                # 移除markdown代码块标记
                 cleaned_response = re.sub(r'^```\w*\n?', '', cleaned_response)
                 cleaned_response = re.sub(r'\n?```$', '', cleaned_response)
                 logger.info(f"[数据整合] Markdown清理完成")
 
-            # 尝试提取JSON对象
-            json_match = re.search(r'\{[\s\S]*\}', cleaned_response)
-            if json_match:
-                result_json = json.loads(json_match.group())
-                logger.info(f"[数据整合] ✓ JSON提取成功（使用正则匹配）")
-            else:
+            # 移除thinking标签和思考过程
+            thinking_patterns = [
+                (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                (r'<think>[\s\S]*?</think>', '', re.IGNORECASE),
+                (r'思考过程[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                (r'分析[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                (r'让我先分析[\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                (r'分析如下[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+            ]
+
+            for pattern, replacement, *flags in thinking_patterns:
+                flags = flags[0] if flags else 0
+                old_text = cleaned_response
+                cleaned_response = re.sub(pattern, replacement, cleaned_response, flags=flags)
+                if old_text != cleaned_response:
+                    logger.info(f"[数据整合] 清理thinking标签/思考过程: 移除了 {len(old_text) - len(cleaned_response)} 个字符")
+
+            cleaned_response = cleaned_response.strip()
+
+            # 智能提取JSON对象
+            result_json = None
+
+            # 方法1: 尝试直接解析
+            try:
                 result_json = json.loads(cleaned_response)
                 logger.info(f"[数据整合] ✓ JSON解析成功（直接解析）")
+            except json.JSONDecodeError:
+                logger.info(f"[数据整合] 直接解析失败，尝试提取JSON对象...")
+
+            # 方法2: 提取所有JSON对象，找到包含changes的有效JSON
+            if not result_json:
+                json_objects = extract_json_objects(cleaned_response)
+                logger.info(f"[数据整合] 找到 {len(json_objects)} 个JSON对象")
+
+                for i, json_str in enumerate(json_objects):
+                    try:
+                        parsed = json.loads(json_str)
+                        if 'changes' in parsed:
+                            result_json = parsed
+                            logger.info(f"[数据整合] ✓ JSON提取成功（对象{i+1}，包含changes字段）")
+                            break
+                    except json.JSONDecodeError:
+                        continue
+
+            if not result_json:
+                logger.info(f"[数据整合] ✗ 无法提取有效的JSON")
+                raise Exception("无法从LLM响应中提取有效的JSON对象")
 
             changes = result_json.get('changes', [])
             logger.info(f"[数据整合] LLM返回的变更数量: {len(changes)}")
@@ -1398,60 +1367,34 @@ def stream_ai_advice(request):
         from .views import get_conversation_context, format_health_data_for_prompt
         conversation_context = get_conversation_context(request.user, conversation)
 
-        # 构建prompt
-        prompt_parts = [
-            "你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。",
-            f"\n当前问题：{question}"
-        ]
-
-        # 添加个人信息
+        # 构建prompt（使用统一的提示词配置）
+        # 构建个人信息
+        personal_info = ""
         try:
             user_profile = request.user.userprofile
             if user_profile.birth_date or user_profile.gender:
-                prompt_parts.append("\n个人信息：")
-                prompt_parts.append(f"性别：{user_profile.get_gender_display()}")
+                personal_info = f"性别：{user_profile.get_gender_display()}"
                 if user_profile.age:
-                    prompt_parts.append(f"年龄：{user_profile.age}岁")
+                    personal_info += f"\n年龄：{user_profile.age}岁"
         except:
             pass
 
-        # 添加对话上下文
+        # 构建对话历史
+        conversation_history = ""
         if conversation_context:
-            prompt_parts.append("\n对话历史：")
             for ctx in conversation_context:
-                prompt_parts.append(f"{ctx['time']} 问：{ctx['question']}")
-                prompt_parts.append(f"答：{ctx['answer']}")
+                conversation_history += f"{ctx['time']} 问：{ctx['question']}\n"
+                conversation_history += f"答：{ctx['answer']}\n"
 
-        # 添加健康数据
-        if selected_report_ids and len(selected_report_ids) > 0:
+        # 构建prompt（使用统一的提示词配置）
+        has_health_data = selected_reports is not None
+        if has_health_data:
             from .views import get_selected_reports_health_data
             health_data = get_selected_reports_health_data(request.user, selected_reports)
-            if health_data:
-                health_data_text = format_health_data_for_prompt(health_data)
-                prompt_parts.append(f"\n用户健康数据：\n{health_data_text}")
-                prompt_parts.extend([
-                    "\n请基于以上信息：",
-                    "1. 结合对话历史，理解用户的连续关注点",
-                    "2. 分析用户的健康状况和趋势",
-                    "3. 针对用户的具体问题提供专业建议",
-                    "4. 注意观察指标的历史变化趋势",
-                    "5. 给出实用的生活方式和医疗建议",
-                    "6. 如有异常指标，请特别说明并建议应对措施",
-                    "\n请用中文回答，语气专业但平易近人，建议要具体可行。注意这仅供参考，不能替代面诊。"
-                ])
+            health_data_text = format_health_data_for_prompt(health_data) if health_data else ""
+            prompt = build_ai_doctor_prompt(question, personal_info, conversation_history, health_data_text, has_health_data=True)
         else:
-            prompt_parts.extend([
-                "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。",
-                "\n请基于以上问题：",
-                "1. 结合对话历史，理解用户的关注点",
-                "2. 提供一般性的健康建议和知识",
-                "3. 针对用户的具体问题给出专业建议",
-                "4. 建议何时需要就医或专业咨询",
-                "5. 给出实用的生活方式和预防措施",
-                "\n请用中文回答，语气专业但平易近人，建议要具体可行。注意这仅供参考，不能替代面诊。"
-            ])
-
-        prompt = "".join(prompt_parts)
+            prompt = build_ai_doctor_prompt(question, personal_info, conversation_history, has_health_data=False)
 
         # 生成流式响应
         def generate():
@@ -2001,93 +1944,11 @@ def stream_integrate_data(request):
                     'variants': variants
                 })
 
-            # 构建Prompt
-            prompt = f"""分析{len(indicators_by_name)}组健康指标，只处理需要更正的指标：
+            # 构建Prompt，使用统一的提示词配置
+            indicators_data_json = json.dumps(indicators_summary, ensure_ascii=False, indent=2)
+            system_prompt, user_prompt = build_data_integration_prompt(indicators_data_json, user_prompt)
 
-【首要任务：对齐命名】
-命名统一是最重要的任务！必须仔细检查相同指标是否有不同名称，将所有变体名称对齐到其中一个已有名称，不要创造新名称。
-示例：
-- "身高"和"身长"同时存在 → 统一为"身高"（选其中一个已有的）
-- "血红蛋白"和"HGB"同时存在 → 统一为"血红蛋白"（选其中一个已有的）
-- "空腹血糖"和"血糖"同时存在 → 统一为其中任意一个
-
-【其他需要更正的情况】
-1.单位缺失或不统一（如"kg"和"公斤"）→统一标准单位
-2.状态错误：必须仔细检查！特别注意描述性的指标值
-   - 如果value是描述性文字（如"未见异常"、"正常"、"阳性"等）→ status应设为对应状态
-   - 如果value明显超出参考范围 → status应为"abnormal"或"attention"
-   - 如果value在参考范围内 → status应为"normal"
-   - 如果有参考范围但status标记错误 → 必须更正
-3.分类错误或不统一：统一为最准确的分类
-
-【可选的指标分类（indicator_type）】
-必须从以下分类中选择，优先选择最具体的分类，最后才使用other：
-1. 一般检查 - general_exam: 一般检查（身高、体重、BMI、血压、心率、体温等）
-2. 血液检验 - blood_routine: 血常规；biochemistry: 生化检验；liver_function: 肝功能；kidney_function: 肾功能；thyroid: 甲状腺；cardiac: 心脏标志物；tumor_markers: 肿瘤标志物；infection: 感染炎症；blood_rheology: 血液流变；coagulation: 凝血功能
-3. 体液检验 - urine: 尿液检查；stool: 粪便检查；pathology: 病理检查
-4. 影像学检查 - ultrasound: 超声检查；X_ray: X线检查；CT_MRI: CT和MRI检查；endoscopy: 内镜检查
-5. 专科检查 - special_organs: 专科检查（眼科视力/眼压、耳鼻喉听力检查、口腔牙齿等）
-6. 兜底分类 - other: 其他检查（仅当无法归入以上任何类别时使用）
-
-【不需要更正的情况】
-- 名称已经一致（没有不同变体）
-- 单位已经是标准单位
-- 状态判断正确
-- 分类已经准确
-
-【禁止修改的字段】
-- 参考范围（reference_range）：不要返回此字段，保持原值不变
-
-【重要：添加修改理由】
-每个变更都必须包含"reason"字段，用简洁的中文说明修改的理由（1-2句话）。
-
-数据：
-{json.dumps(indicators_summary, ensure_ascii=False, indent=2)}
-
-返回格式（只包含需要更正的指标和字段）：
-{{
-    "changes": [
-        {{
-            "indicator_id": 123,
-            "indicator_name": "统一后的名称",
-            "reason": "将'身长'统一为'身高'，保持命名一致性"
-        }},
-        {{
-            "indicator_id": 456,
-            "value": "修正后的值",
-            "unit": "标准单位",
-            "reason": "单位从非标准的'公斤'统一为'kg'"
-        }},
-        {{
-            "indicator_id": 789,
-            "status": "normal",
-            "reason": "数值120在参考范围90-120内，状态应修正为正常"
-        }},
-        {{
-            "indicator_id": 101,
-            "indicator_type": "blood_routine",
-            "reason": "白细胞计数属于血液常规检查，分类应更正为blood_routine"
-        }}
-    ]
-}}
-
-【关键要求】
-1.只返回真正需要更正的指标
-2.已经正确的指标不要出现在changes中
-3.每个对象必须包含indicator_id、需要修改的字段（只限indicator_name、value、unit、status、indicator_type）和reason
-4.reason字段必须用简洁的中文说明修改理由
-5.绝对不要返回reference_range字段
-6.纯JSON格式，无markdown"""
-
-            if user_prompt:
-                prompt += f"""
-
-【用户特别要求】
-{user_prompt}
-
-请严格按照上述用户要求进行数据整合。"""
-
-            yield f"data: {json.dumps({'status': 'prompt_ready', 'message': f'📋 Prompt构建完成，长度: {len(prompt)} 字符'}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'status': 'prompt_ready', 'message': f'📋 Prompt构建完成，长度: {len(user_prompt)} 字符'}, ensure_ascii=False)}\n\n"
 
             # 获取LLM提供商配置
             llm_config = SystemSettings.get_llm_config()
@@ -2112,7 +1973,7 @@ def stream_integrate_data(request):
 
                     # 使用流式调用
                     from langchain_google_genai import ChatGoogleGenerativeAI
-                    from langchain_core.messages import HumanMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage
 
                     llm = ChatGoogleGenerativeAI(
                         model=model_name,
@@ -2122,7 +1983,7 @@ def stream_integrate_data(request):
                         streaming=True
                     )
 
-                    messages = [HumanMessage(content=prompt)]
+                    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
                     llm_response = ""
 
                     # 流式输出token
@@ -2168,7 +2029,7 @@ def stream_integrate_data(request):
 
                     # 使用流式调用OpenAI兼容模式
                     from langchain_openai import ChatOpenAI
-                    from langchain_core.messages import HumanMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage
 
                     # 处理 API URL
                     base_url = api_url
@@ -2186,7 +2047,7 @@ def stream_integrate_data(request):
                         streaming=True
                     )
 
-                    messages = [HumanMessage(content=prompt)]
+                    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
                     llm_response = ""
 
                     # 流式输出token

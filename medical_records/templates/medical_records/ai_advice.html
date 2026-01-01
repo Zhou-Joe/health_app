@@ -1142,10 +1142,19 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
                             // 保存成功
                             console.log('已保存到数据库，advice_id:', data.advice_id, 'conversation_id:', data.conversation_id);
 
-                            // 延迟刷新页面以更新历史记录
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 3000);
+                            // 显示保存成功提示和刷新按钮
+                            const aiAnswerDiv = document.getElementById('aiAnswer');
+                            const refreshButton = document.createElement('div');
+                            refreshButton.className = 'mt-3 text-center';
+                            refreshButton.innerHTML = `
+                                <div class="alert alert-success">
+                                    <i class="bi bi-check-circle"></i> AI建议已保存
+                                </div>
+                                <button class="btn btn-primary" onclick="window.location.reload()">
+                                    <i class="bi bi-arrow-clockwise"></i> 刷新页面查看历史记录
+                                </button>
+                            `;
+                            aiAnswerDiv.appendChild(refreshButton);
                         } else if (data.save_error) {
                             console.error('保存失败:', data.save_error);
                         }

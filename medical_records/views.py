@@ -580,8 +580,8 @@ def get_user_health_data(user):
 
     health_data = {
         'user_info': {
-            'age': (datetime.now().date() - user.date_of_birth).days // 365 if hasattr(user, 'date_of_birth') and user.date_of_birth else None,
-            'gender': getattr(user, 'gender', None),
+            'age': user.userprofile.age if hasattr(user, 'userprofile') and user.userprofile else None,
+            'gender': user.userprofile.get_gender_display() if hasattr(user, 'userprofile') and user.userprofile else None,
         },
         'checkups': [],
         'summary': {
@@ -684,8 +684,8 @@ def get_selected_reports_health_data(user, selected_reports):
 
     health_data = {
         'user_info': {
-            'age': (datetime.now().date() - user.date_of_birth).days // 365 if hasattr(user, 'date_of_birth') and user.date_of_birth else None,
-            'gender': getattr(user, 'gender', None),
+            'age': user.userprofile.age if hasattr(user, 'userprofile') and user.userprofile else None,
+            'gender': user.userprofile.get_gender_display() if hasattr(user, 'userprofile') and user.userprofile else None,
         },
         'checkups': [],
         'summary': {
@@ -1019,8 +1019,28 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
         if response.status_code == 200:
             result = response.json()
             answer = result['choices'][0]['message']['content']
-            print(f"AI医生API调用成功，回答长度: {len(answer)} 字符")
-            return answer, None
+            
+            # 清理thinking标签和思考过程
+            import re
+            cleaned_answer = answer.strip()
+            
+            thinking_patterns = [
+                (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+            ]
+            
+            for pattern, replacement, *flags in thinking_patterns:
+                flags = flags[0] if flags else 0
+                old_text = cleaned_answer
+                cleaned_answer = re.sub(pattern, replacement, cleaned_answer, flags=flags)
+            
+            print(f"AI医生API调用成功，回答长度: {len(cleaned_answer)} 字符")
+            return cleaned_answer, None
         else:
             return None, f"AI医生API调用失败: {response.status_code} - {response.text}"
 

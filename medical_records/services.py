@@ -6,6 +6,20 @@ import base64
 from datetime import datetime
 from django.conf import settings
 from .models import DocumentProcessing, HealthIndicator, SystemSettings
+from .llm_prompts import (
+    OCR_EXTRACT_SYSTEM_PROMPT,
+    OCR_EXTRACT_USER_PROMPT_TEMPLATE,
+    VISION_MODEL_SYSTEM_PROMPT,
+    VISION_MODEL_USER_PROMPT_TEMPLATE,
+    HEALTH_ADVICE_SYSTEM_PROMPT,
+    HEALTH_ADVICE_USER_PROMPT_TEMPLATE,
+    DATA_INTEGRATION_SYSTEM_PROMPT,
+    DATA_INTEGRATION_USER_PROMPT_TEMPLATE,
+    build_ocr_extract_prompt,
+    build_vision_model_prompt,
+    build_health_advice_prompt,
+    build_data_integration_prompt
+)
 
 
 class DocumentProcessingService:
@@ -15,15 +29,11 @@ class DocumentProcessingService:
         self.document_processing = document_processing
         # 从数据库获取动态配置
         self.mineru_api_url = SystemSettings.get_setting('mineru_api_url', 'http://localhost:8000')
-        # 读取数据整合LLM的配置
-        self.llm_provider = SystemSettings.get_setting('llm_provider', 'openai')
-        self.llm_api_url = SystemSettings.get_setting('llm_api_url', 'http://172.25.48.1:1234')
-        self.llm_api_key = SystemSettings.get_setting('llm_api_key', '')
+        self.modelscope_api_url = SystemSettings.get_setting('llm_api_url', 'http://172.25.48.1:1234')
+        self.modelscope_api_key = SystemSettings.get_setting('llm_api_key', '')
         self.llm_model_name = SystemSettings.get_setting('llm_model_name', 'qwen3-4b-instruct')
-        # 使用统一的AI模型超时配置
-        self.ai_timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-        # 使用文档处理的max_tokens配置
-        self.document_max_tokens = int(SystemSettings.get_setting('document_max_tokens', '8000'))
+        self.llm_timeout = int(SystemSettings.get_setting('llm_timeout', '600'))
+        self.ocr_timeout = int(SystemSettings.get_setting('ocr_timeout', '300'))
 
     def update_progress(self, status, progress, message=None, is_error=False):
         """更新处理进度"""
@@ -49,12 +59,7 @@ class DocumentProcessingService:
                 # 根据工作流类型选择backend
                 workflow_type = getattr(self.document_processing, 'workflow_type', 'ocr_llm')
                 if workflow_type == 'vlm_transformers':
-                    # 检查是否是Mac系统
-                    is_mac_system = SystemSettings.get_setting('is_mac_system', 'false').lower() == 'true'
-                    if is_mac_system:
-                        backend = 'vlm-mlx-engine'  # Mac系统使用MLX引擎
-                    else:
-                        backend = 'vlm-transformers'  # 非Mac系统使用Transformers
+                    backend = 'vlm-transformers'  # 使用VLM-Transformers模式
                 else:
                     backend = 'pipeline'  # 传统OCR模式
                     
@@ -77,7 +82,7 @@ class DocumentProcessingService:
                     api_url,
                     files=files,
                     data=data,
-                    timeout=self.ai_timeout  # 使用统一的超时设置
+                    timeout=self.ocr_timeout  # 使用动态超时设置
                 )
 
             if response.status_code == 200:
@@ -162,262 +167,32 @@ class DocumentProcessingService:
             self.update_progress('failed', 0, error_msg, is_error=True)
             raise
 
-    def process_with_llm_stream(self, ocr_text, yield_fn):
-        """调用LLM进行数据结构化处理（流式输出版本）"""
-        import json
-        from .models import SystemSettings
-
-        try:
-            # 获取LLM配置
-            llm_config = SystemSettings.get_llm_config()
-            llm_provider = llm_config.get('provider', 'openai')
-
-            # 构建prompt
-            prompt = self._build_llm_prompt(ocr_text)
-            print(f"📋 构建完成Prompt，长度: {len(prompt)} 字符")
-
-            timeout = self.ai_timeout
-            structured_data = None
-
-            if llm_provider == 'gemini':
-                # 获取Gemini配置
-                gemini_config = SystemSettings.get_gemini_config()
-                api_key = gemini_config.get('api_key', '')
-                model_name = gemini_config.get('model_name', 'gemini-2.5-flash-exp')
-
-                if not api_key:
-                    raise Exception("Gemini API密钥未配置")
-
-                # 使用流式调用
-                from langchain_google_genai import ChatGoogleGenerativeAI
-                from langchain_core.messages import HumanMessage
-
-                llm = ChatGoogleGenerativeAI(
-                    model=model_name,
-                    google_api_key=api_key,
-                    temperature=0.1,
-                    timeout=timeout,
-                    streaming=True
-                )
-
-                messages = [HumanMessage(content=prompt)]
-                llm_response = ""
-
-                # 流式输出token
-                for chunk in llm.stream(messages):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        chunk_content = chunk.content
-
-                        if isinstance(chunk_content, list):
-                            for item in chunk_content:
-                                if isinstance(item, str):
-                                    llm_response += item
-                                    # 实时发送token给前端
-                                    yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': item}, ensure_ascii=False)}\n\n")
-                                elif hasattr(item, 'text'):
-                                    llm_response += item.text
-                                    yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': item.text}, ensure_ascii=False)}\n\n")
-                        else:
-                            llm_response += str(chunk_content)
-                            yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': str(chunk_content)}, ensure_ascii=False)}\n\n")
-
-            else:
-                # 获取OpenAI兼容配置
-                api_key = llm_config.get('api_key', '')
-                api_url = llm_config.get('api_url', '')
-                model_name = llm_config.get('model_name', 'gpt-4o-mini')
-
-                if not api_key or not api_url:
-                    raise Exception("OpenAI兼容API配置不完整")
-
-                # 使用流式调用OpenAI兼容模式
-                from langchain_openai import ChatOpenAI
-                from langchain_core.messages import HumanMessage
-
-                # 处理 API URL
-                base_url = api_url
-                if '/chat/completions' in base_url:
-                    base_url = base_url.split('/chat/completions')[0]
-                elif base_url.endswith('/'):
-                    base_url = base_url.rstrip('/')
-
-                llm = ChatOpenAI(
-                    model=model_name,
-                    api_key=api_key,
-                    base_url=base_url,
-                    temperature=0.1,
-                    timeout=timeout,
-                    streaming=True
-                )
-
-                messages = [HumanMessage(content=prompt)]
-                llm_response = ""
-
-                # 流式输出token
-                for chunk in llm.stream(messages):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        content = chunk.content
-                        llm_response += content
-                        # 实时发送token给前端
-                        yield_fn(f"data: {json.dumps({'status': 'llm_token', 'token': content}, ensure_ascii=False)}\n\n")
-
-            # 解析LLM响应
-            print(f"LLM响应长度: {len(llm_response)} 字符")
-
-            # 清理响应中的markdown代码块标记
-            cleaned_response = llm_response.strip()
-            if cleaned_response.startswith('```'):
-                import re
-                cleaned_response = re.sub(r'^```\w*\n?', '', cleaned_response)
-                cleaned_response = re.sub(r'\n?```$', '', cleaned_response)
-
-            # 解析JSON
-            structured_data = json.loads(cleaned_response)
-
-            # 保存LLM原始结果用于调试
-            self.document_processing.ai_result = structured_data
-            self.document_processing.save()
-            print(f"LLM结果已保存，包含 {len(structured_data.get('indicators', []))} 个指标")
-
-            return structured_data
-
-        except Exception as e:
-            # 保存错误信息到数据库
-            error_msg = f"LLM处理失败: {str(e)}"
-            self.document_processing.error_message = error_msg
-            self.document_processing.save()
-            print(f"LLM处理失败: {error_msg}")
-            raise
-
     def _call_real_llm(self, ocr_text):
-        """调用LLM服务进行文档分析"""
+        """调用本地LLM服务"""
         print(f"\n{'='*60}")
         print(f"🧠 [LLM服务] 开始调用大语言模型")
         print(f"📝 OCR文本长度: {len(ocr_text)} 字符")
         print(f"📝 OCR文本前200字符: {ocr_text[:200]}...")
-        print(f"🔧 LLM提供商: {self.llm_provider}")
 
         # 构建prompt
-        prompt = self._build_llm_prompt(ocr_text)
-        print(f"📋 构建完成Prompt，长度: {len(prompt)} 字符")
+        system_prompt, user_prompt = build_ocr_extract_prompt(ocr_text, self._get_existing_indicator_names())
+        print(f"📋 构建完成Prompt，长度: {len(user_prompt)} 字符")
 
-        # 根据provider类型调用不同的API
-        if self.llm_provider == 'gemini':
-            return self._call_gemini_api(ocr_text, prompt)
-        else:
-            return self._call_openai_compatible_api(ocr_text, prompt)
-
-    def _call_gemini_api(self, ocr_text, prompt):
-        """调用Gemini API"""
-        from .models import SystemSettings
-
-        # 获取Gemini配置
-        gemini_config = SystemSettings.get_gemini_config()
-        api_key = gemini_config['api_key']
-        model_name = gemini_config['model_name']
-
-        if not api_key:
-            raise Exception("Gemini API密钥未配置，请在系统设置中配置")
-
-        # 构建Gemini API请求
-        gemini_data = {
-            "contents": [{
-                "parts": [
-                    {
-                        "text": "你是一个专业的医疗数据分析助手，请从体检报告OCR文本中提取健康指标数据，并严格按照指定的JSON格式返回。"
-                    },
-                    {
-                        "text": prompt
-                    }
-                ]
-            }],
-            "generationConfig": {
-                "temperature": 0.1,
-                "maxOutputTokens": self.document_max_tokens
-            }
-        }
-
-        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
-
-        print(f"🌐 Gemini API配置信息:")
-        print(f"   - API URL: {api_url[:100]}...")
-        print(f"   - 模型名称: {model_name}")
-        print(f"   - 超时时间: {self.ai_timeout}秒")
-        print(f"   - 最大令牌数: {self.document_max_tokens}")
-
-        try:
-            import time
-            start_time = time.time()
-
-            response = requests.post(
-                api_url,
-                json=gemini_data,
-                timeout=self.ai_timeout
-            )
-
-            end_time = time.time()
-            print(f"⏱️  请求耗时: {end_time - start_time:.2f} 秒")
-            print(f"📥 API响应状态码: {response.status_code}")
-
-            if response.status_code == 200:
-                result = response.json()
-                # 提取Gemini的响应文本
-                if 'candidates' in result and len(result['candidates']) > 0:
-                    llm_response_text = result['candidates'][0]['content']['parts'][0]['text']
-                    print(f"✅ Gemini API调用成功，响应长度: {len(llm_response_text)} 字符")
-                    print(f"📄 响应内容前200字符: {llm_response_text[:200]}...")
-
-                    # 清理响应，移除可能的markdown代码块标记
-                    cleaned_response = llm_response_text.strip()
-                    if cleaned_response.startswith('```json'):
-                        cleaned_response = cleaned_response[7:]
-                    elif cleaned_response.startswith('```'):
-                        cleaned_response = cleaned_response[3:]
-                    if cleaned_response.endswith('```'):
-                        cleaned_response = cleaned_response[:-3]
-                    cleaned_response = cleaned_response.strip()
-
-                    print(f"🧹 清理后的响应前200字符: {cleaned_response[:200]}...")
-
-                    # 解析JSON响应
-                    try:
-                        structured_data = json.loads(cleaned_response)
-                        indicators_count = len(structured_data.get('indicators', []))
-                        print(f"✅ JSON解析成功，包含 {indicators_count} 个指标")
-                        return structured_data
-                    except json.JSONDecodeError as e:
-                        print(f"❌ JSON解析失败: {str(e)}")
-                        print(f"📄 完整响应内容:\n{llm_response_text}")
-                        raise Exception(f"Gemini返回的不是有效的JSON格式: {str(e)}")
-                else:
-                    raise Exception("Gemini API返回格式错误：没有candidates")
-            else:
-                raise Exception(f"Gemini API调用失败: {response.status_code} - {response.text}")
-
-        except requests.exceptions.Timeout:
-            print(f"❌ Gemini API调用超时（超过{self.ai_timeout}秒）")
-            raise Exception(f"Gemini API调用超时")
-        except Exception as e:
-            print(f"❌ Gemini API调用失败: {str(e)}")
-            raise
-
-    def _call_openai_compatible_api(self, ocr_text, prompt):
-        """调用OpenAI兼容格式的API"""
         # 准备本地LLM API请求
         llm_data = {
             "model": self.llm_model_name,
             "messages": [
                 {
                     "role": "system",
-                    "content": "你是一个专业的医疗数据分析助手，请从体检报告OCR文本中提取健康指标数据，并严格按照指定的JSON格式返回。"
+                    "content": system_prompt
                 },
                 {
                     "role": "user",
-                    "content": prompt
+                    "content": user_prompt
                 }
             ],
             "temperature": 0.1,
-            "max_tokens": self.document_max_tokens
+            "max_tokens": 4000
         }
 
         # 准备请求头
@@ -426,20 +201,26 @@ class DocumentProcessingService:
         }
 
         # 只有在有API Key时才添加Authorization头
-        if self.llm_api_key:
-            headers["Authorization"] = f"Bearer {self.llm_api_key}"
+        if self.modelscope_api_key:
+            headers["Authorization"] = f"Bearer {self.modelscope_api_key}"
 
         try:
-            print(f"🌐 OpenAI兼容API配置信息:")
-            print(f"   - API URL: {self.llm_api_url}")
+            print(f"🌐 LLM API配置信息:")
+            print(f"   - API URL: {self.modelscope_api_url}")
             print(f"   - 模型名称: {self.llm_model_name}")
-            print(f"   - 超时时间: {self.ai_timeout}秒")
-            print(f"   - 最大令牌数: {self.document_max_tokens}")
-            print(f"   - API Key: {'已设置' if self.llm_api_key else '未设置'}")
+            print(f"   - 超时时间: {self.llm_timeout}秒")
+            print(f"   - 最大令牌数: 4000")
+            print(f"   - API Key: {'已设置' if self.modelscope_api_key else '未设置'}")
 
-            # 直接使用配置的完整API地址
-            api_url = self.llm_api_url
-            print(f"🔧 使用API地址: {api_url}")
+            # 根据API URL判断服务类型并使用正确的端点
+            if 'siliconflow' in self.modelscope_api_url.lower():
+                # SiliconFlow API端点
+                api_url = f"{self.modelscope_api_url.rstrip('/')}/v1/chat/completions"
+                print(f"🔧 使用SiliconFlow API: {api_url}")
+            else:
+                # 其他兼容OpenAI格式的API端点
+                api_url = f"{self.modelscope_api_url.rstrip('/')}/v1/chat/completions"
+                print(f"🔧 使用通用API: {api_url}")
 
             print(f"📤 请求数据大小: {len(json.dumps(llm_data))} 字符")
 
@@ -452,7 +233,7 @@ class DocumentProcessingService:
                 api_url,
                 json=llm_data,
                 headers=headers,
-                timeout=self.ai_timeout
+                timeout=self.llm_timeout  # 使用动态超时设置
             )
 
             # 计算请求耗时
@@ -463,50 +244,111 @@ class DocumentProcessingService:
             print(f"📥 API响应状态码: {response.status_code}")
             print(f"📥 API响应大小: {len(response.text)} 字符")
             print(f"📥 API响应前500字符: {response.text[:500]}...")
-
+  
             if response.status_code == 200:
-                result = response.json()
-                # OpenAI兼容格式的响应解析
-                if 'choices' in result and len(result['choices']) > 0:
-                    llm_response_text = result['choices'][0]['message']['content']
-                    print(f"✅ OpenAI兼容API调用成功")
-                    print(f"📄 LLM响应长度: {len(llm_response_text)} 字符")
+                try:
+                    result = response.json()
+                    if 'choices' not in result or len(result['choices']) == 0:
+                        print(f"❌ API响应格式错误：缺少choices字段")
+                        print(f"📄 完整响应: {result}")
+                        raise Exception("API响应格式错误：缺少choices字段")
 
-                    # 清理响应，移除可能的markdown代码块标记
-                    cleaned_response = llm_response_text.strip()
-                    if cleaned_response.startswith('```json'):
-                        cleaned_response = cleaned_response[7:]
-                    elif cleaned_response.startswith('```'):
-                        cleaned_response = cleaned_response[3:]
-                    if cleaned_response.endswith('```'):
-                        cleaned_response = cleaned_response[:-3]
-                    cleaned_response = cleaned_response.strip()
+                    ai_result = result['choices'][0]['message']['content']
+                    print(f"✅ LLM API调用成功!")
+                    print(f"📄 返回内容长度: {len(ai_result)} 字符")
+                    print(f"📄 返回内容前500字符: {ai_result[:500]}...")
 
-                    print(f"🧹 清理后的响应前200字符: {cleaned_response[:200]}...")
+                    # 尝试解析JSON结果
+                    print(f"API响应长度: {len(ai_result)} 字符")
+                    print(f"API响应前500字符: {ai_result[:500]}")
 
-                    # 尝试解析JSON
+                    # 清理响应，移除可能的代码块标记和thinking标签
+                    cleaned_result = ai_result.strip()
+                    
+                    # 移除markdown代码块标记
+                    if cleaned_result.startswith('```json'):
+                        cleaned_result = cleaned_result[7:]
+                    if cleaned_result.endswith('```'):
+                        cleaned_result = cleaned_result[:-3]
+                    
+                    # 移除thinking标签和思考过程
+                    import re
+                    thinking_patterns = [
+                        (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                        (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                        (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                        (r'思考过程[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                        (r'分析[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                        (r'让我先分析[\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                        (r'分析如下[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+                    ]
+                    
+                    for pattern, replacement, *flags in thinking_patterns:
+                        flags = flags[0] if flags else 0
+                        old_text = cleaned_result
+                        cleaned_result = re.sub(pattern, replacement, cleaned_result, flags=flags)
+                        if old_text != cleaned_result:
+                            print(f"清理thinking标签/思考过程: 移除了 {len(old_text) - len(cleaned_result)} 个字符")
+                    
+                    cleaned_result = cleaned_result.strip()
+
+                    print(f"清理后的响应: {cleaned_result[:100]}...")
+
                     try:
-                        structured_data = json.loads(cleaned_response)
-                        print(f"✅ JSON解析成功，包含 {len(structured_data.get('indicators', []))} 个指标")
+                        structured_data = json.loads(cleaned_result)
+                        indicators_count = len(structured_data.get('indicators', []))
+                        print(f"✅ 成功解析JSON，包含 {indicators_count} 个指标")
                         return structured_data
                     except json.JSONDecodeError as e:
                         print(f"❌ JSON解析失败: {str(e)}")
-                        print(f"📄 完整LLM响应内容:\n{llm_response_text}")
-                        raise Exception(f"LLM返回的不是有效的JSON格式: {str(e)}")
-                else:
-                    raise Exception("API返回格式错误：没有choices字段")
+                        print(f"错误详情: {repr(e)}")
+
+                        # 如果直接解析失败，尝试提取JSON部分
+                        import re
+                        # 手动寻找匹配的JSON对象
+                        json_objects = self._extract_json_objects(cleaned_result)
+                        print(f"找到 {len(json_objects)} 个JSON对象")
+
+                        for i, json_str in enumerate(json_objects):
+                            try:
+                                structured_data = json.loads(json_str)
+                                indicators_count = len(structured_data.get('indicators', []))
+                                print(f"✅ 第{i+1}个JSON解析成功，包含 {indicators_count} 个指标")
+                                if indicators_count > 0:
+                                    return structured_data
+                            except json.JSONDecodeError as e2:
+                                print(f"第{i+1}个JSON解析失败: {str(e2)}")
+                                continue
+
+                        print("所有JSON匹配都无法解析，保存原始响应用于调试")
+                        # 保存原始响应到数据库，便于调试
+                        self.document_processing.ai_result = {
+                            'error': str(e),
+                            'raw_response': ai_result[:500] + "..." if len(ai_result) > 500 else ai_result,
+                            'cleaned_response': cleaned_result[:500] + "..." if len(cleaned_result) > 500 else cleaned_result
+                        }
+                        self.document_processing.save()
+
+                        raise Exception(f"JSON解析失败，但已保存原始响应到数据库")
+
+                except json.JSONDecodeError as e:
+                    print(f"❌ API响应JSON解析失败: {str(e)}")
+                    raise Exception(f"API响应JSON解析失败: {str(e)}")
             else:
-                raise Exception(f"API调用失败: {response.status_code} - {response.text}")
+                error_msg = f"API调用失败: {response.status_code} - {response.text}"
+                print(f"❌ {error_msg}")
+                raise Exception(error_msg)
 
         except requests.exceptions.Timeout:
-            print(f"❌ LLM API调用超时 (超过{self.ai_timeout}秒)")
+            print(f"❌ LLM API调用超时 (超过{self.llm_timeout}秒)")
             raise Exception("本地LLM API调用超时")
         except requests.exceptions.RequestException as e:
             print(f"❌ LLM API网络错误: {str(e)}")
             raise Exception(f"本地LLM API网络错误: {str(e)}")
         except Exception as e:
             print(f"❌ LLM API调用失败: {str(e)}")
-            raise
+            print(f"{'='*60}\n")
+            raise Exception(f"本地LLM API调用失败: {str(e)}")
 
     def _get_indicator_type_from_name(self, indicator_name):
         """根据指标名称确定指标类型（新的11种分类）"""
@@ -919,11 +761,11 @@ class DocumentProcessingService:
 {existing_list}
 
 **提取范围：**
-- **数值指标：** 血压、心率、血糖、血常规、生化检验等具体数值
-- **诊断结论：** 高血压、糖尿病、脂肪肝等疾病诊断
-- **症状描述：** 头痛、胸闷、皮疹等症状表现
-- **检查发现：** 超声、CT、心电图等检查的描述性结果
-- **体征数据：** 器官大小、形态等测量值
+- **数值指标：** 
+- **诊断结论：**
+- **症状描述：** 
+- **检查发现：** 
+- **体征数据：** 
 
 **特别注意：**
 - 不仅要提取表格数据，还要识别段落中的健康信息
@@ -931,10 +773,10 @@ class DocumentProcessingService:
 - 确保不遗漏任何数值化的医学检查结果
 
 **重要约束：**
-1. **不要无中生有：** 只提取OCR文本中明确存在的指标数据
+1. **不要无中生有：** 只提取OCR文本中明确存在的指标数据或者病症描述
 2. **参考值处理：** 如果报告中没有提供参考范围（normal_range），请留空或填null，不要编造
 3. **异常判断：** 只有当报告中明确标注了异常（如↑↓箭头、异常字样、超出参考范围）时才标记"是"，否则留空或填null
-4. **数据真实性：** 宁可少提取，也不要编造报告中不存在的内容
+4. **数据真实性：** 宁可留空，也不要编造报告中不存在的内容
 
 **JSON格式：**
 {{
@@ -964,89 +806,64 @@ class DocumentProcessingService:
 
             indicators = structured_data.get('indicators', [])
             saved_count = 0
-            skipped_count = 0
-            error_count = 0
 
             for indicator_data in indicators:
-                try:
-                    # 处理新的LLM响应格式
-                    indicator_name = indicator_data.get('indicator', indicator_data.get('name', ''))
-                    measured_value = indicator_data.get('measured_value', indicator_data.get('value', ''))
-                    normal_range = indicator_data.get('normal_range', indicator_data.get('reference_range', None))
-                    is_abnormal = indicator_data.get('abnormal', None)
+                # 处理新的LLM响应格式
+                indicator_name = indicator_data.get('indicator', indicator_data.get('name', ''))
+                measured_value = indicator_data.get('measured_value', indicator_data.get('value', ''))
+                normal_range = indicator_data.get('normal_range', indicator_data.get('reference_range', None))
+                is_abnormal = indicator_data.get('abnormal', None)
 
-                    # 跳过缺少指标名称的数据
-                    if not indicator_name or not str(indicator_name).strip():
-                        print(f"⚠️  跳过指标: 缺少指标名称")
-                        skipped_count += 1
-                        continue
+                # 处理 null 值
+                if normal_range is None or normal_range == 'null':
+                    normal_range = ''
 
-                    # 处理measured_value的null值，增加容错性
-                    if measured_value is None or measured_value == 'null' or not str(measured_value).strip():
-                        clean_value = ''  # 使用空字符串而不是'None'
-                        print(f"⚠️  指标 '{indicator_name}' 的检测值为空，使用空字符串")
+                # 转换异常状态
+                if is_abnormal is None or is_abnormal == 'null':
+                    # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
+                    # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
+                    status = None  # 使用模型默认值
+                elif isinstance(is_abnormal, str):
+                    if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
+                        status = 'abnormal'
+                    elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
+                        status = 'normal'
                     else:
-                        # 处理 null 值
-                        if normal_range is None or normal_range == 'null':
-                            normal_range = ''
+                        # 无法识别的字符串，不判断状态
+                        status = None  # 使用模型默认值
+                elif isinstance(is_abnormal, bool):
+                    status = 'abnormal' if is_abnormal else 'normal'
+                else:
+                    status = None  # 使用模型默认值
 
-                        # 转换异常状态
-                        if is_abnormal is None or is_abnormal == 'null':
-                            # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
-                            # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
-                            status = None  # 使用模型默认值
-                        elif isinstance(is_abnormal, str):
-                            if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
-                                status = 'abnormal'
-                            elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
-                                status = 'normal'
-                            else:
-                                # 无法识别的字符串，不判断状态
-                                status = None  # 使用模型默认值
-                        elif isinstance(is_abnormal, bool):
-                            status = 'abnormal' if is_abnormal else 'normal'
-                        else:
-                            status = None  # 使用模型默认值
+                # 确定指标类型
+                indicator_type = self._get_indicator_type_from_name(indicator_name)
 
-                        # 确定指标类型
-                        indicator_type = self._get_indicator_type_from_name(indicator_name)
+                # 确定单位
+                unit = self._extract_unit_from_value(measured_value, indicator_name)
 
-                        # 确定单位
-                        unit = self._extract_unit_from_value(measured_value, indicator_name)
+                # 清理测量值（移除单位）
+                clean_value = self._clean_measured_value(measured_value, unit)
 
-                        # 清理测量值（移除单位）
-                        clean_value = self._clean_measured_value(measured_value, unit)
+                # 创建健康指标
+                indicator = HealthIndicator.objects.create(
+                    checkup=self.document_processing.health_checkup,
+                    indicator_type=indicator_type,
+                    indicator_name=indicator_name,
+                    value=clean_value,
+                    unit=unit,
+                    reference_range=normal_range or '',  # 确保 None 转为空字符串
+                    # status不传，使用模型的default值
+                )
+                saved_count += 1
+                status_display = status if status else 'normal(默认)'
+                print(f"已保存指标 {saved_count}: {indicator_name} = {clean_value} {unit} (参考范围:{normal_range or '空'}, 状态:{status_display})")
 
-                    # 创建健康指标
-                    indicator = HealthIndicator.objects.create(
-                        checkup=self.document_processing.health_checkup,
-                        indicator_type=indicator_type,
-                        indicator_name=indicator_name,
-                        value=clean_value,
-                        unit=unit if unit else '',  # 确保unit不是None
-                        reference_range=normal_range or '',  # 确保 None 转为空字符串
-                        status=status if status else 'normal'  # 保存计算出的状态值
-                    )
-                    saved_count += 1
-                    status_display = status if status else 'normal(默认)'
-                    print(f"✅ 已保存指标 {saved_count}: {indicator_name} = {clean_value if clean_value else '(空)'} {unit if unit else ''} (参考范围:{normal_range or '空'}, 状态:{status_display})")
+                # 更新进度
+                progress = 80 + int((saved_count / len(indicators)) * 15)
+                self.update_progress('saving_data', progress, f"已保存 {saved_count}/{len(indicators)} 项指标")
 
-                except Exception as e:
-                    # 单个指标保存失败不影响其他指标
-                    error_count += 1
-                    print(f"❌ 保存指标失败: {indicator_data.get('indicator', '未知指标')} - 错误: {str(e)}")
-                    continue
-
-            # 更新进度
-            progress = 80 + int((saved_count / len(indicators)) * 15) if indicators else 95
-            summary_msg = f"已保存 {saved_count}/{len(indicators)} 项指标"
-            if skipped_count > 0:
-                summary_msg += f"，跳过 {skipped_count} 项"
-            if error_count > 0:
-                summary_msg += f"，失败 {error_count} 项"
-            self.update_progress('saving_data', progress, summary_msg)
-
-            self.update_progress('completed', 100, f"处理完成 - 成功:{saved_count}, 跳过:{skipped_count}, 失败:{error_count}")
+            self.update_progress('completed', 100, "处理完成")
             return saved_count
 
         except Exception as e:
@@ -1151,39 +968,18 @@ def get_llm_api_status():
     """检查LLM API状态"""
     try:
         # 从数据库获取配置
-        llm_config = SystemSettings.get_llm_config()
-        llm_provider = llm_config.get('provider', 'openai')
-        llm_api_url = llm_config.get('api_url')
-        llm_api_key = llm_config.get('api_key')
-        llm_model_name = llm_config.get('model_name')
+        llm_api_url = SystemSettings.get_setting('llm_api_url', 'http://172.25.48.1:1234')
+        llm_api_key = SystemSettings.get_setting('llm_api_key', '')
 
-        if not llm_api_url or not llm_model_name:
-            return False
+        # 状态检查使用基础地址 + /v1/models
+        check_url = f"{llm_api_url.rstrip('/')}/v1/models"
 
-        # 发送测试请求
-        if llm_provider == 'gemini':
-            # Gemini API
-            gemini_api_key = SystemSettings.get_setting('gemini_api_key', '')
-            if not gemini_api_key:
-                return False
-
-            check_url = f"https://generativelanguage.googleapis.com/v1beta/models/{llm_model_name}:generateContent?key={gemini_api_key}"
-            data = {"contents": [{"parts": [{"text": "test"}]}]}
-        else:
-            # OpenAI兼容格式 - 直接使用配置的API URL
-            check_url = llm_api_url
-            data = {
-                "model": llm_model_name,
-                "messages": [{"role": "user", "content": "test"}],
-                "max_tokens": 5
-            }
-
-        headers = {'Content-Type': 'application/json'}
+        headers = {}
         if llm_api_key:
             headers['Authorization'] = f"Bearer {llm_api_key}"
 
-        response = requests.post(check_url, json=data, headers=headers, timeout=10)
-        return response.status_code == 200
+        response = requests.get(check_url, headers=headers, timeout=5)
+        return response.status_code in [200, 401]  # 200=OK, 401=需要认证
     except:
         return False
 
@@ -1365,7 +1161,7 @@ class VisionLanguageModelService:
             print(f"📁 图片路径: {image_path}")
 
             # 构建针对医疗报告的prompt
-            prompt = self._build_vision_prompt(page_num, total_pages)
+            prompt = build_vision_model_prompt(page_num, total_pages)
             print(f"📝 Prompt长度: {len(prompt)} 字符")
             print(f"📝 Prompt前200字符: {prompt[:200]}...")
 
@@ -1390,8 +1186,8 @@ class VisionLanguageModelService:
             if not gemini_api_key:
                 raise Exception("未配置Gemini API密钥，请在系统设置中配置")
 
-            # 使用多模态模型配置的模型名称（而不是数据整合的gemini_model_name）
-            model_name = self.vl_model_name
+            # 使用 Gemini 模型名称或配置的多模态模型名称
+            model_name = SystemSettings.get_setting('gemini_model_name', self.vl_model_name)
 
             # 读取并编码图片
             with open(image_path, 'rb') as f:
@@ -1451,13 +1247,32 @@ class VisionLanguageModelService:
                 result = response.json()
                 content = result['candidates'][0]['content']['parts'][0]['text']
 
+                # 清理thinking标签和思考过程
+                import re
+                cleaned_content = content.strip()
+                
+                thinking_patterns = [
+                    (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                    (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                    (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                    (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                ]
+                
+                for pattern, replacement, *flags in thinking_patterns:
+                    flags = flags[0] if flags else 0
+                    old_text = cleaned_content
+                    cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
+
                 print(f"✅ Gemini API调用成功!")
-                print(f"📄 返回内容长度: {len(content)} 字符")
-                print(f"📄 返回内容前300字符: {content[:300]}...")
+                print(f"📄 返回内容长度: {len(cleaned_content)} 字符")
+                print(f"📄 返回内容前300字符: {cleaned_content[:300]}...")
 
                 # 解析返回的JSON结果
                 print(f"🔧 开始解析JSON响应...")
-                indicators = self._parse_vision_response(content)
+                indicators = self._parse_vision_response(cleaned_content)
 
                 print(f"📊 解析完成，提取到 {len(indicators)} 个指标")
                 for i, indicator in enumerate(indicators):
@@ -1483,7 +1298,7 @@ class VisionLanguageModelService:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "你是一个专业的医疗数据分析助手，专门从体检报告图片中提取健康指标数据。"
+                        "content": VISION_MODEL_SYSTEM_PROMPT
                     },
                     {
                         "role": "user",
@@ -1514,8 +1329,8 @@ class VisionLanguageModelService:
             if self.vl_api_key:
                 headers["Authorization"] = f"Bearer {self.vl_api_key}"
 
-            # API调用直接使用配置的完整地址
-            api_url = self.vl_api_url
+            # API调用使用基础地址 + /v1/chat/completions
+            api_url = f"{self.vl_api_url.rstrip('/')}/v1/chat/completions"
 
             print(f"🌐 OpenAI Vision API配置信息:")
             print(f"   - API URL: {api_url}")
@@ -1549,13 +1364,32 @@ class VisionLanguageModelService:
                 result = response.json()
                 content = result['choices'][0]['message']['content']
 
+                # 清理thinking标签和思考过程
+                import re
+                cleaned_content = content.strip()
+                
+                thinking_patterns = [
+                    (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                    (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                    (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                    (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                ]
+                
+                for pattern, replacement, *flags in thinking_patterns:
+                    flags = flags[0] if flags else 0
+                    old_text = cleaned_content
+                    cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
+
                 print(f"✅ API调用成功!")
-                print(f"📄 返回内容长度: {len(content)} 字符")
-                print(f"📄 返回内容前300字符: {content[:300]}...")
+                print(f"📄 返回内容长度: {len(cleaned_content)} 字符")
+                print(f"📄 返回内容前300字符: {cleaned_content[:300]}...")
 
                 # 解析返回的JSON结果
                 print(f"🔧 开始解析JSON响应...")
-                indicators = self._parse_vision_response(content)
+                indicators = self._parse_vision_response(cleaned_content)
 
                 print(f"📊 解析完成，提取到 {len(indicators)} 个指标")
                 for i, indicator in enumerate(indicators):
@@ -1611,18 +1445,18 @@ class VisionLanguageModelService:
 2. **症状照片：** 详细描述可见的症状表现、体征特征
 
 **提取重点：**
-- **数值指标：** 血压、心率、血糖、血常规、生化检验等具体检测数值
-- **诊断结论：** 如"高血压"、"糖尿病"、"脂肪肝"等疾病诊断
-- **症状描述：** 如"头痛"、"皮疹"、"红肿"等具体症状表现
-- **检查发现：** 超声、CT、X光等影像学检查的描述性结果
-- **体征数据：** 器官大小、厚度、形态等解剖结构测量值
+- **数值指标：
+- **诊断结论：
+- **症状描述：
+- **检查发现：
+- **体征数据：
 
 **重要约束：**
-1. **不要无中生有：** 只提取图片中明确可见或明确写明的指标数据
+1. **不要无中生有：** 只提取图片中明确可见或明确写明的指标数据或者病症描述
 2. **参考值处理：** 如果图片中没有提供参考范围（normal_range），请留空或填null，不要编造
 3. **异常判断：** 只有当图片中明确标注了异常（如↑↓箭头、异常字样、超出参考范围、阳性）时才标记"是"，否则留空或填null
-4. **数据真实性：** 宁可少提取，也不要编造图片中不存在的内容
-5. **清晰度要求：** 如果文字模糊不清无法准确识别，不要强行猜测，应该略过该项数据
+4. **数据真实性：** 宁可留空，也不要编造图片中不存在的内容
+5. **清晰度要求：** 如果文字模糊不清无法准确识别，可以在指标名添加备注，如xx指标(不清)
 
 **JSON格式要求：**
 {{
@@ -1659,8 +1493,16 @@ class VisionLanguageModelService:
         except json.JSONDecodeError:
             print(f"❌ 方法1失败: 无法直接解析JSON")
 
-        # 方法2: 清理常见的代码块标记
+        # 方法2: 清理常见的代码块标记和thinking标签
         cleaned_patterns = [
+            # 移除thinking标签和思考过程
+            (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+            (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+            (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+            (r'思考过程[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+            (r'分析[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+            (r'让我先分析[\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
+            (r'分析如下[:：][\s\S]*?(?=\n\s*\{)', '', re.IGNORECASE),
             # 移除代码块标记
             (r'```json\s*', ''),
             (r'```\s*', ''),
@@ -1915,90 +1757,64 @@ class VisionLanguageModelService:
 
             indicators = structured_data.get('indicators', [])
             saved_count = 0
-            skipped_count = 0
-            error_count = 0
 
             for indicator_data in indicators:
-                try:
-                    indicator_name = indicator_data.get('indicator', '')
-                    measured_value = indicator_data.get('measured_value', '')
-                    normal_range = indicator_data.get('normal_range', None)
-                    is_abnormal = indicator_data.get('abnormal', None)
+                indicator_name = indicator_data.get('indicator', '')
+                measured_value = indicator_data.get('measured_value', '')
+                normal_range = indicator_data.get('normal_range', None)
+                is_abnormal = indicator_data.get('abnormal', None)
 
-                    # 跳过缺少指标名称的数据
-                    if not indicator_name or not str(indicator_name).strip():
-                        print(f"⚠️  跳过指标: 缺少指标名称")
-                        skipped_count += 1
-                        continue
+                # 处理 null 值
+                if normal_range is None or normal_range == 'null':
+                    normal_range = ''
 
-                    # 处理measured_value的null值，增加容错性
-                    if measured_value is None or measured_value == 'null' or not str(measured_value).strip():
-                        clean_value = ''  # 使用空字符串而不是'None'
-                        unit = ''
-                        print(f"⚠️  指标 '{indicator_name}' 的检测值为空，使用空字符串")
+                # 转换异常状态
+                if is_abnormal is None or is_abnormal == 'null':
+                    # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
+                    # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
+                    status = None  # 使用模型默认值
+                elif isinstance(is_abnormal, str):
+                    if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
+                        status = 'abnormal'
+                    elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
+                        status = 'normal'
                     else:
-                        # 处理 null 值
-                        if normal_range is None or normal_range == 'null':
-                            normal_range = ''
+                        # 无法识别的字符串，不判断状态
+                        status = None  # 使用模型默认值
+                elif isinstance(is_abnormal, bool):
+                    status = 'abnormal' if is_abnormal else 'normal'
+                else:
+                    status = None  # 使用模型默认值
 
-                        # 转换异常状态
-                        if is_abnormal is None or is_abnormal == 'null':
-                            # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
-                            # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
-                            status = None  # 使用模型默认值
-                        elif isinstance(is_abnormal, str):
-                            if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
-                                status = 'abnormal'
-                            elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
-                                status = 'normal'
-                            else:
-                                # 无法识别的字符串，不判断状态
-                                status = None  # 使用模型默认值
-                        elif isinstance(is_abnormal, bool):
-                            status = 'abnormal' if is_abnormal else 'normal'
-                        else:
-                            status = None  # 使用模型默认值
+                # 确定指标类型
+                service = DocumentProcessingService(self.document_processing)
+                indicator_type = service._get_indicator_type_from_name(indicator_name)
 
-                        # 确定指标类型
-                        service = DocumentProcessingService(self.document_processing)
-                        indicator_type = service._get_indicator_type_from_name(indicator_name)
+                # 确定单位
+                unit = service._extract_unit_from_value(measured_value, indicator_name)
 
-                        # 确定单位
-                        unit = service._extract_unit_from_value(measured_value, indicator_name)
+                # 清理测量值
+                clean_value = service._clean_measured_value(measured_value, unit)
 
-                        # 清理测量值
-                        clean_value = service._clean_measured_value(measured_value, unit)
+                # 创建健康指标
+                indicator = HealthIndicator.objects.create(
+                    checkup=self.document_processing.health_checkup,
+                    indicator_type=indicator_type,
+                    indicator_name=indicator_name,
+                    value=clean_value,
+                    unit=unit,
+                    reference_range=normal_range or '',  # 确保 None 转为空字符串
+                    # status不传，使用模型的default值
+                )
+                saved_count += 1
+                status_display = status if status else 'normal(默认)'
+                print(f"已保存指标 {saved_count}: {indicator_name} = {clean_value} {unit} (参考范围:{normal_range or '空'}, 状态:{status_display})")
 
-                    # 创建健康指标
-                    indicator = HealthIndicator.objects.create(
-                        checkup=self.document_processing.health_checkup,
-                        indicator_type=indicator_type,
-                        indicator_name=indicator_name,
-                        value=clean_value,
-                        unit=unit if unit else '',  # 确保unit不是None
-                        reference_range=normal_range or '',  # 确保 None 转为空字符串
-                        status=status if status else 'normal'  # 保存计算出的状态值
-                    )
-                    saved_count += 1
-                    status_display = status if status else 'normal(默认)'
-                    print(f"✅ 已保存指标 {saved_count}: {indicator_name} = {clean_value if clean_value else '(空)'} {unit if unit else ''} (参考范围:{normal_range or '空'}, 状态:{status_display})")
+                # 更新进度
+                progress = 80 + int((saved_count / len(indicators)) * 15)
+                self.update_progress('saving_data', progress, f"已保存 {saved_count}/{len(indicators)} 项指标")
 
-                except Exception as e:
-                    # 单个指标保存失败不影响其他指标
-                    error_count += 1
-                    print(f"❌ 保存指标失败: {indicator_data.get('indicator', '未知指标')} - 错误: {str(e)}")
-                    continue
-
-            # 更新进度
-            progress = 80 + int((saved_count / len(indicators)) * 15) if indicators else 95
-            summary_msg = f"已保存 {saved_count}/{len(indicators)} 项指标"
-            if skipped_count > 0:
-                summary_msg += f"，跳过 {skipped_count} 项"
-            if error_count > 0:
-                summary_msg += f"，失败 {error_count} 项"
-            self.update_progress('saving_data', progress, summary_msg)
-
-            self.update_progress('completed', 100, f"处理完成 - 成功:{saved_count}, 跳过:{skipped_count}, 失败:{error_count}")
+            self.update_progress('completed', 100, "处理完成")
             return saved_count
 
         except Exception as e:
@@ -2010,23 +1826,18 @@ def get_vision_model_api_status():
     """检查多模态大模型API状态"""
     try:
         config = SystemSettings.get_vl_model_config()
-        if not config['api_url'] or not config['model_name']:
+        if not config['api_url']:
             return False
 
-        # 发送测试请求 - 直接使用配置的API URL
-        check_url = config['api_url']
-        data = {
-            "model": config['model_name'],
-            "messages": [{"role": "user", "content": "test"}],
-            "max_tokens": 5
-        }
+        # 状态检查使用基础地址 + /v1/models
+        check_url = f"{config['api_url'].rstrip('/')}/v1/models"
 
-        headers = {'Content-Type': 'application/json'}
+        headers = {}
         if config.get('api_key'):
             headers['Authorization'] = f"Bearer {config['api_key']}"
 
-        response = requests.post(check_url, json=data, headers=headers, timeout=10)
-        return response.status_code == 200
+        response = requests.get(check_url, headers=headers, timeout=5)
+        return response.status_code in [200, 401]  # 200=OK, 401=需要认证
     except:
         return False
 
@@ -2039,14 +1850,30 @@ class AIService:
         self.llm_api_url = SystemSettings.get_setting('llm_api_url', 'http://172.25.48.1:1234')
         self.llm_api_key = SystemSettings.get_setting('llm_api_key', '')
         self.llm_model_name = SystemSettings.get_setting('llm_model_name', 'qwen3-4b-instruct')
-        # 使用统一的AI模型超时配置
-        self.ai_timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+        self.llm_timeout = int(SystemSettings.get_setting('llm_timeout', '600'))
 
     def get_health_advice(self, indicators):
         """根据健康指标生成AI建议"""
         try:
+            # 格式化指标数据
+            indicators_text = ""
+            abnormal_indicators = []
+
+            for indicator in indicators:
+                status = "异常" if indicator.status == 'abnormal' else "正常"
+                indicators_text += f"- {indicator.indicator_name}: {indicator.value} {indicator.unit} (参考范围: {indicator.reference_range}) - {status}\n"
+
+                if indicator.status == 'abnormal':
+                    abnormal_indicators.append(indicator.indicator_name)
+
+            # 根据异常指标调整建议重点
+            if abnormal_indicators:
+                focus_text = f"特别关注以下异常指标: {', '.join(abnormal_indicators)}"
+            else:
+                focus_text = "所有指标都在正常范围内"
+
             # 构建prompt
-            prompt = self._build_advice_prompt(indicators)
+            system_prompt, user_prompt = build_health_advice_prompt(indicators_text, focus_text)
 
             # 准备请求数据
             llm_data = {
@@ -2054,11 +1881,11 @@ class AIService:
                 "messages": [
                     {
                         "role": "system",
-                        "content": "你是一个专业的健康顾问医生，请根据用户的体检指标数据提供健康建议。"
+                        "content": system_prompt
                     },
                     {
                         "role": "user",
-                        "content": prompt
+                        "content": user_prompt
                     }
                 ],
                 "temperature": 0.3,
@@ -2073,76 +1900,54 @@ class AIService:
             if self.llm_api_key:
                 headers["Authorization"] = f"Bearer {self.llm_api_key}"
 
-            # API调用直接使用配置的完整地址
+            # API调用
+            api_url = f"{self.llm_api_url.rstrip('/')}/v1/chat/completions"
             response = requests.post(
-                self.llm_api_url,
+                api_url,
                 json=llm_data,
                 headers=headers,
-                timeout=self.ai_timeout
+                timeout=self.llm_timeout
             )
 
             if response.status_code == 200:
                 result = response.json()
                 advice = result['choices'][0]['message']['content']
-                return advice.strip()
+                
+                # 清理thinking标签和思考过程
+                import re
+                cleaned_advice = advice.strip()
+                
+                thinking_patterns = [
+                    (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                    (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                    (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                    (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                ]
+                
+                for pattern, replacement, *flags in thinking_patterns:
+                    flags = flags[0] if flags else 0
+                    old_text = cleaned_advice
+                    cleaned_advice = re.sub(pattern, replacement, cleaned_advice, flags=flags)
+                
+                return cleaned_advice.strip()
             else:
                 raise Exception(f"AI建议生成失败: {response.status_code} - {response.text}")
 
         except Exception as e:
             return f"很抱歉，AI建议生成失败: {str(e)}"
 
-    def _build_advice_prompt(self, indicators):
-        """构建健康建议的prompt"""
-        # 格式化指标数据
-        indicators_text = ""
-        abnormal_indicators = []
 
-        for indicator in indicators:
-            status = "异常" if indicator.status == 'abnormal' else "正常"
-            indicators_text += f"- {indicator.indicator_name}: {indicator.value} {indicator.unit} (参考范围: {indicator.reference_range}) - {status}\n"
-
-            if indicator.status == 'abnormal':
-                abnormal_indicators.append(indicator.indicator_name)
-
-        # 根据异常指标调整建议重点
-        if abnormal_indicators:
-            focus_text = f"特别关注以下异常指标: {', '.join(abnormal_indicators)}"
-        else:
-            focus_text = "所有指标都在正常范围内"
-
-        return f"""
-请根据以下体检指标数据，为用户提供专业的健康建议和生活方式指导。
-
-体检指标数据:
-{indicators_text}
-
-{focus_text}
-
-请提供以下方面的建议：
-1. **指标解读**: 简要解释各项指标的含义
-2. **异常分析**: 针对异常指标提供可能的原因和建议
-3. **饮食建议**: 基于体检结果提供饮食调整建议
-4. **运动建议**: 推荐适合的运动方式和频率
-5. **生活习惯**: 提供作息、戒烟限酒等生活方式建议
-6. **定期复查**: 建议需要重点关注和定期复查的指标
-
-请用通俗易懂、专业而不生硬的语言，避免过度医学术语，给出实用的建议。建议要具体可行，避免过于笼统。
-
-注意：
-- 如果所有指标正常，重点给出预防保健建议
-- 如果有异常指标，重点关注相关风险因素
-- 建议用户定期体检，遵医嘱进行复查
-- 强调本建议仅供参考，具体诊疗请咨询专业医生
-"""
-
-
-def call_llm_for_integration(prompt, timeout=None):
+def call_llm_for_integration(system_prompt, user_prompt, timeout=120):
     """
     调用LLM API进行数据整合分析
 
     Args:
-        prompt: 发送给LLM的提示词
-        timeout: 超时时间（秒），默认使用系统配置
+        system_prompt: 系统提示词
+        user_prompt: 用户提示词
+        timeout: 超时时间（秒）
 
     Returns:
         str: LLM的响应文本
@@ -2156,20 +1961,12 @@ def call_llm_for_integration(prompt, timeout=None):
     llm_api_key = SystemSettings.get_setting('llm_api_key', '')
     llm_model_name = SystemSettings.get_setting('llm_model_name', 'MiniMaxAI/MiniMax-M2')
 
-    # 使用统一超时配置
-    if timeout is None:
-        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-
-    # 从系统设置读取max_tokens
-    max_tokens = int(SystemSettings.get_setting('llm_max_tokens', '16000'))
-
     print(f"\n{'='*80}")
     print(f"[数据整合 LLM调用] 开始")
     print(f"[数据整合 LLM调用] API URL: {llm_api_url}")
     print(f"[数据整合 LLM调用] 模型: {llm_model_name}")
-    print(f"[数据整合 LLM调用] 超时: {timeout}秒")
-    print(f"[数据整合 LLM调用] 最大Tokens: {max_tokens}")
     print(f"[数据整合 LLM调用] API Key: {'已设置' if llm_api_key else '未设置'}")
+    print(f"[数据整合 LLM调用] 超时: {timeout}秒")
 
     # 构建请求数据
     llm_data = {
@@ -2177,15 +1974,15 @@ def call_llm_for_integration(prompt, timeout=None):
         "messages": [
             {
                 "role": "system",
-                "content": "严格按照JSON格式返回，不添加任何其他文字。"
+                "content": system_prompt
             },
             {
                 "role": "user",
-                "content": prompt
+                "content": user_prompt
             }
         ],
         "temperature": 0.1,
-        "max_tokens": max_tokens  # 使用系统配置的max_tokens
+        "max_tokens": 8000
     }
 
     # 准备请求头
@@ -2198,8 +1995,11 @@ def call_llm_for_integration(prompt, timeout=None):
         headers["Authorization"] = f"Bearer {llm_api_key}"
 
     try:
-        # 直接使用配置的完整API地址
-        api_url = llm_api_url
+        # 根据API URL判断服务类型并使用正确的端点
+        if 'siliconflow' in llm_api_url.lower():
+            api_url = f"{llm_api_url.rstrip('/')}/v1/chat/completions"
+        else:
+            api_url = f"{llm_api_url.rstrip('/')}/v1/chat/completions"
 
         print(f"[数据整合 LLM调用] 完整API地址: {api_url}")
         print(f"[数据整合 LLM调用] Prompt长度: {len(prompt)} 字符")
@@ -2228,12 +2028,32 @@ def call_llm_for_integration(prompt, timeout=None):
         if response.status_code == 200:
             result = response.json()
             content = result['choices'][0]['message']['content']
+            
+            # 清理thinking标签和思考过程
+            import re
+            cleaned_content = content.strip()
+            
+            thinking_patterns = [
+                (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+            ]
+            
+            for pattern, replacement, *flags in thinking_patterns:
+                flags = flags[0] if flags else 0
+                old_text = cleaned_content
+                cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
+            
             print(f"[数据整合 LLM调用] ✓ 成功获取响应")
             print(f"[数据整合 LLM调用] 响应内容前500字符:")
-            print(f"{content[:500]}")
+            print(f"{cleaned_content[:500]}")
             print(f"[数据整合 LLM调用] 响应内容后500字符:")
-            print(f"{content[-500:]}")
-            return content
+            print(f"{cleaned_content[-500:]}")
+            return cleaned_content
         else:
             print(f"[数据整合 LLM调用] ✗ API返回错误")
             print(f"[数据整合 LLM调用] 错误详情: {response.text}")
@@ -2247,14 +2067,14 @@ def call_llm_for_integration(prompt, timeout=None):
         raise Exception(f"调用LLM API失败: {str(e)}")
 
 
-def call_gemini_api(prompt, system_message=None, timeout=None):
+def call_gemini_api(prompt, system_message=None, timeout=300):
     """
     调用 Google Gemini API
 
     Args:
         prompt: 发送给Gemini的提示词
         system_message: 系统消息（可选）
-        timeout: 超时时间（秒），默认使用系统配置
+        timeout: 超时时间（秒）
 
     Returns:
         str: Gemini的响应文本
@@ -2271,19 +2091,11 @@ def call_gemini_api(prompt, system_message=None, timeout=None):
     if not api_key:
         raise Exception("Gemini API密钥未配置，请在系统设置中配置")
 
-    # 使用统一超时配置
-    if timeout is None:
-        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-
-    # 从系统设置读取max_tokens
-    max_tokens = int(SystemSettings.get_setting('llm_max_tokens', '16000'))
-
     print(f"\n{'='*80}")
     print(f"[Gemini API调用] 开始")
     print(f"[Gemini API调用] 模型: {model_name}")
     print(f"[Gemini API调用] API Key: {'已设置' if api_key else '未设置'}")
     print(f"[Gemini API调用] 超时: {timeout}秒")
-    print(f"[Gemini API调用] 最大Tokens: {max_tokens}")
 
     # 构建请求内容
     parts = []
@@ -2302,7 +2114,7 @@ def call_gemini_api(prompt, system_message=None, timeout=None):
         }],
         "generationConfig": {
             "temperature": 0.7,
-            "maxOutputTokens": max_tokens  # 使用系统配置的max_tokens
+            "maxOutputTokens": 8192
         }
     }
 
@@ -2336,9 +2148,29 @@ def call_gemini_api(prompt, system_message=None, timeout=None):
             # 检查是否有候选结果
             if 'candidates' in result and len(result['candidates']) > 0:
                 content = result['candidates'][0]['content']['parts'][0]['text']
+                
+                # 清理thinking标签和思考过程
+                import re
+                cleaned_content = content.strip()
+                
+                thinking_patterns = [
+                    (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                    (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                    (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                    (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                ]
+                
+                for pattern, replacement, *flags in thinking_patterns:
+                    flags = flags[0] if flags else 0
+                    old_text = cleaned_content
+                    cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
+                
                 print(f"[Gemini API调用] ✓ 成功获取响应")
-                print(f"[Gemini API调用] 响应长度: {len(content)} 字符")
-                return content
+                print(f"[Gemini API调用] 响应长度: {len(cleaned_content)} 字符")
+                return cleaned_content
             else:
                 print(f"[Gemini API调用] ✗ 响应中没有候选结果")
                 print(f"[Gemini API调用] 响应内容: {result}")
@@ -2356,130 +2188,14 @@ def call_gemini_api(prompt, system_message=None, timeout=None):
         raise Exception(f"调用Gemini API失败: {str(e)}")
 
 
-def call_gemini_api_stream(prompt, system_message=None, timeout=None):
-    """
-    调用 Google Gemini API - 流式版本
-
-    Args:
-        prompt: 发送给Gemini的提示词
-        system_message: 系统消息（可选）
-        timeout: 超时时间（秒），默认使用系统配置
-
-    Yields:
-        str: Gemini的响应文本片段
-    """
-    import requests
-    import json
-    from .models import SystemSettings
-
-    # 获取Gemini配置
-    gemini_config = SystemSettings.get_gemini_config()
-    api_key = gemini_config['api_key']
-    model_name = gemini_config['model_name']
-
-    if not api_key:
-        raise Exception("Gemini API密钥未配置，请在系统设置中配置")
-
-    # 使用统一超时配置
-    if timeout is None:
-        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-
-    # 从系统设置读取max_tokens
-    max_tokens = int(SystemSettings.get_setting('llm_max_tokens', '16000'))
-
-    print(f"\n{'='*80}")
-    print(f"[Gemini API流式调用] 开始")
-    print(f"[Gemini API流式调用] 模型: {model_name}")
-    print(f"[Gemini API流式调用] 超时: {timeout}秒")
-    print(f"[Gemini API流式调用] 最大Tokens: {max_tokens}")
-
-    # 构建请求内容
-    parts = []
-
-    # 添加系统消息（如果有）
-    if system_message:
-        parts.append({"text": system_message})
-
-    # 添加用户提示
-    parts.append({"text": prompt})
-
-    # Gemini API 请求格式（streamGenerateContent）
-    gemini_data = {
-        "contents": [{
-            "parts": parts
-        }],
-        "generationConfig": {
-            "temperature": 0.7,
-            "maxOutputTokens": max_tokens
-        }
-    }
-
-    # 构建API URL - 使用 streamGenerateContent
-    api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:streamGenerateContent?key={api_key}"
-
-    print(f"[Gemini API流式调用] 请求URL: {api_url}")
-    print(f"[Gemini API流式调用] Prompt长度: {len(prompt)} 字符")
-
-    try:
-        import time
-        start_time = time.time()
-
-        response = requests.post(
-            api_url,
-            json=gemini_data,
-            headers={"Content-Type": "application/json"},
-            timeout=timeout,
-            stream=True
-        )
-
-        if response.status_code == 200:
-            print(f"[Gemini API流式调用] ✓ 开始接收流式响应")
-            total_chars = 0
-
-            for line in response.iter_lines():
-                if line:
-                    line = line.decode('utf-8')
-                    if line.startswith('data: '):
-                        try:
-                            data = json.loads(line[6:])
-                            # Gemini 流式响应格式
-                            if 'candidates' in data and len(data['candidates']) > 0:
-                                candidate = data['candidates'][0]
-                                if 'content' in candidate and 'parts' in candidate['content']:
-                                    for part in candidate['content']['parts']:
-                                        if 'text' in part:
-                                            text = part['text']
-                                            total_chars += len(text)
-                                            yield text
-                        except json.JSONDecodeError:
-                            continue
-
-            end_time = time.time()
-            duration = end_time - start_time
-            print(f"[Gemini API流式调用] ✓ 完成")
-            print(f"[Gemini API流式调用] 总响应长度: {total_chars} 字符")
-            print(f"[Gemini API流式调用] 总响应时间: {duration:.2f}秒")
-        else:
-            print(f"[Gemini API流式调用] ✗ API返回错误")
-            print(f"[Gemini API流式调用] 错误详情: {response.text}")
-            raise Exception(f"Gemini API返回错误: {response.status_code} - {response.text}")
-
-    except requests.exceptions.Timeout:
-        print(f"[Gemini API流式调用] ✗ 请求超时（{timeout}秒）")
-        raise Exception(f"Gemini API请求超时（{timeout}秒）")
-    except Exception as e:
-        print(f"[Gemini API流式调用] ✗ 调用失败: {str(e)}")
-        raise Exception(f"调用Gemini API失败: {str(e)}")
-
-
-def call_gemini_vision_api(image_base64, prompt, timeout=None):
+def call_gemini_vision_api(image_base64, prompt, timeout=300):
     """
     调用 Google Gemini Vision API 进行多模态理解
 
     Args:
         image_base64: 图片的base64编码
         prompt: 文本提示
-        timeout: 超时时间（秒），默认使用系统配置
+        timeout: 超时时间（秒）
 
     Returns:
         str: Gemini的响应文本
@@ -2496,18 +2212,10 @@ def call_gemini_vision_api(image_base64, prompt, timeout=None):
     if not api_key:
         raise Exception("Gemini API密钥未配置，请在系统设置中配置")
 
-    # 使用统一超时配置
-    if timeout is None:
-        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
-
-    # 使用多模态模型的max_tokens配置
-    max_tokens = int(SystemSettings.get_setting('vl_model_max_tokens', '4000'))
-
     print(f"\n{'='*80}")
     print(f"[Gemini Vision API调用] 开始")
     print(f"[Gemini Vision API调用] 模型: {model_name}")
     print(f"[Gemini Vision API调用] 超时: {timeout}秒")
-    print(f"[Gemini Vision API调用] 最大Tokens: {max_tokens}")
 
     # 构建请求内容
     gemini_data = {
@@ -2526,7 +2234,7 @@ def call_gemini_vision_api(image_base64, prompt, timeout=None):
         }],
         "generationConfig": {
             "temperature": 0.7,
-            "maxOutputTokens": max_tokens  # 使用系统配置的max_tokens
+            "maxOutputTokens": 8192
         }
     }
 
@@ -2557,8 +2265,28 @@ def call_gemini_vision_api(image_base64, prompt, timeout=None):
 
             if 'candidates' in result and len(result['candidates']) > 0:
                 content = result['candidates'][0]['content']['parts'][0]['text']
+                
+                # 清理thinking标签和思考过程
+                import re
+                cleaned_content = content.strip()
+                
+                thinking_patterns = [
+                    (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+                    (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+                    (r'</think>[\s\S]*?</think>', '', re.IGNORECASE),
+                    (r'思考过程[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'让我先分析[\s\S]*?(?=\n)', '', re.IGNORECASE),
+                    (r'分析如下[:：][\s\S]*?(?=\n)', '', re.IGNORECASE),
+                ]
+                
+                for pattern, replacement, *flags in thinking_patterns:
+                    flags = flags[0] if flags else 0
+                    old_text = cleaned_content
+                    cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
+                
                 print(f"[Gemini Vision API调用] ✓ 成功获取响应")
-                return content
+                return cleaned_content
             else:
                 raise Exception("Gemini Vision API返回了空响应")
         else:
