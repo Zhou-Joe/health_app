@@ -362,6 +362,16 @@
                 <div class="text-muted small">
                     <i class="bi bi-clock"></i> 回复时间：<span id="responseTime"></span>
                 </div>
+
+                <!-- 继续咨询按钮 -->
+                <div class="mt-4 pt-3 border-top">
+                    <button type="button" class="btn btn-success w-100" onclick="continueConsultation()">
+                        <i class="bi bi-chat-plus"></i> 继续咨询
+                    </button>
+                    <small class="text-muted d-block mt-2 text-center">
+                        <i class="bi bi-info-circle"></i> 使用相同的报告设置继续提问
+                    </small>
+                </div>
             </div>
         </div>
 
@@ -391,6 +401,13 @@
 
 {% block extra_js %}
 <script>
+
+// 保存上一次的咨询设置
+let lastConsultationSettings = {
+    reportMode: null,
+    selectedReports: [],
+    conversationMode: null
+};
 
 // 获取CSRF token
 function getCookie(name) {
@@ -967,6 +984,71 @@ function deleteAdvice(adviceId) {
     });
 }
 
+// 保存当前咨询设置
+function saveConsultationSettings() {
+    const reportMode = document.querySelector('input[name="report_mode"]:checked');
+    const conversationMode = document.querySelector('input[name="conversation_mode"]:checked');
+    const selectedReports = [];
+
+    // 保存报告选择
+    document.querySelectorAll('input[name="selected_reports"]:checked').forEach(checkbox => {
+        selectedReports.push(checkbox.value);
+    });
+
+    lastConsultationSettings = {
+        reportMode: reportMode ? reportMode.value : 'select_reports',
+        selectedReports: selectedReports,
+        conversationMode: conversationMode ? conversationMode.value : 'new_conversation'
+    };
+
+    console.log('保存咨询设置:', lastConsultationSettings);
+}
+
+// 继续咨询
+function continueConsultation() {
+    console.log('继续咨询，恢复设置:', lastConsultationSettings);
+
+    // 隐藏结果卡片
+    document.getElementById('resultCard').style.display = 'none';
+
+    // 滚动到页面顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 恢复报告模式
+    if (lastConsultationSettings.reportMode === 'no_reports') {
+        document.getElementById('noReportsMode').checked = true;
+    } else {
+        document.getElementById('selectReportsMode').checked = true;
+    }
+
+    // 触发报告模式变化处理
+    handleReportModeChange();
+
+    // 恢复报告选择
+    if (lastConsultationSettings.reportMode === 'select_reports') {
+        // 先清空所有选择
+        document.querySelectorAll('input[name="selected_reports"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // 恢复之前的选择
+        lastConsultationSettings.selectedReports.forEach(reportId => {
+            const checkbox = document.querySelector(`input[name="selected_reports"][value="${reportId}"]`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        });
+
+        // 更新选择计数
+        updateSelectedCount();
+    }
+
+    // 聚焦到问题输入框
+    const textarea = document.querySelector('textarea[name="question"]');
+    textarea.focus();
+    textarea.style.height = 'auto';
+}
+
 // 刷新咨询历史列表
 function refreshAdviceHistory() {
     const historyContainer = document.querySelector('.advice-history') || document.querySelector('.card-body');
@@ -1029,6 +1111,9 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
 
     // 收集表单数据
     const formData = new FormData(this);
+
+    // 保存当前咨询设置
+    saveConsultationSettings();
 
     // 添加对话相关信息
     const conversationMode = document.querySelector('input[name="conversation_mode"]:checked');
