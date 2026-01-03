@@ -1387,11 +1387,20 @@ def stream_ai_advice(request):
                 conversation_history += f"答：{ctx['answer']}\n"
 
         # 构建prompt（使用统一的提示词配置）
-        has_health_data = selected_reports is not None
-        if has_health_data:
+        # 检查是否真的有健康数据：不仅要有selected_reports，还要有实际的checkups数据
+        has_health_data = False
+        health_data_text = ""
+
+        if selected_reports is not None and selected_reports.exists():
             from .views import get_selected_reports_health_data
             health_data = get_selected_reports_health_data(request.user, selected_reports)
-            health_data_text = format_health_data_for_prompt(health_data) if health_data else ""
+
+            # 检查health_data是否真的包含有效数据（有checkups）
+            if health_data and health_data.get('checkups') and len(health_data['checkups']) > 0:
+                has_health_data = True
+                health_data_text = format_health_data_for_prompt(health_data) if health_data else ""
+
+        if has_health_data:
             prompt = build_ai_doctor_prompt(question, personal_info, conversation_history, health_data_text, has_health_data=True)
         else:
             prompt = build_ai_doctor_prompt(question, personal_info, conversation_history, has_health_data=False)
