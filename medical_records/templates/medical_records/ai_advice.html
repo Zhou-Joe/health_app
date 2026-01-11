@@ -963,7 +963,7 @@ function toggleModalPrompt() {
 
 // 删除咨询记录
 function deleteAdvice(adviceId) {
-    fetch(`/api/advice/${adviceId}/delete/`, {
+    fetch(`/health/api/advice/${adviceId}/delete/`, {
         method: 'DELETE',
         headers: {
             'X-CSRFToken': getCookie('csrftoken'),

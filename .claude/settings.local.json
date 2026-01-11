@@ -25,7 +25,9 @@
       "Bash(ip addr:*)",
       "Bash(find:*)",
       "Bash(openssl:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git push:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

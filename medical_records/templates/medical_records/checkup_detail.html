@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
             saveIndicatorBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
 
             // 发送更新请求
-            fetch(`/checkup/indicator/${indicatorId}/update/`, {
+            fetch(`/health/checkup/indicator/${indicatorId}/update/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken'),
@@ -441,7 +441,7 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmDeleteBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 删除中...';
             
             // 发送删除请求
-            fetch(`/checkup/${checkupId}/delete/`, {
+            fetch(`/health/checkup/${checkupId}/delete/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken'),
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
             saveNotesBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
             
             // 发送更新请求
-            fetch(`/api/checkup/${checkupId}/update-notes/`, {
+            fetch(`/health/api/checkup/${checkupId}/update-notes/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken'),
