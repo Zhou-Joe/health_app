@@ -3,13 +3,23 @@ const util = require('../../utils/util.js')
 
 Page({
   data: {
-    checkupId: null, indicatorId: null,
-    formData: { indicator_name: '', value: '', unit: '', reference_range: '', status: 'normal' },
-    statusOptions: ['正常', '异常', '关注'], statusIndex: 0
+    checkupId: null,
+    indicatorId: null,
+    formData: {
+      indicator_name: '',
+      value: '',
+      unit: '',
+      reference_range: '',
+      status: 'normal'
+    },
+    statusOptions: ['正常', '异常', '关注'],
+    statusIndex: 0
   },
 
   onLoad(options) {
-    if (options.checkupId) this.setData({ checkupId: options.checkupId })
+    if (options.checkupId) {
+      this.setData({ checkupId: options.checkupId })
+    }
     if (options.id) {
       this.setData({ indicatorId: options.id })
       this.loadIndicator(options.id)
@@ -23,23 +33,44 @@ Page({
       if (indicator) {
         this.setData({ formData: indicator })
         const statusIndex = ['normal', 'abnormal', 'attention'].indexOf(indicator.status)
-        if (statusIndex >= 0) this.setData({ statusIndex })
+        if (statusIndex >= 0) {
+          this.setData({ statusIndex })
+        }
       }
-    } catch (err) { console.error(err) }
+    } catch (err) {
+      console.error(err)
+    }
   },
 
-  onNameInput(e) { this.setData({ 'formData.indicator_name': e.detail.value }) },
-  onValueInput(e) { this.setData({ 'formData.value': e.detail.value }) },
-  onUnitInput(e) { this.setData({ 'formData.unit': e.detail.value }) },
-  onRefInput(e) { this.setData({ 'formData.reference_range': e.detail.value }) },
+  onNameInput(e) {
+    this.setData({ 'formData.indicator_name': e.detail.value })
+  },
+
+  onValueInput(e) {
+    this.setData({ 'formData.value': e.detail.value })
+  },
+
+  onUnitInput(e) {
+    this.setData({ 'formData.unit': e.detail.value })
+  },
+
+  onRefInput(e) {
+    this.setData({ 'formData.reference_range': e.detail.value })
+  },
+
   onStatusChange(e) {
     const statusMap = ['normal', 'abnormal', 'attention']
-    this.setData({ statusIndex: e.detail.value, 'formData.status': statusMap[e.detail.value] })
+    this.setData({
+      statusIndex: e.detail.value,
+      'formData.status': statusMap[e.detail.value]
+    })
   },
 
   async handleSubmit() {
     const { formData, checkupId, indicatorId } = this.data
-    if (!formData.indicator_name || !formData.value) { return util.showToast('请填写必填项') }
+    if (!formData.indicator_name || !formData.value) {
+      return util.showToast('请填写必填项')
+    }
 
     util.showLoading()
     try {
@@ -57,20 +88,3 @@ Page({
     }
   }
 })
-EOF
-
-cat > pages/indicator-edit/indicator-edit.wxss << 'EOF'
-.edit-container { padding: 20rpx; }
-.form-card { margin-bottom: 30rpx; }
-.form-item { padding: 20rpx 0; border-bottom: 1rpx solid #F0F0F0; }
-.label { display: block; font-size: 28rpx; color: #333; margin-bottom: 16rpx; }
-.input { width: 100%; font-size: 28rpx; padding: 16rpx; background: #F8F9FA; border-radius: 8rpx; }
-.picker-value { font-size: 28rpx; color: #666; }
-.submit-btn { width: 100%; }
-EOF
-
-cat > pages/indicator-edit/indicator-edit.json << 'EOF'
-{ "navigationBarTitleText": "编辑指标", "usingComponents": {} }
-EOF
-
-echo "indicator-edit files created"

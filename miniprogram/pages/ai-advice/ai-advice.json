@@ -1,1 +1,7 @@
-{ "navigationBarTitleText": "AI健康咨询", "usingComponents": {} }
+{
+  "navigationBarTitleText": "AI健康咨询",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F5F5F5",
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}

@@ -1,1 +1,5 @@
-{ "navigationBarTitleText": "AI对话", "usingComponents": {} }
+{
+  "navigationBarTitleText": "AI对话",
+  "navigationStyle": "custom",
+  "usingComponents": {}
+}

@@ -3,8 +3,11 @@
   <!-- 用户信息卡片 -->
   <view class="user-card card">
     <view class="user-info">
-      <text class="user-name">{{userInfo.first_name || userInfo.username}}</text>
-      <text class="user-greeting">欢迎使用健康档案</text>
+      <text class="user-name">{{userInfo.first_name || userInfo.username || '用户'}}</text>
+      <text class="user-greeting">欢迎使用健康档案管理系统</text>
+    </view>
+    <view class="user-actions" bindtap="goToSettings">
+      <text class="settings-icon">⚙️</text>
     </view>
   </view>
 
@@ -14,13 +17,42 @@
       <text class="stat-value">{{stats.checkupCount}}</text>
       <text class="stat-label">体检报告</text>
     </view>
-    <view class="stat-item" bindtap="goToIndicators">
+    <view class="stat-item" bindtap="goToCheckups">
       <text class="stat-value">{{stats.indicatorCount}}</text>
       <text class="stat-label">健康指标</text>
     </view>
-    <view class="stat-item" bindtap="goToConversations">
+    <view class="stat-item abnormal-stat" bindtap="goToCheckups" wx:if="{{stats.abnormalCount > 0}}">
+      <text class="stat-value stat-danger">{{stats.abnormalCount}}</text>
+      <text class="stat-label">异常指标</text>
+    </view>
+    <view class="stat-item" bindtap="goToConversations" wx:else>
       <text class="stat-value">{{stats.conversationCount}}</text>
       <text class="stat-label">AI咨询</text>
+    </view>
+  </view>
+
+  <!-- 异常指标提醒 -->
+  <view class="abnormal-alert card" wx:if="{{abnormalIndicators.length > 0}}">
+    <view class="alert-header">
+      <text class="alert-icon">⚠️</text>
+      <text class="alert-title">异常指标提醒</text>
+    </view>
+    <scroll-view class="abnormal-list" scroll-y="{{abnormalIndicators.length > 3}}">
+      <view class="abnormal-item"
+            wx:for="{{abnormalIndicators}}"
+            wx:key="id"
+            bindtap="goToAbnormalIndicator"
+            data-id="{{item.id}}"
+            data-checkup="{{item.checkup}}">
+        <view class="abnormal-name">{{item.indicator_name}}</view>
+        <view class="abnormal-info">
+          <text class="abnormal-value">{{item.value_display || item.value}} {{item.unit}}</text>
+          <text class="abnormal-date">{{item.checkup_date}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="alert-footer">
+      <text class="alert-action" bindtap="goToAIAdvice">咨询AI医生 ></text>
     </view>
   </view>
 
@@ -47,6 +79,46 @@
     </view>
   </view>
 
+  <!-- 健康趋势 -->
+  <view class="health-trends card">
+    <view class="card-title">健康趋势</view>
+    <scroll-view class="trend-types" scroll-x>
+      <view class="trend-type-item {{currentTrendType === item.type ? 'active' : ''}}"
+            wx:for="{{trendTypes}}"
+            wx:key="type"
+            bindtap="switchTrendType"
+            data-type="{{item.type}}">
+        <text class="trend-icon">{{item.icon}}</text>
+        <text class="trend-name">{{item.name}}</text>
+      </view>
+    </scroll-view>
+
+    <scroll-view class="trend-list" scroll-y wx:if="{{trendData.length > 0}}">
+      <view class="trend-item"
+            wx:for="{{trendData}}"
+            wx:key="name"
+            bindtap="viewTrendDetail"
+            data-index="{{index}}">
+        <view class="trend-header">
+          <text class="trend-name">{{item.name}}</text>
+          <text class="trend-unit">{{item.unit}}</text>
+        </view>
+        <scroll-view class="trend-values" scroll-x>
+          <view class="trend-value-item {{value.status}}"
+                wx:for="{{item.values}}"
+                wx:for-item="value"
+                wx:key="date">
+            <text class="trend-value-date">{{value.date}}</text>
+            <text class="trend-value-num">{{value.value_display}}</text>
+          </view>
+        </scroll-view>
+      </view>
+    </scroll-view>
+    <view class="empty-container" wx:else>
+      <text class="empty-text">暂无{{trendTypes[currentTrendType].name}}数据</text>
+    </view>
+  </view>
+
   <!-- 最新报告 -->
   <view class="recent-checkups card">
     <view class="card-title flex-between">
@@ -61,12 +133,12 @@
               bindtap="goToCheckupDetail"
               data-id="{{item.id}}">
           <view class="checkup-header">
-            <text class="checkup-hospital">{{item.hospital}}</text>
+            <text class="checkup-hospital">{{item.hospital || '未知医院'}}</text>
             <text class="checkup-date">{{item.checkup_date}}</text>
           </view>
-          <view class="checkup-info">
+          <view class="checkup-info" wx:if="{{item.indicators_count}}">
             <text class="indicator-count">{{item.indicators_count}}项指标</text>
-            <view class="status-badge status-{{item.status}}">
+            <view class="status-badge status-{{item.status || 'completed'}}">
               {{item.status === 'completed' ? '已完成' : '处理中'}}
             </view>
           </view>

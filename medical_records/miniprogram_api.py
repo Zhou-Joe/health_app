@@ -2,6 +2,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
@@ -94,9 +95,8 @@ def miniprogram_login(request):
 
 def get_or_create_token(user):
     """创建或获取用户token"""
-    # 这里可以使用JWT或其他token方案
-    # 目前返回简单的用户信息作为token
-    return str(user.id)
+    token, created = Token.objects.get_or_create(user=user)
+    return token.key
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -688,33 +688,179 @@ def miniprogram_conversations(request):
             'message': f'获取对话列表失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# ==================== 创建对话 ====================
+# ==================== 创建对话并发送消息（异步流式）====================
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def miniprogram_create_conversation(request):
-    """创建新的AI对话"""
+    """创建新的AI对话并发送第一条消息（流式处理）"""
     try:
         from .models import Conversation
+        import threading
 
         data = json.loads(request.body)
-        title = data.get('title', f"对话 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        question = data.get('question', '').strip()
+        selected_reports_ids = data.get('selected_reports', [])
+        conversation_id = data.get('conversation_id')
 
-        conversation = Conversation.create_new_conversation(request.user, title)
+        # 验证问题
+        if not question:
+            return Response({
+                'success': False,
+                'message': '请输入问题'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({
+        if len(question) < 5:
+            return Response({
+                'success': False,
+                'message': '请详细描述您的问题，至少5个字符'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 处理对话
+        if conversation_id:
+            # 继续已有对话
+            try:
+                conversation = Conversation.objects.get(
+                    id=conversation_id,
+                    user=request.user,
+                    is_active=True
+                )
+            except Conversation.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'message': '对话不存在或已删除'
+                }, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # 创建新对话，使用问题前50个字符作为标题
+            question_text = question[:50]
+            if len(question) > 50:
+                question_text += '...'
+            conversation = Conversation.create_new_conversation(
+                request.user,
+                f"健康咨询: {question_text}"
+            )
+
+        # 立即创建一个空的HealthAdvice记录，用于存储流式生成的内容
+        health_advice = HealthAdvice.objects.create(
+            user=request.user,
+            question=question,
+            answer='',  # 初始为空，后续更新
+            conversation=conversation
+        )
+
+        print(f"[小程序] 创建对话成功，conversation_id: {conversation.id}, advice_id: {health_advice.id}")
+
+        # 立即返回对话ID和消息ID
+        response_data = {
             'success': True,
             'message': '对话创建成功',
+            'conversation_id': conversation.id,
+            'advice_id': health_advice.id,
             'data': {
                 'id': conversation.id,
                 'title': conversation.title,
                 'created_at': conversation.created_at.isoformat()
             }
-        }, status=status.HTTP_201_CREATED)
+        }
+
+        # 在后台线程中异步生成AI响应（流式更新）
+        def generate_ai_response_stream():
+            from .views import generate_ai_advice
+            print(f"[后台线程] 开始生成AI响应，advice_id: {health_advice.id}")
+            try:
+                # 处理报告选择
+                report_mode = data.get('report_mode', 'none')
+
+                if report_mode == 'none':
+                    selected_reports = None
+                elif report_mode == 'select' and len(selected_reports_ids) > 0:
+                    selected_reports = HealthCheckup.objects.filter(
+                        id__in=selected_reports_ids,
+                        user=request.user
+                    )
+                else:
+                    selected_reports = None
+
+                print(f"[后台线程] 报告模式: {report_mode}, 报告数量: {len(selected_reports) if selected_reports else 0}")
+
+                # 生成AI响应
+                answer, prompt_sent, conversation_context = generate_ai_advice(
+                    question,
+                    request.user,
+                    selected_reports,
+                    conversation
+                )
+
+                print(f"[后台线程] AI响应生成成功，长度: {len(answer)} 字符")
+
+                # 更新HealthAdvice记录
+                health_advice.answer = answer
+                health_advice.prompt_sent = prompt_sent
+                health_advice.conversation_context = json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
+                health_advice.save()
+
+                print(f"[后台线程] 数据库更新完成，advice_id: {health_advice.id}")
+            except Exception as e:
+                import traceback
+                print(f"[后台线程] AI响应生成失败: {str(e)}")
+                traceback.print_exc()
+                # 即使失败也更新状态
+                try:
+                    health_advice.answer = f"抱歉，生成回复时出现错误：{str(e)}"
+                    health_advice.save()
+                except:
+                    pass
+
+        # 启动后台线程
+        thread = threading.Thread(target=generate_ai_response_stream)
+        thread.daemon = True
+        thread.start()
+        print(f"[小程序] 后台线程已启动，advice_id: {health_advice.id}")
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return Response({
             'success': False,
             'message': f'创建对话失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ==================== 获取单个消息状态（用于流式轮询）====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_advice_message_status(request, advice_id):
+    """获取单个AI建议消息的当前状态（用于流式轮询）"""
+    try:
+        advice = HealthAdvice.objects.get(
+            id=advice_id,
+            user=request.user
+        )
+
+        # 判断是否正在生成中：answer为空字符串表示还在生成
+        is_generating = len(advice.answer.strip()) == 0
+
+        return Response({
+            'success': True,
+            'data': {
+                'id': advice.id,
+                'question': advice.question,
+                'answer': advice.answer,
+                'is_generating': is_generating,
+                'answer_length': len(advice.answer),
+                'created_at': advice.created_at.isoformat()
+            }
+        })
+
+    except HealthAdvice.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '消息不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'获取消息状态失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # ==================== 对话详情 ====================

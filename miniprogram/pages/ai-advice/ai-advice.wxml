@@ -1,33 +1,147 @@
-<view class="advice-container">
-  <view class="quick-actions card">
-    <view class="action-item" bindtap="startNewChat">
-      <view class="action-icon new-chat">+</view>
-      <text class="action-text">新建咨询</text>
+<!--pages/ai-advice/ai-advice.wxml-->
+<view class="ai-advice-container">
+  <!-- 顶部标题 -->
+  <view class="page-header">
+    <text class="page-title">AI健康医生</text>
+    <text class="page-subtitle">智能分析您的健康数据</text>
+  </view>
+
+  <!-- 对话模式选择 -->
+  <view class="section-card">
+    <view class="section-title">
+      <text class="title-icon">💬</text>
+      <text class="title-text">对话模式</text>
     </view>
-    <view class="action-item" bindtap="viewHistory">
-      <view class="action-icon history">≡</view>
-      <text class="action-text">历史记录</text>
+
+    <view class="mode-selector">
+      <view class="mode-option {{conversationMode === 'new' ? 'active' : ''}}"
+            bindtap="selectConversationMode"
+            data-mode="new">
+        <view class="mode-icon">✨</view>
+        <view class="mode-content">
+          <text class="mode-title">创建新对话</text>
+          <text class="mode-desc">开始一个全新的健康咨询</text>
+        </view>
+        <view class="mode-check" wx:if="{{conversationMode === 'new'}}">✓</view>
+      </view>
+
+      <view class="mode-option {{conversationMode === 'continue' ? 'active' : ''}}"
+            bindtap="selectConversationMode"
+            data-mode="continue">
+        <view class="mode-icon">🔄</view>
+        <view class="mode-content">
+          <text class="mode-title">继续对话</text>
+          <text class="mode-desc">基于之前的对话继续咨询</text>
+        </view>
+        <view class="mode-check" wx:if="{{conversationMode === 'continue'}}">✓</view>
+      </view>
+    </view>
+
+    <!-- 选择对话 -->
+    <view class="conversation-select" wx:if="{{conversationMode === 'continue' && conversations.length > 0}}">
+      <view class="select-label">选择要继续的对话：</view>
+      <view class="conversation-chips">
+        <view class="conv-chip {{selectedConversationId === item.id ? 'active' : ''}}"
+              wx:for="{{conversations}}"
+              wx:key="id"
+              bindtap="selectConversation"
+              data-id="{{item.id}}">
+          <text class="chip-text">{{item.title}}</text>
+          <text class="chip-count">({{item.message_count}}条)</text>
+        </view>
+      </view>
     </view>
   </view>
 
-  <view class="conversation-list card" wx:if="{{conversations.length > 0}}">
-    <view class="card-title">对话记录</view>
-    <view class="conversation-item" wx:for="{{conversations}}" wx:key="id"
-          bindtap="openChat" data-id="{{item.id}}">
-      <view class="conversation-header">
-        <text class="title">{{item.title}}</text>
-        <text class="time">{{item.updated_at}}</text>
+  <!-- 报告选择 -->
+  <view class="section-card">
+    <view class="section-title">
+      <text class="title-icon">📋</text>
+      <text class="title-text">体检报告选择</text>
+    </view>
+
+    <view class="report-mode-selector">
+      <view class="report-mode-option {{reportMode === 'none' ? 'active' : ''}}"
+            bindtap="selectReportMode"
+            data-mode="none">
+        <text class="report-mode-icon">💭</text>
+        <view class="report-mode-content">
+          <text class="report-mode-title">不使用报告</text>
+          <text class="report-mode-desc">仅基于问题提供一般性建议</text>
+        </view>
+        <view class="report-mode-check" wx:if="{{reportMode === 'none'}}">✓</view>
       </view>
-      <view class="preview">{{item.latest_question}}</view>
-      <view class="footer">
-        <text class="count">{{item.message_count}}条消息</text>
-        <text class="delete" catchtap="deleteChat" data-id="{{item.id}}">删除</text>
+
+      <view class="report-mode-option {{reportMode === 'select' ? 'active' : ''}}"
+            bindtap="selectReportMode"
+            data-mode="select">
+        <text class="report-mode-icon">📊</text>
+        <view class="report-mode-content">
+          <text class="report-mode-title">选择报告</text>
+          <text class="report-mode-desc">AI将基于您选择的报告分析</text>
+        </view>
+        <view class="report-mode-check" wx:if="{{reportMode === 'select'}}">✓</view>
       </view>
+    </view>
+
+    <!-- 报告列表 -->
+    <view class="report-list" wx:if="{{reportMode === 'select' && reports.length > 0}}">
+      <view class="report-actions">
+        <button class="action-btn" bindtap="selectAllReports">全选</button>
+        <button class="action-btn" bindtap="selectRecentReports">最近2份</button>
+        <button class="action-btn" bindtap="clearReports">清空</button>
+      </view>
+
+      <view class="report-items">
+        <view class="report-item {{item.selected ? 'selected' : ''}}"
+              wx:for="{{reports}}"
+              wx:key="id"
+              bindtap="toggleReport"
+              data-id="{{item.id}}">
+          <view class="report-check">{{item.selected ? '✓' : ''}}</view>
+          <view class="report-info">
+            <text class="report-hospital">{{item.hospital}}</text>
+            <text class="report-date">{{item.checkup_date}}</text>
+            <text class="report-count">{{item.indicators_count || 0}}项指标</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="selected-tip" wx:if="{{selectedReportIds.length > 0}}">
+        <text class="tip-text">已选择 {{selectedReportIds.length}} 份报告</text>
+      </view>
+    </view>
+
+    <view class="empty-reports" wx:if="{{reportMode === 'select' && reports.length === 0}}">
+      <text class="empty-text">暂无体检报告</text>
+      <text class="empty-hint">请先上传报告再咨询</text>
     </view>
   </view>
 
-  <view class="empty-container card" wx:else>
-    <text class="empty-text">暂无对话记录</text>
-    <button class="btn-primary mt-20" bindtap="startNewChat">开始咨询</button>
+  <!-- 问题输入 -->
+  <view class="section-card">
+    <view class="section-title">
+      <text class="title-icon">❓</text>
+      <text class="title-text">描述您的问题</text>
+    </view>
+
+    <textarea class="question-input"
+              value="{{question}}"
+              bindinput="onQuestionInput"
+              placeholder="请详细描述您的健康问题，AI医生会基于您的数据提供专业建议..."
+              maxlength="1000"
+              auto-height
+              adjust-position="{{true}}"
+              show-confirm-bar="{{false}}" />
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-section">
+    <button class="submit-btn {{question.trim() ? 'active' : ''}}"
+            bindtap="handleSubmit"
+            disabled="{{submitting}}">
+      <text wx:if="{{!submitting}}">🤖 获取AI建议</text>
+      <text wx:else>分析中...</text>
+    </button>
   </view>
 </view>

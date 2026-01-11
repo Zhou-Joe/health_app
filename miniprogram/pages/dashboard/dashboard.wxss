@@ -1,17 +1,22 @@
 /* pages/dashboard/dashboard.wxss */
 .dashboard-container {
   padding: 20rpx;
+  background-color: #F5F5F5;
+  min-height: 100vh;
 }
 
+/* ==================== 用户信息卡片 ==================== */
 .user-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #FFFFFF;
   margin-bottom: 30rpx;
+  position: relative;
 }
 
 .user-info {
   display: flex;
   flex-direction: column;
+  padding: 10rpx 0;
 }
 
 .user-name {
@@ -25,6 +30,18 @@
   opacity: 0.9;
 }
 
+.user-actions {
+  position: absolute;
+  top: 20rpx;
+  right: 20rpx;
+}
+
+.settings-icon {
+  font-size: 40rpx;
+  opacity: 0.8;
+}
+
+/* ==================== 统计数据 ==================== */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -40,6 +57,12 @@
   flex-direction: column;
   align-items: center;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.stat-item:active {
+  transform: scale(0.95);
+  opacity: 0.8;
 }
 
 .stat-value {
@@ -49,9 +72,103 @@
   margin-bottom: 10rpx;
 }
 
+.stat-danger {
+  color: #E74C3C;
+}
+
 .stat-label {
   font-size: 24rpx;
   color: #999999;
+}
+
+/* ==================== 异常指标提醒 ==================== */
+.abnormal-alert {
+  background: linear-gradient(135deg, #FFE5E5 0%, #FFD0D0 100%);
+  border-left: 6rpx solid #E74C3C;
+  margin-bottom: 30rpx;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.alert-icon {
+  font-size: 36rpx;
+  margin-right: 10rpx;
+}
+
+.alert-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #C0392B;
+}
+
+.abnormal-list {
+  max-height: 400rpx;
+}
+
+.abnormal-item {
+  background-color: #FFFFFF;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  border-left: 4rpx solid #E74C3C;
+}
+
+.abnormal-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333333;
+  margin-bottom: 10rpx;
+}
+
+.abnormal-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.abnormal-value {
+  font-size: 28rpx;
+  color: #E74C3C;
+  font-weight: 600;
+}
+
+.abnormal-date {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.alert-footer {
+  margin-top: 20rpx;
+  text-align: right;
+}
+
+.alert-action {
+  font-size: 28rpx;
+  color: #4A90E2;
+  font-weight: 500;
+}
+
+/* ==================== 快捷操作 ==================== */
+.quick-actions {
+  margin-bottom: 30rpx;
+}
+
+.card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 24rpx;
 }
 
 .action-grid {
@@ -65,6 +182,11 @@
   flex-direction: column;
   align-items: center;
   padding: 20rpx 0;
+  transition: all 0.3s ease;
+}
+
+.action-item:active {
+  transform: scale(0.9);
 }
 
 .action-icon {
@@ -101,6 +223,126 @@
   color: #666666;
 }
 
+/* ==================== 健康趋势 ==================== */
+.health-trends {
+  margin-bottom: 30rpx;
+}
+
+.trend-types {
+  display: flex;
+  white-space: nowrap;
+  margin-bottom: 24rpx;
+}
+
+.trend-type-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  margin-right: 16rpx;
+  background-color: #F5F5F5;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.trend-type-item.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #FFFFFF;
+}
+
+.trend-type-item:active {
+  transform: scale(0.95);
+}
+
+.trend-icon {
+  font-size: 36rpx;
+  margin-bottom: 8rpx;
+}
+
+.trend-name {
+  font-size: 24rpx;
+}
+
+.trend-list {
+  max-height: 600rpx;
+}
+
+.trend-item {
+  background-color: #F8F9FA;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.trend-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333333;
+}
+
+.trend-unit {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.trend-values {
+  display: flex;
+  white-space: nowrap;
+}
+
+.trend-value-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12rpx 20rpx;
+  margin-right: 16rpx;
+  background-color: #FFFFFF;
+  border-radius: 8rpx;
+  border: 2rpx solid transparent;
+}
+
+.trend-value-item.normal {
+  border-color: #27AE60;
+}
+
+.trend-value-item.attention {
+  border-color: #F39C12;
+}
+
+.trend-value-item.abnormal {
+  border-color: #E74C3C;
+}
+
+.trend-value-date {
+  font-size: 22rpx;
+  color: #999999;
+  margin-bottom: 6rpx;
+}
+
+.trend-value-num {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333333;
+}
+
+/* ==================== 最新报告 ==================== */
+.recent-checkups {
+  margin-bottom: 30rpx;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .more-link {
   font-size: 26rpx;
   color: #4A90E2;
@@ -115,6 +357,12 @@
   border-radius: 12rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
+  transition: all 0.3s ease;
+}
+
+.checkup-item:active {
+  transform: scale(0.98);
+  background-color: #E9ECEF;
 }
 
 .checkup-header {
@@ -144,4 +392,53 @@
 .indicator-count {
   font-size: 26rpx;
   color: #666666;
+}
+
+/* ==================== 状态徽章 ==================== */
+.status-badge {
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.status-completed {
+  background-color: #D5F4E6;
+  color: #27AE60;
+}
+
+.status-processing,
+.status-pending {
+  background-color: #FFF3CD;
+  color: #856404;
+}
+
+.status-failed {
+  background-color: #F8D7DA;
+  color: #721C24;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-container {
+  text-align: center;
+  padding: 60rpx 20rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999999;
+  margin-bottom: 20rpx;
+}
+
+.mt-20 {
+  margin-top: 20rpx;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
 }

@@ -21,6 +21,42 @@ from .llm_prompts import (
     build_data_integration_prompt
 )
 
+# 个人信息过滤关键词列表
+PERSONAL_INFO_KEYWORDS = [
+    '姓名', 'name', '患者姓名', '姓名：',
+    '性别', 'gender', 'sex', '性别：',
+    '年龄', 'age', '年龄：',
+    '出生日期', 'birthday', 'birth_date', '生日',
+    '体检日期', 'checkup_date', '检查日期', 'date',
+    '身份证', 'id_card', 'id_number', '证件号',
+    '电话', 'phone', 'mobile', 'telephone', '手机', '联系电话',
+    '地址', 'address', '住址',
+    '民族', 'ethnicity', '族',
+    '婚姻', 'marriage', '已婚', '未婚',
+]
+
+def is_personal_info_indicator(indicator_name: str) -> bool:
+    """
+    检查指标名称是否包含个人信息关键词
+
+    Args:
+        indicator_name: 指标名称
+
+    Returns:
+        True if it's personal info, False otherwise
+    """
+    if not indicator_name or not isinstance(indicator_name, str):
+        return False
+
+    indicator_name_lower = indicator_name.strip().lower()
+
+    for keyword in PERSONAL_INFO_KEYWORDS:
+        if keyword.lower() in indicator_name_lower:
+            print(f"[过滤] 检测到个人信息字段: '{indicator_name}' (包含关键词: '{keyword}')")
+            return True
+
+    return False
+
 
 class DocumentProcessingService:
     """文档处理服务类"""
@@ -170,13 +206,13 @@ class DocumentProcessingService:
     def _call_real_llm(self, ocr_text):
         """调用本地LLM服务"""
         print(f"\n{'='*60}")
-        print(f"🧠 [LLM服务] 开始调用大语言模型")
-        print(f"📝 OCR文本长度: {len(ocr_text)} 字符")
-        print(f"📝 OCR文本前200字符: {ocr_text[:200]}...")
+        print(f"[LLM] [LLM服务] 开始调用大语言模型")
+        print(f"[文本] OCR文本长度: {len(ocr_text)} 字符")
+        print(f"[文本] OCR文本前200字符: {ocr_text[:200]}...")
 
         # 构建prompt
         system_prompt, user_prompt = build_ocr_extract_prompt(ocr_text, self._get_existing_indicator_names())
-        print(f"📋 构建完成Prompt，长度: {len(user_prompt)} 字符")
+        print(f"[信息] 构建完成Prompt，长度: {len(user_prompt)} 字符")
 
         # 准备本地LLM API请求
         llm_data = {
@@ -205,7 +241,7 @@ class DocumentProcessingService:
             headers["Authorization"] = f"Bearer {self.modelscope_api_key}"
 
         try:
-            print(f"🌐 LLM API配置信息:")
+            print(f"[API] LLM API配置信息:")
             print(f"   - API URL: {self.modelscope_api_url}")
             print(f"   - 模型名称: {self.llm_model_name}")
             print(f"   - 超时时间: {self.llm_timeout}秒")
@@ -223,17 +259,17 @@ class DocumentProcessingService:
                 api_url = base_url
 
             if 'siliconflow' in self.modelscope_api_url.lower():
-                print(f"🔧 使用SiliconFlow API: {api_url}")
+                print(f"[配置] 使用SiliconFlow API: {api_url}")
             else:
-                print(f"🔧 使用通用API: {api_url}")
+                print(f"[配置] 使用通用API: {api_url}")
 
-            print(f"📤 请求数据大小: {len(json.dumps(llm_data))} 字符")
+            print(f"[发送] 请求数据大小: {len(json.dumps(llm_data))} 字符")
 
             # 记录请求开始时间
             import time
             start_time = time.time()
 
-            print(f"🚀 正在发送请求到LLM服务...")
+            print(f"[请求] 正在发送请求到LLM服务...")
             response = requests.post(
                 api_url,
                 json=llm_data,
@@ -246,22 +282,22 @@ class DocumentProcessingService:
             request_duration = end_time - start_time
 
             print(f"⏱️  请求耗时: {request_duration:.2f} 秒")
-            print(f"📥 API响应状态码: {response.status_code}")
-            print(f"📥 API响应大小: {len(response.text)} 字符")
-            print(f"📥 API响应前500字符: {response.text[:500]}...")
+            print(f"[响应] API响应状态码: {response.status_code}")
+            print(f"[响应] API响应大小: {len(response.text)} 字符")
+            print(f"[响应] API响应前500字符: {response.text[:500]}...")
   
             if response.status_code == 200:
                 try:
                     result = response.json()
                     if 'choices' not in result or len(result['choices']) == 0:
-                        print(f"❌ API响应格式错误：缺少choices字段")
-                        print(f"📄 完整响应: {result}")
+                        print(f"[失败] API响应格式错误：缺少choices字段")
+                        print(f"[数据] 完整响应: {result}")
                         raise Exception("API响应格式错误：缺少choices字段")
 
                     ai_result = result['choices'][0]['message']['content']
-                    print(f"✅ LLM API调用成功!")
-                    print(f"📄 返回内容长度: {len(ai_result)} 字符")
-                    print(f"📄 返回内容前500字符: {ai_result[:500]}...")
+                    print(f"[成功] LLM API调用成功!")
+                    print(f"[数据] 返回内容长度: {len(ai_result)} 字符")
+                    print(f"[数据] 返回内容前500字符: {ai_result[:500]}...")
 
                     # 尝试解析JSON结果
                     print(f"API响应长度: {len(ai_result)} 字符")
@@ -302,10 +338,10 @@ class DocumentProcessingService:
                     try:
                         structured_data = json.loads(cleaned_result)
                         indicators_count = len(structured_data.get('indicators', []))
-                        print(f"✅ 成功解析JSON，包含 {indicators_count} 个指标")
+                        print(f"[成功] 成功解析JSON，包含 {indicators_count} 个指标")
                         return structured_data
                     except json.JSONDecodeError as e:
-                        print(f"❌ JSON解析失败: {str(e)}")
+                        print(f"[失败] JSON解析失败: {str(e)}")
                         print(f"错误详情: {repr(e)}")
 
                         # 如果直接解析失败，尝试提取JSON部分
@@ -318,7 +354,7 @@ class DocumentProcessingService:
                             try:
                                 structured_data = json.loads(json_str)
                                 indicators_count = len(structured_data.get('indicators', []))
-                                print(f"✅ 第{i+1}个JSON解析成功，包含 {indicators_count} 个指标")
+                                print(f"[成功] 第{i+1}个JSON解析成功，包含 {indicators_count} 个指标")
                                 if indicators_count > 0:
                                     return structured_data
                             except json.JSONDecodeError as e2:
@@ -337,21 +373,21 @@ class DocumentProcessingService:
                         raise Exception(f"JSON解析失败，但已保存原始响应到数据库")
 
                 except json.JSONDecodeError as e:
-                    print(f"❌ API响应JSON解析失败: {str(e)}")
+                    print(f"[失败] API响应JSON解析失败: {str(e)}")
                     raise Exception(f"API响应JSON解析失败: {str(e)}")
             else:
                 error_msg = f"API调用失败: {response.status_code} - {response.text}"
-                print(f"❌ {error_msg}")
+                print(f"[失败] {error_msg}")
                 raise Exception(error_msg)
 
         except requests.exceptions.Timeout:
-            print(f"❌ LLM API调用超时 (超过{self.llm_timeout}秒)")
+            print(f"[失败] LLM API调用超时 (超过{self.llm_timeout}秒)")
             raise Exception("本地LLM API调用超时")
         except requests.exceptions.RequestException as e:
-            print(f"❌ LLM API网络错误: {str(e)}")
+            print(f"[失败] LLM API网络错误: {str(e)}")
             raise Exception(f"本地LLM API网络错误: {str(e)}")
         except Exception as e:
-            print(f"❌ LLM API调用失败: {str(e)}")
+            print(f"[失败] LLM API调用失败: {str(e)}")
             print(f"{'='*60}\n")
             raise Exception(f"本地LLM API调用失败: {str(e)}")
 
@@ -810,65 +846,108 @@ class DocumentProcessingService:
             self.update_progress('saving_data', 80, "保存健康指标数据...")
 
             indicators = structured_data.get('indicators', [])
+            if not indicators:
+                print("[警告]  没有指标数据需要保存")
+                return
+
             saved_count = 0
+            skipped_count = 0
 
-            for indicator_data in indicators:
-                # 处理新的LLM响应格式
-                indicator_name = indicator_data.get('indicator', indicator_data.get('name', ''))
-                measured_value = indicator_data.get('measured_value', indicator_data.get('value', ''))
-                normal_range = indicator_data.get('normal_range', indicator_data.get('reference_range', None))
-                is_abnormal = indicator_data.get('abnormal', None)
+            for idx, indicator_data in enumerate(indicators):
+                try:
+                    # 跳过无效的indicator_data
+                    if not isinstance(indicator_data, dict) or not indicator_data:
+                        print(f"[警告]  跳过无效的指标数据 (索引{idx}): 不是字典或为空")
+                        skipped_count += 1
+                        continue
 
-                # 处理 null 值
-                if normal_range is None or normal_range == 'null':
-                    normal_range = ''
+                    # 处理新的LLM响应格式，处理None/null值
+                    indicator_name = indicator_data.get('indicator') or indicator_data.get('name') or ''
+                    measured_value = indicator_data.get('measured_value') or indicator_data.get('value') or ''
+                    normal_range = indicator_data.get('normal_range') or indicator_data.get('reference_range') or ''
+                    is_abnormal = indicator_data.get('abnormal')
 
-                # 转换异常状态
-                if is_abnormal is None or is_abnormal == 'null':
-                    # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
-                    # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
-                    status = None  # 使用模型默认值
-                elif isinstance(is_abnormal, str):
-                    if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
-                        status = 'abnormal'
-                    elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
-                        status = 'normal'
-                    else:
-                        # 无法识别的字符串，不判断状态
+                    # 跳过没有指标名称的数据
+                    if not indicator_name or indicator_name == 'null' or not str(indicator_name).strip():
+                        print(f"[跳过] 无效指标 (索引{idx}): 缺少指标名称")
+                        skipped_count += 1
+                        continue
+
+                    # 过滤个人信息字段
+                    if is_personal_info_indicator(indicator_name):
+                        print(f"[过滤] 个人信息字段 (索引{idx}): {indicator_name}")
+                        filtered_count += 1
+                        skipped_count += 1
+                        continue
+
+                    # 转换为字符串并清理
+                    indicator_name = str(indicator_name).strip()
+                    measured_value = str(measured_value).strip() if measured_value else ''
+                    normal_range = str(normal_range).strip() if normal_range and normal_range != 'null' else ''
+
+                    # 处理 null 值
+                    if not normal_range or normal_range == 'null':
+                        normal_range = ''
+
+                    # 转换异常状态
+                    if is_abnormal is None or is_abnormal == 'null':
+                        # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
+                        # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
                         status = None  # 使用模型默认值
-                elif isinstance(is_abnormal, bool):
-                    status = 'abnormal' if is_abnormal else 'normal'
-                else:
-                    status = None  # 使用模型默认值
+                    elif isinstance(is_abnormal, str):
+                        if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
+                            status = 'abnormal'
+                        elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
+                            status = 'normal'
+                        else:
+                            # 无法识别的字符串，不判断状态
+                            status = None  # 使用模型默认值
+                    elif isinstance(is_abnormal, bool):
+                        status = 'abnormal' if is_abnormal else 'normal'
+                    else:
+                        status = None  # 使用模型默认值
 
-                # 确定指标类型
-                indicator_type = self._get_indicator_type_from_name(indicator_name)
+                    # 确定指标类型
+                    indicator_type = self._get_indicator_type_from_name(indicator_name)
 
-                # 确定单位
-                unit = self._extract_unit_from_value(measured_value, indicator_name)
+                    # 确定单位
+                    unit = self._extract_unit_from_value(measured_value, indicator_name)
 
-                # 清理测量值（移除单位）
-                clean_value = self._clean_measured_value(measured_value, unit)
+                    # 清理测量值（移除单位）
+                    clean_value = self._clean_measured_value(measured_value, unit)
 
-                # 创建健康指标
-                indicator = HealthIndicator.objects.create(
-                    checkup=self.document_processing.health_checkup,
-                    indicator_type=indicator_type,
-                    indicator_name=indicator_name,
-                    value=clean_value,
-                    unit=unit,
-                    reference_range=normal_range or '',  # 确保 None 转为空字符串
-                    # status不传，使用模型的default值
-                )
-                saved_count += 1
-                status_display = status if status else 'normal(默认)'
-                print(f"已保存指标 {saved_count}: {indicator_name} = {clean_value} {unit} (参考范围:{normal_range or '空'}, 状态:{status_display})")
+                    # 创建健康指标
+                    indicator = HealthIndicator.objects.create(
+                        checkup=self.document_processing.health_checkup,
+                        indicator_type=indicator_type,
+                        indicator_name=indicator_name,
+                        value=clean_value,
+                        unit=unit,
+                        reference_range=normal_range or '',  # 确保 None 转为空字符串
+                        # status不传，使用模型的default值
+                    )
+                    saved_count += 1
+                    status_display = status if status else 'normal(默认)'
+                    print(f"已保存指标 {saved_count}: {indicator_name} = {clean_value} {unit} (参考范围:{normal_range or '空'}, 状态:{status_display})")
 
-                # 更新进度
-                progress = 80 + int((saved_count / len(indicators)) * 15)
-                self.update_progress('saving_data', progress, f"已保存 {saved_count}/{len(indicators)} 项指标")
+                    # 更新进度
+                    progress = 80 + int((saved_count / len(indicators)) * 15)
+                    self.update_progress('saving_data', progress, f"已保存 {saved_count}/{len(indicators)} 项指标")
 
-            self.update_progress('completed', 100, "处理完成")
+                except Exception as e:
+                    # 单个指标保存失败时，继续处理下一个
+                    print(f"[错误] 保存指标失败 (索引{idx}): {str(e)}")
+                    print(f"   指标数据: {indicator_data}")
+                    skipped_count += 1
+                    continue
+
+            # 打印保存总结
+            total_count = len(indicators)
+            print(f"[完成] 成功保存 {saved_count}/{total_count} 个指标，跳过 {skipped_count} 个无效指标")
+            if skipped_count > 0:
+                print(f"   [提示] 被跳过的指标可能是由于缺少名称、数据格式错误或其他问题")
+
+            self.update_progress('completed', 100, f"处理完成 - 保存了{saved_count}个指标")
             return saved_count
 
         except Exception as e:
@@ -1017,38 +1096,38 @@ class VisionLanguageModelService:
         """使用多模态大模型直接处理文档图片"""
         try:
             print(f"\n{'='*80}")
-            print(f"🤖 [多模态大模型] 开始处理文档")
-            print(f"📄 文件路径: {file_path}")
-            print(f"⏰ 处理开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"[多模态] [多模态大模型] 开始处理文档")
+            print(f"[数据] 文件路径: {file_path}")
+            print(f"[时间] 处理开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             self.update_progress('ai_processing', 30, "开始多模态大模型分析...")
 
             # 判断文件类型
             file_ext = file_path.lower().split('.')[-1] if '.' in file_path.lower() else 'unknown'
-            print(f"📋 检测到文件类型: {file_ext}")
+            print(f"[信息] 检测到文件类型: {file_ext}")
 
             if file_path.lower().endswith('.pdf'):
                 # PDF文件需要转换为图片
-                print(f"🔄 PDF文件需要转换为图片...")
+                print(f"[转换] PDF文件需要转换为图片...")
                 try:
                     images = self._convert_pdf_to_images(file_path)
-                    print(f"✅ PDF转换成功，共{len(images)}页")
+                    print(f"[成功] PDF转换成功，共{len(images)}页")
                     self.update_progress('ai_processing', 40, f"PDF转换成功，共{len(images)}页")
                 except Exception as pdf_error:
                     # 如果PDF转换失败，建议用户使用其他工作流
-                    print(f"❌ PDF转换失败: {str(pdf_error)}")
+                    print(f"[失败] PDF转换失败: {str(pdf_error)}")
                     error_msg = f"PDF文件处理失败：{str(pdf_error)}\n\n建议：\n1. 对于PDF文件，建议使用'MinerU Pipeline'或'MinerU VLM-Transformers'工作流\n2. 或者将PDF转换为图片后使用多模态工作流\n3. 或者安装poppler依赖以支持PDF转换"
                     self.update_progress('failed', 0, error_msg, is_error=True)
                     raise Exception(error_msg)
             else:
                 # 图片文件直接处理
                 images = [file_path]
-                print(f"🖼️  检测到图片文件，直接处理")
+                print(f"[图片]  检测到图片文件，直接处理")
                 self.update_progress('ai_processing', 40, "检测到图片文件，直接处理")
 
             all_indicators = []
             total_images = len(images)
-            print(f"📊 总共需要处理 {total_images} 页/张图片")
+            print(f"[统计] 总共需要处理 {total_images} 页/张图片")
 
             for i, image_path in enumerate(images):
                 progress = 40 + int((i / total_images) * 30)
@@ -1057,14 +1136,14 @@ class VisionLanguageModelService:
                 # 处理单页图片
                 indicators = self._process_single_image(image_path, i+1, total_images)
                 all_indicators.extend(indicators)
-                print(f"📈 第 {i+1} 页处理完成，提取到 {len(indicators)} 个指标")
+                print(f"[进度] 第 {i+1} 页处理完成，提取到 {len(indicators)} 个指标")
 
-            print(f"📋 所有页面处理完成，原始指标总数: {len(all_indicators)}")
+            print(f"[信息] 所有页面处理完成，原始指标总数: {len(all_indicators)}")
 
             # 合并和去重指标
-            print(f"🔄 开始合并和去重指标...")
+            print(f"[转换] 开始合并和去重指标...")
             unique_indicators = self._merge_indicators(all_indicators)
-            print(f"📊 去重后指标总数: {len(unique_indicators)}")
+            print(f"[统计] 去重后指标总数: {len(unique_indicators)}")
 
             # 保存处理结果
             processing_result = {
@@ -1077,9 +1156,9 @@ class VisionLanguageModelService:
             self.document_processing.vl_model_result = processing_result
             self.document_processing.save()
 
-            print(f"💾 处理结果已保存到数据库")
-            print(f"⏰ 处理完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-            print(f"🎉 多模态大模型处理完成!")
+            print(f"[保存] 处理结果已保存到数据库")
+            print(f"[时间] 处理完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"[完成] 多模态大模型处理完成!")
             print(f"{'='*80}\n")
 
             self.update_progress('ai_processing', 70, "多模态大模型分析完成")
@@ -1089,8 +1168,8 @@ class VisionLanguageModelService:
             }
 
         except Exception as e:
-            print(f"❌ 多模态大模型处理失败: {str(e)}")
-            print(f"⏰ 失败时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"[失败] 多模态大模型处理失败: {str(e)}")
+            print(f"[时间] 失败时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"{'='*80}\n")
             self.update_progress('failed', 0, f"多模态大模型处理失败: {str(e)}", is_error=True)
             raise
@@ -1162,13 +1241,13 @@ class VisionLanguageModelService:
         """处理单页图片"""
         try:
             print(f"\n{'='*60}")
-            print(f"🔍 [多模态大模型] 开始处理第 {page_num}/{total_pages} 页图片")
-            print(f"📁 图片路径: {image_path}")
+            print(f"[解析] [多模态大模型] 开始处理第 {page_num}/{total_pages} 页图片")
+            print(f"[文件] 图片路径: {image_path}")
 
             # 构建针对医疗报告的prompt
             prompt = build_vision_model_prompt(page_num, total_pages)
-            print(f"📝 Prompt长度: {len(prompt)} 字符")
-            print(f"📝 Prompt前200字符: {prompt[:200]}...")
+            print(f"[文本] Prompt长度: {len(prompt)} 字符")
+            print(f"[文本] Prompt前200字符: {prompt[:200]}...")
 
             # 根据提供商选择不同的API调用方式
             if self.vl_provider == 'gemini':
@@ -1179,7 +1258,7 @@ class VisionLanguageModelService:
                 return self._call_openai_vision_api(image_path, prompt)
 
         except Exception as e:
-            print(f"❌ 处理第{page_num}页图片失败: {str(e)}")
+            print(f"[失败] 处理第{page_num}页图片失败: {str(e)}")
             print(f"{'='*60}\n")
             return []
 
@@ -1222,17 +1301,17 @@ class VisionLanguageModelService:
             # 构建API URL
             api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_api_key}"
 
-            print(f"🌐 Gemini API配置信息:")
+            print(f"[API] Gemini API配置信息:")
             print(f"   - API URL: {api_url}")
             print(f"   - 模型名称: {model_name}")
             print(f"   - 超时时间: {self.vl_timeout}秒")
-            print(f"📤 请求数据大小: {len(json.dumps(request_data))} 字符")
+            print(f"[发送] 请求数据大小: {len(json.dumps(request_data))} 字符")
 
             # 记录请求开始时间
             import time
             start_time = time.time()
 
-            print(f"🚀 正在发送请求到 Gemini...")
+            print(f"[请求] 正在发送请求到 Gemini...")
             response = requests.post(
                 api_url,
                 json=request_data,
@@ -1244,9 +1323,9 @@ class VisionLanguageModelService:
             end_time = time.time()
             request_duration = end_time - start_time
             print(f"⏱️  请求耗时: {request_duration:.2f} 秒")
-            print(f"📥 响应状态码: {response.status_code}")
-            print(f"📥 响应大小: {len(response.text)} 字符")
-            print(f"📥 响应前500字符: {response.text[:500]}...")
+            print(f"[响应] 响应状态码: {response.status_code}")
+            print(f"[响应] 响应大小: {len(response.text)} 字符")
+            print(f"[响应] 响应前500字符: {response.text[:500]}...")
 
             if response.status_code == 200:
                 result = response.json()
@@ -1271,27 +1350,27 @@ class VisionLanguageModelService:
                     old_text = cleaned_content
                     cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
 
-                print(f"✅ Gemini API调用成功!")
-                print(f"📄 返回内容长度: {len(cleaned_content)} 字符")
-                print(f"📄 返回内容前300字符: {cleaned_content[:300]}...")
+                print(f"[成功] Gemini API调用成功!")
+                print(f"[数据] 返回内容长度: {len(cleaned_content)} 字符")
+                print(f"[数据] 返回内容前300字符: {cleaned_content[:300]}...")
 
                 # 解析返回的JSON结果
-                print(f"🔧 开始解析JSON响应...")
+                print(f"[配置] 开始解析JSON响应...")
                 indicators = self._parse_vision_response(cleaned_content)
 
-                print(f"📊 解析完成，提取到 {len(indicators)} 个指标")
+                print(f"[统计] 解析完成，提取到 {len(indicators)} 个指标")
                 for i, indicator in enumerate(indicators):
                     print(f"   指标 {i+1}: {indicator.get('indicator', 'N/A')} = {indicator.get('measured_value', 'N/A')} ({indicator.get('abnormal', 'N/A')})")
 
                 print(f"{'='*60}\n")
                 return indicators
             else:
-                print(f"❌ Gemini API调用失败!")
-                print(f"❌ 错误详情: {response.text}")
+                print(f"[失败] Gemini API调用失败!")
+                print(f"[失败] 错误详情: {response.text}")
                 raise Exception(f"Gemini API调用失败: {response.status_code} - {response.text}")
 
         except Exception as e:
-            print(f"❌ Gemini Vision API调用失败: {str(e)}")
+            print(f"[失败] Gemini Vision API调用失败: {str(e)}")
             raise
 
     def _call_openai_vision_api(self, image_path, prompt):
@@ -1343,19 +1422,19 @@ class VisionLanguageModelService:
                 # 如果URL已包含/chat/completions，直接使用
                 api_url = base_url
 
-            print(f"🌐 OpenAI Vision API配置信息:")
+            print(f"[API] OpenAI Vision API配置信息:")
             print(f"   - API URL: {api_url}")
             print(f"   - 模型名称: {self.vl_model_name}")
             print(f"   - 超时时间: {self.vl_timeout}秒")
             print(f"   - 最大令牌数: {self.vl_max_tokens}")
             print(f"   - API Key: {'已设置' if self.vl_api_key else '未设置'}")
-            print(f"📤 请求数据大小: {len(json.dumps(request_data))} 字符")
+            print(f"[发送] 请求数据大小: {len(json.dumps(request_data))} 字符")
 
             # 记录请求开始时间
             import time
             start_time = time.time()
 
-            print(f"🚀 正在发送请求到多模态大模型...")
+            print(f"[请求] 正在发送请求到多模态大模型...")
             response = requests.post(
                 api_url,
                 json=request_data,
@@ -1367,9 +1446,9 @@ class VisionLanguageModelService:
             end_time = time.time()
             request_duration = end_time - start_time
             print(f"⏱️  请求耗时: {request_duration:.2f} 秒")
-            print(f"📥 响应状态码: {response.status_code}")
-            print(f"📥 响应大小: {len(response.text)} 字符")
-            print(f"📥 响应前500字符: {response.text[:500]}...")
+            print(f"[响应] 响应状态码: {response.status_code}")
+            print(f"[响应] 响应大小: {len(response.text)} 字符")
+            print(f"[响应] 响应前500字符: {response.text[:500]}...")
 
             if response.status_code == 200:
                 result = response.json()
@@ -1394,27 +1473,27 @@ class VisionLanguageModelService:
                     old_text = cleaned_content
                     cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
 
-                print(f"✅ API调用成功!")
-                print(f"📄 返回内容长度: {len(cleaned_content)} 字符")
-                print(f"📄 返回内容前300字符: {cleaned_content[:300]}...")
+                print(f"[成功] API调用成功!")
+                print(f"[数据] 返回内容长度: {len(cleaned_content)} 字符")
+                print(f"[数据] 返回内容前300字符: {cleaned_content[:300]}...")
 
                 # 解析返回的JSON结果
-                print(f"🔧 开始解析JSON响应...")
+                print(f"[配置] 开始解析JSON响应...")
                 indicators = self._parse_vision_response(cleaned_content)
 
-                print(f"📊 解析完成，提取到 {len(indicators)} 个指标")
+                print(f"[统计] 解析完成，提取到 {len(indicators)} 个指标")
                 for i, indicator in enumerate(indicators):
                     print(f"   指标 {i+1}: {indicator.get('indicator', 'N/A')} = {indicator.get('measured_value', 'N/A')} ({indicator.get('abnormal', 'N/A')})")
 
                 print(f"{'='*60}\n")
                 return indicators
             else:
-                print(f"❌ API调用失败!")
-                print(f"❌ 错误详情: {response.text}")
+                print(f"[失败] API调用失败!")
+                print(f"[失败] 错误详情: {response.text}")
                 raise Exception(f"多模态模型API调用失败: {response.status_code} - {response.text}")
 
         except Exception as e:
-            print(f"❌ OpenAI Vision API调用失败: {str(e)}")
+            print(f"[失败] OpenAI Vision API调用失败: {str(e)}")
             raise
 
     def _encode_image_to_base64(self, image_path):
@@ -1492,17 +1571,17 @@ class VisionLanguageModelService:
 
     def _extract_json_from_text(self, text):
         """智能提取和清理JSON内容"""
-        print(f"🔧 开始智能JSON提取和清理...")
-        print(f"📄 原始文本长度: {len(text)} 字符")
-        print(f"📄 原始文本前300字符: {text[:300]}...")
+        print(f"[配置] 开始智能JSON提取和清理...")
+        print(f"[数据] 原始文本长度: {len(text)} 字符")
+        print(f"[数据] 原始文本前300字符: {text[:300]}...")
 
         # 方法1: 尝试直接解析（如果文本本身就是纯净的JSON）
         try:
             result = json.loads(text.strip())
-            print(f"✅ 方法1成功: 直接解析JSON")
+            print(f"[成功] 方法1成功: 直接解析JSON")
             return result
         except json.JSONDecodeError:
-            print(f"❌ 方法1失败: 无法直接解析JSON")
+            print(f"[失败] 方法1失败: 无法直接解析JSON")
 
         # 方法2: 清理常见的代码块标记和thinking标签
         cleaned_patterns = [
@@ -1531,21 +1610,21 @@ class VisionLanguageModelService:
             old_text = cleaned_text
             cleaned_text = re.sub(pattern, replacement, cleaned_text, flags=flags)
             if old_text != cleaned_text:
-                print(f"🧹 清理模式应用: 移除了 {len(old_text) - len(cleaned_text)} 个字符")
+                print(f"[清理] 清理模式应用: 移除了 {len(old_text) - len(cleaned_text)} 个字符")
 
         cleaned_text = cleaned_text.strip()
-        print(f"🧹 基础清理后长度: {len(cleaned_text)} 字符")
+        print(f"[清理] 基础清理后长度: {len(cleaned_text)} 字符")
 
         # 尝试解析清理后的文本
         try:
             result = json.loads(cleaned_text)
-            print(f"✅ 方法2成功: 基础清理后解析成功")
+            print(f"[成功] 方法2成功: 基础清理后解析成功")
             return result
         except json.JSONDecodeError as e:
-            print(f"❌ 方法2失败: {str(e)}")
+            print(f"[失败] 方法2失败: {str(e)}")
 
         # 方法3: 使用正则表达式提取JSON对象
-        print(f"🔍 方法3: 使用正则表达式提取JSON对象...")
+        print(f"[解析] 方法3: 使用正则表达式提取JSON对象...")
 
         # 多种JSON提取模式
         json_patterns = [
@@ -1561,47 +1640,47 @@ class VisionLanguageModelService:
             try:
                 # 使用更强大的递归正则表达式
                 matches = self._extract_json_objects_recursive(text)
-                print(f"🔍 模式{i}: 找到 {len(matches)} 个潜在JSON对象")
+                print(f"[解析] 模式{i}: 找到 {len(matches)} 个潜在JSON对象")
 
                 for j, json_str in enumerate(matches):
                     print(f"   尝试对象 {j+1}: 长度 {len(json_str)} 字符")
                     try:
                         result = json.loads(json_str)
                         if 'indicators' in result:
-                            print(f"✅ 方法3.{i}.{j+1}成功: 找到包含indicators的JSON对象")
+                            print(f"[成功] 方法3.{i}.{j+1}成功: 找到包含indicators的JSON对象")
                             return result
                     except json.JSONDecodeError as e:
                         print(f"   对象 {j+1} 解析失败: {str(e)[:100]}...")
                         continue
 
             except Exception as e:
-                print(f"❌ 方法3.{i}失败: {str(e)}")
+                print(f"[失败] 方法3.{i}失败: {str(e)}")
                 continue
 
         # 方法4: 括号匹配法
-        print(f"🔍 方法4: 括号匹配法...")
+        print(f"[解析] 方法4: 括号匹配法...")
         json_candidates = self._extract_by_bracket_matching(text)
         for i, candidate in enumerate(json_candidates):
             try:
                 result = json.loads(candidate)
                 if 'indicators' in result:
-                    print(f"✅ 方法4.{i+1}成功: 括号匹配找到有效JSON")
+                    print(f"[成功] 方法4.{i+1}成功: 括号匹配找到有效JSON")
                     return result
             except json.JSONDecodeError:
                 continue
 
         # 方法5: 最后尝试 - 修复常见的JSON错误
-        print(f"🔧 方法5: 尝试修复常见JSON错误...")
+        print(f"[配置] 方法5: 尝试修复常见JSON错误...")
         try:
             repaired_json = self._repair_json_syntax(cleaned_text)
             if repaired_json:
                 result = json.loads(repaired_json)
-                print(f"✅ 方法5成功: JSON修复后解析成功")
+                print(f"[成功] 方法5成功: JSON修复后解析成功")
                 return result
         except Exception as e:
-            print(f"❌ 方法5失败: {str(e)}")
+            print(f"[失败] 方法5失败: {str(e)}")
 
-        print(f"❌ 所有JSON提取方法都失败了")
+        print(f"[失败] 所有JSON提取方法都失败了")
         return None
 
     def _extract_json_objects_recursive(self, text):
@@ -1701,41 +1780,78 @@ class VisionLanguageModelService:
     def _parse_vision_response(self, content):
         """解析视觉模型的响应"""
         try:
-            print(f"🔧 开始解析视觉模型响应...")
+            print(f"[配置] 开始解析视觉模型响应...")
 
             # 使用智能JSON提取功能
             result = self._extract_json_from_text(content)
 
             if not result:
-                print(f"❌ 无法从响应中提取有效的JSON")
-                print(f"📄 原始响应内容: {content}")
+                print(f"[失败] 无法从响应中提取有效的JSON")
+                print(f"[数据] 原始响应内容: {content}")
                 return []
 
             indicators = result.get('indicators', [])
 
             if not indicators:
-                print(f"⚠️  JSON解析成功但未找到indicators字段")
-                print(f"📄 JSON内容: {json.dumps(result, ensure_ascii=False, indent=2)}")
+                print(f"[警告]  JSON解析成功但未找到indicators字段")
+                print(f"[数据] JSON内容: {json.dumps(result, ensure_ascii=False, indent=2)}")
                 return []
 
             # 验证和清理指标数据
             cleaned_indicators = []
-            for indicator in indicators:
-                if isinstance(indicator, dict) and 'indicator' in indicator:
-                    # 确保必要字段存在
-                    cleaned_indicators.append({
-                        'indicator': indicator.get('indicator', ''),
-                        'measured_value': indicator.get('measured_value', ''),
-                        'normal_range': indicator.get('normal_range', ''),
-                        'abnormal': indicator.get('abnormal', '否')
-                    })
+            filtered_count = 0
 
-            print(f"✅ 视觉响应解析成功，提取到 {len(cleaned_indicators)} 个有效指标")
+            for indicator in indicators:
+                try:
+                    # 跳过非字典或None的indicator
+                    if not isinstance(indicator, dict) or not indicator:
+                        continue
+
+                    # 提取indicator字段，处理None/null
+                    indicator_name = indicator.get('indicator') or indicator.get('name')
+                    if not indicator_name or indicator_name == 'null':
+                        # 跳过没有指标名称的数据
+                        continue
+
+                    # 过滤个人信息字段
+                    if is_personal_info_indicator(indicator_name):
+                        filtered_count += 1
+                        continue
+
+                    # 安全提取其他字段，将None/null转换为空字符串
+                    measured_value = indicator.get('measured_value') or indicator.get('value') or ''
+                    normal_range = indicator.get('normal_range') or indicator.get('reference_range') or ''
+                    abnormal = indicator.get('abnormal') or '否'
+
+                    # 清理字符串'null'
+                    if measured_value == 'null':
+                        measured_value = ''
+                    if normal_range == 'null':
+                        normal_range = ''
+                    if abnormal == 'null':
+                        abnormal = '否'
+
+                    # 确保所有值都是字符串
+                    cleaned_indicators.append({
+                        'indicator': str(indicator_name).strip() if indicator_name else '',
+                        'measured_value': str(measured_value).strip() if measured_value else '',
+                        'normal_range': str(normal_range).strip() if normal_range else '',
+                        'abnormal': str(abnormal).strip() if abnormal else '否'
+                    })
+                except Exception as e:
+                    # 跳过有问题的单个指标，继续处理其他指标
+                    print(f"[警告]  跳过无效指标数据: {indicator}, 错误: {str(e)}")
+                    continue
+
+            if filtered_count > 0:
+                print(f"[过滤] 已过滤 {filtered_count} 个个人信息字段（姓名、性别、年龄等）")
+
+            print(f"[成功] 视觉响应解析成功，提取到 {len(cleaned_indicators)} 个有效指标")
             return cleaned_indicators
 
         except Exception as e:
-            print(f"❌ 视觉模型响应解析失败: {str(e)}")
-            print(f"📄 原始响应前500字符: {content[:500]}...")
+            print(f"[失败] 视觉模型响应解析失败: {str(e)}")
+            print(f"[数据] 原始响应前500字符: {content[:500]}...")
             return []
 
     def _merge_indicators(self, all_indicators):
@@ -1767,65 +1883,102 @@ class VisionLanguageModelService:
             self.update_progress('saving_data', 80, "保存健康指标数据...")
 
             indicators = structured_data.get('indicators', [])
+            if not indicators:
+                print("[警告]  没有指标数据需要保存")
+                return
+
             saved_count = 0
+            skipped_count = 0
 
-            for indicator_data in indicators:
-                indicator_name = indicator_data.get('indicator', '')
-                measured_value = indicator_data.get('measured_value', '')
-                normal_range = indicator_data.get('normal_range', None)
-                is_abnormal = indicator_data.get('abnormal', None)
+            for idx, indicator_data in enumerate(indicators):
+                try:
+                    # 跳过无效的indicator_data
+                    if not isinstance(indicator_data, dict) or not indicator_data:
+                        print(f"[警告]  跳过无效的指标数据 (索引{idx}): 不是字典或为空")
+                        skipped_count += 1
+                        continue
 
-                # 处理 null 值
-                if normal_range is None or normal_range == 'null':
-                    normal_range = ''
+                    # 处理新的LLM响应格式，处理None/null值
+                    indicator_name = indicator_data.get('indicator') or indicator_data.get('name') or ''
+                    measured_value = indicator_data.get('measured_value') or indicator_data.get('value') or ''
+                    normal_range = indicator_data.get('normal_range') or indicator_data.get('reference_range') or ''
+                    is_abnormal = indicator_data.get('abnormal')
 
-                # 转换异常状态
-                if is_abnormal is None or is_abnormal == 'null':
-                    # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
-                    # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
-                    status = None  # 使用模型默认值
-                elif isinstance(is_abnormal, str):
-                    if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
-                        status = 'abnormal'
-                    elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
-                        status = 'normal'
-                    else:
-                        # 无法识别的字符串，不判断状态
+                    # 跳过没有指标名称的数据
+                    if not indicator_name or indicator_name == 'null' or not str(indicator_name).strip():
+                        print(f"[警告]  跳过无效指标 (索引{idx}): 缺少指标名称")
+                        skipped_count += 1
+                        continue
+
+                    # 转换为字符串并清理
+                    indicator_name = str(indicator_name).strip()
+                    measured_value = str(measured_value).strip() if measured_value else ''
+                    normal_range = str(normal_range).strip() if normal_range and normal_range != 'null' else ''
+
+                    # 处理 null 值
+                    if not normal_range or normal_range == 'null':
+                        normal_range = ''
+
+                    # 转换异常状态
+                    if is_abnormal is None or is_abnormal == 'null':
+                        # 如果 LLM 没有明确标注异常（报告中没有参考范围），则不判断状态
+                        # 由于数据库字段不允许NULL且有default='normal'，这里留空会使用默认值
                         status = None  # 使用模型默认值
-                elif isinstance(is_abnormal, bool):
-                    status = 'abnormal' if is_abnormal else 'normal'
-                else:
-                    status = None  # 使用模型默认值
+                    elif isinstance(is_abnormal, str):
+                        if is_abnormal.lower() in ['是', 'yes', '异常', 'true', 'positive', '阳性']:
+                            status = 'abnormal'
+                        elif is_abnormal.lower() in ['否', 'no', '正常', 'false', 'negative', '阴性']:
+                            status = 'normal'
+                        else:
+                            # 无法识别的字符串，不判断状态
+                            status = None  # 使用模型默认值
+                    elif isinstance(is_abnormal, bool):
+                        status = 'abnormal' if is_abnormal else 'normal'
+                    else:
+                        status = None  # 使用模型默认值
 
-                # 确定指标类型
-                service = DocumentProcessingService(self.document_processing)
-                indicator_type = service._get_indicator_type_from_name(indicator_name)
+                    # 确定指标类型
+                    service = DocumentProcessingService(self.document_processing)
+                    indicator_type = service._get_indicator_type_from_name(indicator_name)
 
-                # 确定单位
-                unit = service._extract_unit_from_value(measured_value, indicator_name)
+                    # 确定单位
+                    unit = service._extract_unit_from_value(measured_value, indicator_name)
 
-                # 清理测量值
-                clean_value = service._clean_measured_value(measured_value, unit)
+                    # 清理测量值
+                    clean_value = service._clean_measured_value(measured_value, unit)
 
-                # 创建健康指标
-                indicator = HealthIndicator.objects.create(
-                    checkup=self.document_processing.health_checkup,
-                    indicator_type=indicator_type,
-                    indicator_name=indicator_name,
-                    value=clean_value,
-                    unit=unit,
-                    reference_range=normal_range or '',  # 确保 None 转为空字符串
-                    # status不传，使用模型的default值
-                )
-                saved_count += 1
-                status_display = status if status else 'normal(默认)'
-                print(f"已保存指标 {saved_count}: {indicator_name} = {clean_value} {unit} (参考范围:{normal_range or '空'}, 状态:{status_display})")
+                    # 创建健康指标
+                    indicator = HealthIndicator.objects.create(
+                        checkup=self.document_processing.health_checkup,
+                        indicator_type=indicator_type,
+                        indicator_name=indicator_name,
+                        value=clean_value,
+                        unit=unit,
+                        reference_range=normal_range or '',  # 确保 None 转为空字符串
+                        # status不传，使用模型的default值
+                    )
+                    saved_count += 1
+                    status_display = status if status else 'normal(默认)'
+                    print(f"已保存指标 {saved_count}: {indicator_name} = {clean_value} {unit} (参考范围:{normal_range or '空'}, 状态:{status_display})")
 
-                # 更新进度
-                progress = 80 + int((saved_count / len(indicators)) * 15)
-                self.update_progress('saving_data', progress, f"已保存 {saved_count}/{len(indicators)} 项指标")
+                    # 更新进度
+                    progress = 80 + int((saved_count / len(indicators)) * 15)
+                    self.update_progress('saving_data', progress, f"已保存 {saved_count}/{len(indicators)} 项指标")
 
-            self.update_progress('completed', 100, "处理完成")
+                except Exception as e:
+                    # 单个指标保存失败时，继续处理下一个
+                    print(f"[错误] 保存指标失败 (索引{idx}): {str(e)}")
+                    print(f"   指标数据: {indicator_data}")
+                    skipped_count += 1
+                    continue
+
+            # 打印保存总结
+            total_count = len(indicators)
+            print(f"[完成] 成功保存 {saved_count}/{total_count} 个指标，跳过 {skipped_count} 个无效指标")
+            if skipped_count > 0:
+                print(f"   [提示] 被跳过的指标可能是由于缺少名称、数据格式错误或其他问题")
+
+            self.update_progress('completed', 100, f"处理完成 - 保存了{saved_count}个指标")
             return saved_count
 
         except Exception as e:
@@ -2069,22 +2222,22 @@ def call_llm_for_integration(system_prompt, user_prompt, timeout=120):
                 old_text = cleaned_content
                 cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
             
-            print(f"[数据整合 LLM调用] ✓ 成功获取响应")
+            print(f"[数据整合 LLM调用] [OK] 成功获取响应")
             print(f"[数据整合 LLM调用] 响应内容前500字符:")
             print(f"{cleaned_content[:500]}")
             print(f"[数据整合 LLM调用] 响应内容后500字符:")
             print(f"{cleaned_content[-500:]}")
             return cleaned_content
         else:
-            print(f"[数据整合 LLM调用] ✗ API返回错误")
+            print(f"[数据整合 LLM调用] [FAIL] API返回错误")
             print(f"[数据整合 LLM调用] 错误详情: {response.text}")
             raise Exception(f"LLM API返回错误: {response.status_code} - {response.text}")
 
     except requests.exceptions.Timeout:
-        print(f"[数据整合 LLM调用] ✗ 请求超时（{timeout}秒）")
+        print(f"[数据整合 LLM调用] [FAIL] 请求超时（{timeout}秒）")
         raise Exception(f"LLM API请求超时（{timeout}秒）")
     except Exception as e:
-        print(f"[数据整合 LLM调用] ✗ 调用失败: {str(e)}")
+        print(f"[数据整合 LLM调用] [FAIL] 调用失败: {str(e)}")
         raise Exception(f"调用LLM API失败: {str(e)}")
 
 
@@ -2189,23 +2342,23 @@ def call_gemini_api(prompt, system_message=None, timeout=300):
                     old_text = cleaned_content
                     cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
                 
-                print(f"[Gemini API调用] ✓ 成功获取响应")
+                print(f"[Gemini API调用] [OK] 成功获取响应")
                 print(f"[Gemini API调用] 响应长度: {len(cleaned_content)} 字符")
                 return cleaned_content
             else:
-                print(f"[Gemini API调用] ✗ 响应中没有候选结果")
+                print(f"[Gemini API调用] [FAIL] 响应中没有候选结果")
                 print(f"[Gemini API调用] 响应内容: {result}")
                 raise Exception("Gemini API返回了空响应")
         else:
-            print(f"[Gemini API调用] ✗ API返回错误")
+            print(f"[Gemini API调用] [FAIL] API返回错误")
             print(f"[Gemini API调用] 错误详情: {response.text}")
             raise Exception(f"Gemini API返回错误: {response.status_code} - {response.text}")
 
     except requests.exceptions.Timeout:
-        print(f"[Gemini API调用] ✗ 请求超时（{timeout}秒）")
+        print(f"[Gemini API调用] [FAIL] 请求超时（{timeout}秒）")
         raise Exception(f"Gemini API请求超时（{timeout}秒）")
     except Exception as e:
-        print(f"[Gemini API调用] ✗ 调用失败: {str(e)}")
+        print(f"[Gemini API调用] [FAIL] 调用失败: {str(e)}")
         raise Exception(f"调用Gemini API失败: {str(e)}")
 
 
@@ -2306,7 +2459,7 @@ def call_gemini_vision_api(image_base64, prompt, timeout=300):
                     old_text = cleaned_content
                     cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
                 
-                print(f"[Gemini Vision API调用] ✓ 成功获取响应")
+                print(f"[Gemini Vision API调用] [OK] 成功获取响应")
                 return cleaned_content
             else:
                 raise Exception("Gemini Vision API返回了空响应")

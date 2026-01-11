@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-)!@r=2hgk8*i84l9bezx-xt_vbwekuu$$zf1ypukls02jcv4mk
 import os
 DEBUG = os.getenv('DEBUG', 'True').lower() in ['true', '1', 'yes']
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver'] + \
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver', 'www.zctestbench.asia', 'zctestbench.asia'] + \
     (os.getenv('ALLOWED_HOSTS', '').split(',') if os.getenv('ALLOWED_HOSTS') else [])
 
 
@@ -41,10 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'corsheaders',
     'medical_records',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -126,7 +128,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# Production settings for /health subpath
+FORCE_SCRIPT_NAME = '/health'
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+STATIC_URL = '/health/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -151,27 +158,27 @@ REST_FRAMEWORK = {
 }
 
 # Media files
-MEDIA_URL = '/media/'
+MEDIA_URL = '/health/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Static files configuration
-STATIC_URL = '/static/'
+STATIC_URL = '/health/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
 # Login URLs
-LOGIN_REDIRECT_URL = '/'
-LOGIN_URL = '/login/'
-LOGOUT_REDIRECT_URL = '/login/'
+LOGIN_REDIRECT_URL = '/health/'
+LOGIN_URL = '/health/login/'
+LOGOUT_REDIRECT_URL = '/health/login/'
 
 # Environment variables for API configuration
 from dotenv import load_dotenv
 load_dotenv()
 
 # AI Service Configuration
-MINERU_API_URL = os.getenv('MINERU_API_URL', 'http://localhost:8000')
+MINERU_API_URL = os.getenv('MINERU_API_URL', 'http://localhost:8001')
 LLM_API_URL = os.getenv('LLM_API_URL', 'https://api.siliconflow.cn')
 LLM_API_KEY = os.getenv('LLM_API_KEY', '')
 LLM_MODEL_NAME = os.getenv('LLM_MODEL_NAME', 'deepseek-ai/DeepSeek-V3.2-Exp')
@@ -186,6 +193,36 @@ AI_MODEL_TIMEOUT = int(os.getenv('AI_MODEL_TIMEOUT', '300'))
 
 # Default Workflow
 DEFAULT_WORKFLOW = os.getenv('DEFAULT_WORKFLOW', 'ocr_llm')
+
+# CORS Configuration for Miniprogram
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://192.168.1.1:8000",
+    "https://www.zctestbench.asia",
+    "https://zctestbench.asia",
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 # Logging Configuration
 LOGGING = {

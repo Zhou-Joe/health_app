@@ -1,26 +1,76 @@
+<!--pages/settings/settings.wxml-->
 <view class="settings-container">
+  <!-- 用户信息卡片 -->
   <view class="user-card card">
-    <image class="avatar" src="/images/avatar.png"></image>
-    <text class="username">{{userInfo.username}}</text>
-  </view>
-
-  <view class="settings-list card">
-    <view class="setting-item" bindtap="goToProfile">
-      <text class="item-label">个人信息</text>
-      <text class="item-arrow">></text>
-    </view>
-    <view class="setting-item" bindtap="checkServices">
-      <text class="item-label">服务状态</text>
-      <text class="item-arrow">></text>
+    <view class="user-avatar">👤</view>
+    <view class="user-info">
+      <text class="user-name">{{userInfo.first_name || userInfo.username || '用户'}}</text>
+      <text class="user-desc">{{userInfo.email || ''}}</text>
     </view>
   </view>
 
-  <view class="settings-list card">
-    <view class="setting-item">
-      <text class="item-label">服务器地址</text>
-      <text class="item-value">{{baseUrl}}</text>
+  <!-- 系统设置 -->
+  <view class="settings-section">
+    <view class="section-title">系统设置</view>
+    <view class="settings-list card">
+      <view class="setting-item">
+        <text class="item-label">服务器地址</text>
+        <input class="server-input"
+               value="{{serverUrl}}"
+               bindinput="onServerUrlChange"
+               placeholder="http://localhost:8000" />
+      </view>
+      <view class="setting-item" bindtap="testConnection">
+        <text class="item-label">测试连接</text>
+        <text class="item-arrow">›</text>
+      </view>
+      <view class="setting-item" bindtap="checkServicesStatus">
+        <text class="item-label">检查服务状态</text>
+        <text class="item-arrow">›</text>
+      </view>
     </view>
   </view>
 
-  <button class="logout-btn btn-danger" bindtap="handleLogout">退出登录</button>
+  <!-- 服务状态 -->
+  <view class="settings-section" wx:if="{{servicesStatus.services}}">
+    <view class="section-title">服务状态</view>
+    <view class="settings-list card">
+      <view class="service-item" wx:for="{{servicesStatus.services}}" wx:key="name">
+        <view class="service-info">
+          <text class="service-name">{{item.name}}</text>
+          <text class="service-status status-{{item.status}}">
+            {{item.status === 'available' ? '正常' : '异常'}}
+          </text>
+        </view>
+        <view class="service-desc">{{item.description || ''}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据管理 -->
+  <view class="settings-section">
+    <view class="section-title">数据管理</view>
+    <view class="settings-list card">
+      <view class="setting-item" bindtap="clearCache">
+        <text class="item-label">清除缓存</text>
+        <text class="item-desc">清除所有本地缓存数据</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 其他 -->
+  <view class="settings-section">
+    <view class="section-title">其他</view>
+    <view class="settings-list card">
+      <view class="setting-item" bindtap="showAbout">
+        <text class="item-label">关于</text>
+        <text class="item-value">v1.0.0</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="action-section">
+    <button class="logout-btn" bindtap="handleLogout">退出登录</button>
+  </view>
 </view>

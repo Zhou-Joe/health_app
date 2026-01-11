@@ -20,7 +20,12 @@
       "Bash(apt-get update:*)",
       "Bash(apt-get install:*)",
       "Bash(cat:*)",
-      "Bash(DJANGO_SETTINGS_MODULE=health_report.settings python:*)"
+      "Bash(DJANGO_SETTINGS_MODULE=health_report.settings python:*)",
+      "Bash(DJANGO_SETTINGS_MODULE=health_report.settings python3 manage.py runserver:*)",
+      "Bash(ip addr:*)",
+      "Bash(find:*)",
+      "Bash(openssl:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

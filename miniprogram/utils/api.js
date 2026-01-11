@@ -1,71 +1,159 @@
-// utils/api.js - API接口封装
-const { get, post, put, delete: del, uploadFile } = require('./request.js')
+/**
+ * API 接口封装
+ * 所有 API 接口的统一管理
+ */
+
+const config = require('../config.js')
+const request = require('./request.js')
 
 module.exports = {
   // ==================== 用户认证 ====================
-  // 登录
-  login: (data) => post('/login/', data),
+  login: (data) => request.post(config.api.login, data),
 
-  // 获取用户信息
-  getUserInfo: () => get('/user-info/'),
+  getUserInfo: () => request.get(config.api.userInfo),
 
   // ==================== 体检报告管理 ====================
-  // 上传体检报告
-  uploadReport: (filePath, formData) => uploadFile(filePath, formData),
+  uploadReport: (filePath, formData) =>
+    request.uploadFile(filePath, formData, { url: config.api.uploadReport }),
 
-  // 获取处理状态
-  getProcessingStatus: (processingId) => get(`/processing-status/${processingId}/`),
+  getProcessingStatus: (processingId) =>
+    request.get(config.api.processingStatus(processingId)),
 
-  // 获取体检记录列表
-  getCheckups: (params) => get('/checkups/', params),
+  getCheckups: (params = {}) =>
+    request.get(config.api.checkups, params),
 
-  // 获取体检记录详情
-  getCheckupDetail: (checkupId) => get(`/checkups/${checkupId}/`),
+  getCheckupDetail: (checkupId) =>
+    request.get(config.api.checkupDetail(checkupId)),
 
-  // 删除体检报告
-  deleteCheckup: (checkupId) => del(`/checkups/${checkupId}/delete/`),
+  deleteCheckup: (checkupId) =>
+    request.delete(config.api.deleteCheckup(checkupId)),
 
   // ==================== 健康指标管理 ====================
-  // 获取健康指标列表
-  getIndicators: (params) => get('/indicators/', params),
+  getIndicators: (params = {}) =>
+    request.get(config.api.indicators(params), params),
 
-  // 创建健康指标
-  createIndicator: (data) => post('/indicators/create/', data),
+  createIndicator: (data) =>
+    request.post(config.api.createIndicator, data),
 
-  // 更新健康指标
-  updateIndicator: (indicatorId, data) => put(`/indicators/${indicatorId}/update/`, data),
+  updateIndicator: (indicatorId, data) =>
+    request.put(config.api.updateIndicator(indicatorId), data),
 
-  // 删除健康指标
-  deleteIndicator: (indicatorId) => del(`/indicators/${indicatorId}/delete/`),
+  deleteIndicator: (indicatorId) =>
+    request.delete(config.api.deleteIndicator(indicatorId)),
 
   // ==================== AI健康建议 ====================
-  // 获取AI建议
-  getAdvice: (data) => post('/advice/', data),
+  getAdvice: (data) =>
+    request.post(config.api.advice, data),
+
+  // 流式AI咨询（使用SSE）
+  streamAdvice: (data, onMessage, onError, onComplete) => {
+    const token = wx.getStorageSync(config.storageKeys.TOKEN)
+    const url = config.server.baseUrl + config.api.streamAdvice
+
+    // 小程序不支持原生的SSE，需要使用WebSocket或者轮询
+    // 这里使用WebSocket实现流式响应
+    return new Promise((resolve, reject) => {
+      const wsUrl = url.replace('http://', 'ws://').replace('https://', 'wss://')
+      const socketTask = wx.connectSocket({
+        url: wsUrl,
+        header: {
+          'Authorization': `Token ${token}`
+        }
+      })
+
+      socketTask.onOpen(() => {
+        // 发送数据
+        socketTask.send({
+          data: JSON.stringify(data)
+        })
+      })
+
+      socketTask.onMessage((res) => {
+        try {
+          const lines = res.data.split('\n')
+          lines.forEach(line => {
+            if (line.startsWith('data: ')) {
+              const data = JSON.parse(line.slice(6))
+              if (data.error) {
+                onError?.(data.error)
+              } else if (data.content) {
+                onMessage?.(data.content)
+              } else if (data.done) {
+                onComplete?.()
+                socketTask.close()
+              }
+            }
+          })
+        } catch (e) {
+          console.error('解析消息失败:', e)
+        }
+      })
+
+      socketTask.onError((err) => {
+        console.error('WebSocket错误:', err)
+        onError?.(err)
+        reject(err)
+      })
+
+      socketTask.onClose(() => {
+        resolve()
+      })
+    })
+  },
 
   // ==================== AI对话 ====================
-  // 获取对话列表
-  getConversations: () => get('/conversations/'),
+  getConversations: () =>
+    request.get(config.api.conversations),
 
-  // 创建对话
-  createConversation: (data) => post('/conversations/create/', data),
+  createConversation: (data) =>
+    request.post(config.api.createConversation, data),
 
-  // 获取对话详情
-  getConversationDetail: (conversationId) => get(`/conversations/${conversationId}/`),
+  getAdviceMessageStatus: (adviceId) =>
+    request.get(config.api.adviceMessageStatus(adviceId)),
 
-  // 删除对话
-  deleteConversation: (conversationId) => del(`/conversations/${conversationId}/delete/`),
+  getConversationDetail: (conversationId) =>
+    request.get(config.api.conversationDetail(conversationId)),
+
+  getConversationMessages: (conversationId) =>
+    request.get(config.api.conversationMessages(conversationId)),
+
+  deleteConversation: (conversationId) =>
+    request.delete(config.api.deleteConversation(conversationId)),
+
+  // 导出对话
+  exportConversationPDF: (conversationId) =>
+    request.downloadFile(config.api.exportConversationPDF(conversationId)),
+
+  exportConversationWord: (conversationId) =>
+    request.downloadFile(config.api.exportConversationWord(conversationId)),
 
   // ==================== 数据整合 ====================
-  // 整合数据
-  integrateData: (data) => post('/integrate-data/', data),
+  integrateData: (data) =>
+    request.post(config.api.integrateData, data),
 
   // ==================== 系统信息 ====================
-  // 获取服务状态
-  getServicesStatus: () => get('/services-status/'),
+  getServicesStatus: () =>
+    request.get(config.api.servicesStatus),
 
-  // 获取系统设置
-  getSystemSettings: () => get('/system-settings/'),
+  getSystemSettings: () =>
+    request.get(config.api.systemSettings),
 
-  // 获取常用医院
-  getCommonHospitals: () => get('/hospitals/common/')
+  updateSystemSettings: (data) =>
+    request.post(config.api.systemSettings, data),
+
+  getCommonHospitals: () =>
+    request.get(config.api.commonHospitals),
+
+  // ==================== 导出功能 ====================
+  exportHealthTrendsPDF: () =>
+    request.downloadFile(config.api.exportHealthTrendsPDF),
+
+  exportHealthTrendsWord: () =>
+    request.downloadFile(config.api.exportHealthTrendsWord),
+
+  exportCheckupsPDF: () =>
+    request.downloadFile(config.api.exportCheckupsPDF),
+
+  exportCheckupsWord: () =>
+    request.downloadFile(config.api.exportCheckupsWord)
 }

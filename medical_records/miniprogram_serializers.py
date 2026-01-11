@@ -9,12 +9,24 @@ class UserSerializer(serializers.ModelSerializer):
 
 class HealthIndicatorSerializer(serializers.ModelSerializer):
     """健康指标序列化器"""
+    checkup_date = serializers.SerializerMethodField()
+    value_display = serializers.SerializerMethodField()
+
     class Meta:
         model = HealthIndicator
         fields = [
             'id', 'indicator_name', 'indicator_type', 'value',
-            'unit', 'reference_range', 'status'
+            'unit', 'reference_range', 'status', 'checkup',
+            'checkup_date', 'value_display'
         ]
+
+    def get_checkup_date(self, obj):
+        """获取体检日期"""
+        return obj.checkup.checkup_date if obj.checkup else None
+
+    def get_value_display(self, obj):
+        """获取值显示"""
+        return f"{obj.value} {obj.unit}" if obj.unit else str(obj.value)
 
 class HealthCheckupSerializer(serializers.ModelSerializer):
     """体检记录序列化器"""

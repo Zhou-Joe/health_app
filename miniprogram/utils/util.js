@@ -170,6 +170,160 @@ function getBaseURL() {
   return app.globalData.baseUrl || ''
 }
 
+/**
+ * 深拷贝对象
+ */
+function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') return obj
+  if (obj instanceof Date) return new Date(obj)
+  if (obj instanceof Array) return obj.map(item => deepClone(item))
+
+  const cloned = {}
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      cloned[key] = deepClone(obj[key])
+    }
+  }
+  return cloned
+}
+
+/**
+ * 格式化文件大小
+ */
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+/**
+ * 解析Markdown为小程序可显示的文本
+ * 小程序不支持完整的Markdown渲染，这里做简单的处理
+ */
+function parseMarkdown(text) {
+  if (!text) return ''
+
+  return text
+    // 标题
+    .replace(/^### (.*$)/gim, '\n$1\n')
+    .replace(/^## (.*$)/gim, '\n$1\n')
+    .replace(/^# (.*$)/gim, '\n$1\n')
+    // 粗体
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    // 斜体
+    .replace(/\*(.*?)\*/g, '$1')
+    // 代码块
+    .replace(/```([\s\S]*?)```/g, '\n代码:\n$1\n')
+    // 行内代码
+    .replace(/`([^`]+)`/g, '$1')
+    // 链接
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+    // 列表
+    .replace(/^\s*-\s+/gm, '• ')
+    // 清理多余空行
+    .replace(/\n{3,}/g, '\n\n')
+}
+
+/**
+ * 计算变化率
+ */
+function calculateChange(current, previous) {
+  if (!current || !previous || previous === 0) return null
+  const change = current - previous
+  const percentChange = (change / previous) * 100
+  return {
+    absolute: change,
+    percent: percentChange
+  }
+}
+
+/**
+ * 格式化变化率显示
+ */
+function formatChange(changeData, unit = '') {
+  if (!changeData) return '-'
+
+  const { absolute, percent } = changeData
+  const sign = absolute > 0 ? '+' : ''
+  return `${sign}${absolute}${unit} (${sign}${percent.toFixed(1)}%)`
+}
+
+/**
+ * 获取变化率的样式类
+ */
+function getChangeClass(changeData) {
+  if (!changeData) return 'text-neutral'
+  if (changeData.absolute > 0) return 'text-danger'
+  if (changeData.absolute < 0) return 'text-success'
+  return 'text-neutral'
+}
+
+/**
+ * 数据分组
+ */
+function groupBy(array, key) {
+  return array.reduce((result, item) => {
+    const group = item[key]
+    if (!result[group]) {
+      result[group] = []
+    }
+    result[group].push(item)
+    return result
+  }, {})
+}
+
+/**
+ * 数组去重
+ */
+function unique(array, key) {
+  if (!key) {
+    return [...new Set(array)]
+  }
+  const seen = new Set()
+  return array.filter(item => {
+    const k = item[key]
+    if (seen.has(k)) {
+      return false
+    }
+    seen.add(k)
+    return true
+  })
+}
+
+/**
+ * 安全的JSON解析
+ */
+function safeJsonParse(str, defaultValue = null) {
+  try {
+    return JSON.parse(str)
+  } catch (e) {
+    return defaultValue
+  }
+}
+
+/**
+ * 生成唯一ID
+ */
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2)
+}
+
+/**
+ * 验证手机号
+ */
+function validatePhone(phone) {
+  return /^1[3-9]\d{9}$/.test(phone)
+}
+
+/**
+ * 验证邮箱
+ */
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 module.exports = {
   formatDate,
   formatRelativeTime,
@@ -182,5 +336,17 @@ module.exports = {
   getIndicatorStatusInfo,
   debounce,
   throttle,
-  getBaseURL
+  getBaseURL,
+  deepClone,
+  formatFileSize,
+  parseMarkdown,
+  calculateChange,
+  formatChange,
+  getChangeClass,
+  groupBy,
+  unique,
+  safeJsonParse,
+  generateId,
+  validatePhone,
+  validateEmail
 }
