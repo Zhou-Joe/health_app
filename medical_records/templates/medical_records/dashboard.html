@@ -504,7 +504,7 @@ function deleteCheckup(checkupId) {
         return;
     }
 
-    const deleteUrl = `/checkup/${checkupId}/delete/`;
+    const deleteUrl = `/health/checkup/${checkupId}/delete/`;
 
     fetch(deleteUrl, {
         method: 'POST',
