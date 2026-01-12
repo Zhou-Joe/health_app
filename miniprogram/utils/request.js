@@ -183,6 +183,9 @@ class Request {
         header,
         timeout: options.timeout || 60000, // 上传超时时间更长
         success: (res) => {
+          console.log('上传响应状态码:', res.statusCode)
+          console.log('上传响应数据:', res.data)
+
           if (res.statusCode === 200 || res.statusCode === 201) {
             try {
               const data = JSON.parse(res.data)
@@ -196,7 +199,17 @@ class Request {
             wx.reLaunch({ url: config.pages.login })
             reject(new Error('登录已过期'))
           } else {
-            reject(new Error('上传失败'))
+            // 尝试解析错误信息
+            let errorMsg = '上传失败'
+            try {
+              const errorData = JSON.parse(res.data)
+              errorMsg = errorData.message || errorData.error || errorMsg
+            } catch (e) {
+              // 无法解析，使用原始数据
+              errorMsg = `上传失败 (状态码: ${res.statusCode})`
+            }
+            console.error('上传错误详情:', errorMsg)
+            reject(new Error(errorMsg))
           }
         },
         fail: (err) => {
