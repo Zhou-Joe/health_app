@@ -109,6 +109,9 @@ Page({
       util.showToast('上传成功，开始处理', 'success')
       this.pollProgress()
     } catch (err) {
+      console.error('上传失败详情:', err)
+      console.error('错误信息:', err.message)
+      console.error('错误堆栈:', err.stack)
       this.setData({ uploading: false })
       util.showToast(err.message || '上传失败')
     }

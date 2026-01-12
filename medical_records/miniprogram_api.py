@@ -128,6 +128,18 @@ def miniprogram_upload_report(request):
         file_name = f"miniprogram_{uuid.uuid4().hex[:8]}_{file.name}"
         file_path = default_storage.save(f'reports/miniprogram/{file_name}', file)
 
+        # 获取文件的完整路径供后台处理使用
+        from django.conf import settings
+        if default_storage.exists(file_path):
+            full_file_path = default_storage.path(file_path)
+        else:
+            # 如果是云存储，使用URL或临时文件
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file_name)[1]) as tmp:
+                for chunk in file.chunks():
+                    tmp.write(chunk)
+                full_file_path = tmp.name
+
         # 创建体检记录
         health_checkup = HealthCheckup.objects.create(
             user=request.user,
@@ -138,6 +150,7 @@ def miniprogram_upload_report(request):
 
         # 创建文档处理记录
         document_processing = DocumentProcessing.objects.create(
+            user=request.user,
             health_checkup=health_checkup,
             workflow_type=workflow_type,
             status='pending',
@@ -148,7 +161,7 @@ def miniprogram_upload_report(request):
         import threading
         processing_thread = threading.Thread(
             target=process_document_background,
-            args=(document_processing.id, file_path),
+            args=(document_processing.id, full_file_path),
             name=f"MiniProgram-DocumentProcessing-{document_processing.id}"
         )
         processing_thread.daemon = False
