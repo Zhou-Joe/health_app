@@ -27,7 +27,8 @@
       "Bash(openssl:*)",
       "Bash(chmod:*)",
       "Bash(git push:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
