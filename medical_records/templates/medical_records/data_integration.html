@@ -93,6 +93,14 @@
     <!-- 页面标题 -->
     <div class="row mb-4">
         <div class="col-12">
+            <!-- 重要提示 -->
+            <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" style="font-size: 1.5rem;"></i>
+                <div>
+                    <strong>重要提示：</strong> 数据整合过程中请保持页面打开，不要切换到其他应用或锁屏，否则可能导致整合失败。
+                </div>
+            </div>
+
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <h1 class="mb-0">
@@ -544,6 +552,35 @@ async function startIntegration() {
     const progressLog = document.getElementById('progressLog');
     progressLog.innerHTML = '<div class="text-muted">准备开始...</div>';
 
+    // Wake Lock API - 保持屏幕常亮
+    let wakeLock = null;
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock activated');
+            }
+        } catch (err) {
+            console.log(`Wake Lock error: ${err.name}, ${err.message}`);
+        }
+    }
+
+    // 请求Wake Lock
+    await requestWakeLock();
+
+    // Page Visibility API - 检测页面可见性
+    const handleVisibilityChange = () => {
+        if (document.hidden) {
+            addLogEntry('⚠️ 警告：请保持页面打开，切换后台可能导致整合失败', 'warning');
+        } else {
+            addLogEntry('✅ 页面已恢复，继续整合...', 'info');
+            // 重新请求Wake Lock（因为切换后台会释放）
+            requestWakeLock();
+        }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     try {
         // 调用流式后端API
         const checkupIds = Array.from(selectedCheckups);
@@ -556,14 +593,21 @@ async function startIntegration() {
             requestData.user_prompt = userPrompt;
         }
 
+        // 使用AbortController进行超时控制（10分钟）
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分钟超时
+
         const response = await fetch('{% url "medical_records:api_stream_integrate" %}', {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(requestData)
+            body: JSON.stringify(requestData),
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -715,9 +759,31 @@ async function startIntegration() {
 
     } catch (error) {
         console.error('整合请求失败:', error);
-        addLogEntry('❌ 网络错误: ' + error.message, 'error');
-        alert('请求失败，请稍后重试');
+
+        // 检查是否是超时错误
+        if (error.name === 'AbortError') {
+            addLogEntry('❌ 整合超时，请检查网络连接后重试', 'error');
+            alert('整合超时，请检查网络连接后重试');
+        } else {
+            addLogEntry('❌ 网络错误: ' + error.message, 'error');
+            alert('请求失败，请稍后重试');
+        }
         location.reload();
+    } finally {
+        // 清理资源
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+        // 释放Wake Lock
+        if (wakeLock !== null) {
+            wakeLock.release()
+                .then(() => {
+                    wakeLock = null;
+                    console.log('Wake Lock released');
+                })
+                .catch((err) => {
+                    console.error(`Wake Lock release error: ${err.name}, ${err.message}`);
+                });
+        }
     }
 }
 
