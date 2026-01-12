@@ -36,7 +36,7 @@ class HealthCheckupSerializer(serializers.ModelSerializer):
         model = HealthCheckup
         fields = [
             'id', 'user', 'checkup_date', 'hospital', 'report_file',
-            'created_at', 'indicators'
+            'notes', 'created_at', 'indicators'
         ]
         read_only_fields = ['user']
 

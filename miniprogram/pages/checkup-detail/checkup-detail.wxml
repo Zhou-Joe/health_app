@@ -4,6 +4,11 @@
     <view class="info-row"><text class="label">体检日期</text><text class="value">{{checkup.checkup_date}}</text></view>
   </view>
 
+  <view class="notes-card card" wx:if="{{checkup.notes}}">
+    <view class="notes-label">报告描述</view>
+    <text class="notes-content">{{checkup.notes}}</text>
+  </view>
+
   <view class="stats-card card">
     <view class="stat-item"><text class="stat-value">{{stats.total}}</text><text class="stat-label">总指标</text></view>
     <view class="stat-item"><text class="stat-value text-success">{{stats.normal}}</text><text class="stat-label">正常</text></view>
