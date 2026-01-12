@@ -306,6 +306,16 @@ class UserProfile(models.Model):
         blank=True,
         verbose_name='性别'
     )
+    # AI处理模式
+    processing_mode = models.CharField(
+        max_length=20,
+        choices=[
+            ('stream', '实时模式'),  # 流式响应，需要保持页面打开
+            ('background', '后台模式'),  # 后台任务，可以离开页面
+        ],
+        default='background',  # 默认后台模式
+        verbose_name='AI处理模式'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 

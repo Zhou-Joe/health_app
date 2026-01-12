@@ -2251,3 +2251,68 @@ def api_task_status(request, task_id):
             'status': 'error',
             'error': str(e)
         }, status=500)
+
+
+# ============================================================================
+# 用户处理模式设置API
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+@login_required
+def api_processing_mode(request):
+    """
+    获取或设置用户的AI处理模式
+    
+    GET: 获取当前模式
+    POST: 设置模式
+    
+    模式说明：
+    - stream: 实时模式（流式响应），需要保持页面打开，可以看到实时输出
+    - background: 后台模式（异步任务），可以离开页面，完成后查看结果
+    """
+    try:
+        from .models import UserProfile
+        
+        # 获取或创建用户配置
+        user_profile, created = UserProfile.objects.get_or_create(
+            user=request.user
+        )
+        
+        if request.method == 'GET':
+            # 获取当前模式
+            return JsonResponse({
+                'mode': user_profile.processing_mode,
+                'mode_display': user_profile.get_processing_mode_display(),
+                'description': {
+                    'stream': '实时模式：可以看到AI生成的实时过程，但需要保持页面打开',
+                    'background': '后台模式：可以在后台处理，完成后查看结果，适合手机用户'
+                }.get(user_profile.processing_mode, '')
+            })
+        
+        elif request.method == 'POST':
+            # 设置模式
+            data = json.loads(request.body)
+            new_mode = data.get('mode')
+            
+            if new_mode not in ['stream', 'background']:
+                return JsonResponse({
+                    'error': '无效的模式，必须是 stream 或 background'
+                }, status=400)
+            
+            user_profile.processing_mode = new_mode
+            user_profile.save()
+            
+            return JsonResponse({
+                'success': True,
+                'mode': new_mode,
+                'mode_display': user_profile.get_processing_mode_display(),
+                'message': '已切换到' + user_profile.get_processing_mode_display()
+            })
+    
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"处理模式设置失败: {e}")
+        return JsonResponse({
+            'error': f'操作失败: {str(e)}'
+        }, status=500)
