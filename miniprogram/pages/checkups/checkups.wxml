@@ -8,7 +8,6 @@
           <text class="date">{{item.checkup_date}}</text>
         </view>
         <view class="checkup-body">
-          <text class="department">{{item.department || '未知科室'}}</text>
           <view class="status-badge status-{{item.status}}">
             {{item.status === 'completed' ? '已完成' : '处理中'}}
           </view>

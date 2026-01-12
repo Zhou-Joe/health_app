@@ -64,17 +64,27 @@ class DocumentProcessingSerializer(serializers.ModelSerializer):
 class MiniProgramCheckupListSerializer(serializers.ModelSerializer):
     """小程序体检记录列表序列化器"""
     indicators_count = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = HealthCheckup
         fields = [
             'id', 'checkup_date', 'hospital', 'report_file',
-            'created_at', 'indicators_count'
+            'created_at', 'indicators_count', 'status'
         ]
         read_only_fields = ['user']
 
     def get_indicators_count(self, obj):
         return obj.healthindicator_set.count()
+
+    def get_status(self, obj):
+        """从DocumentProcessing获取处理状态"""
+        try:
+            processing = obj.documentprocessing
+            return processing.status
+        except DocumentProcessing.DoesNotExist:
+            # 如果没有处理记录，默认为completed
+            return 'completed'
 
 class SystemSettingsSerializer(serializers.ModelSerializer):
     """系统设置序列化器"""
