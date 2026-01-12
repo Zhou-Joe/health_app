@@ -1,10 +1,10 @@
 .checkups-container { padding: 20rpx; }
 .checkup-item { margin-bottom: 20rpx; }
 .checkup-header { display: flex; justify-content: space-between; margin-bottom: 16rpx; }
-.main-title { font-size: 34rpx; font-weight: 600; color: #333; }
-.hospital { font-size: 28rpx; color: #666; }
-.date { font-size: 26rpx; color: #999; }
-.checkup-body { display: flex; justify-content: space-between; align-items: center; }
+.main-title { font-size: 34rpx; font-weight: 600; color: #333; flex: 1; }
+.checkup-body { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.checkup-date { font-size: 26rpx; color: #999; }
+.hospital { font-size: 26rpx; color: #666; }
 .checkup-notes { margin: 12rpx 0; padding: 12rpx; background: #FFF8E1; border-left: 4rpx solid #FFA726; border-radius: 8rpx; }
 .notes-text { font-size: 26rpx; color: #555; line-height: 1.5; word-break: break-all; }
 .checkup-footer { display: flex; justify-content: space-between; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid #F0F0F0; }
