@@ -58,15 +58,15 @@ module.exports = {
     integrateData: '/api/miniprogram/integrate-data/',
 
     // 系统信息
-    servicesStatus: '/api/check-services/', // 网页端接口
-    systemSettings: '/api/settings/', // 网页端接口
+    servicesStatus: '/health/api/check-services/', // 网页端接口
+    systemSettings: '/health/api/settings/', // 网页端接口
     commonHospitals: '/api/miniprogram/hospitals/common/',
 
     // 导出功能（使用网页端接口）
-    exportHealthTrendsPDF: '/dashboard/export/pdf/',
-    exportHealthTrendsWord: '/dashboard/export/word/',
-    exportCheckupsPDF: '/export/checkups/pdf/',
-    exportCheckupsWord: '/export/checkups/word/'
+    exportHealthTrendsPDF: '/health/dashboard/export/pdf/',
+    exportHealthTrendsWord: '/health/dashboard/export/word/',
+    exportCheckupsPDF: '/health/export/checkups/pdf/',
+    exportCheckupsWord: '/health/export/checkups/word/'
   },
 
   // 存储键名
