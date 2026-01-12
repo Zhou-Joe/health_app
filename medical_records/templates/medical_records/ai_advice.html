@@ -85,16 +85,13 @@
                 </h4>
             </div>
             <div class="card-body">
-                <!-- 重要提示 -->
-                <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" style="font-size: 1.5rem;"></i>
-                    <div>
-                        <strong>重要提示：</strong> AI分析过程中请保持页面打开，不要切换到其他应用或锁屏，否则可能导致分析失败。
-                    </div>
-                </div>
-
                 <form id="adviceForm" method="post">
                     {% csrf_token %}
+
+                    <!-- 简洁提示 -->
+                    <div class="text-muted small mb-3">
+                        <i class="bi bi-info-circle"></i> AI分析过程中请保持该页面等待完成
+                    </div>
 
                     <!-- 对话选择区域 -->
                     <div class="mb-4">

@@ -26,14 +26,6 @@
             <div class="card-body">
                 <!-- 上传区域 -->
                 <div id="uploadSection">
-                    <!-- 重要提示 -->
-                    <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" style="font-size: 1.5rem;"></i>
-                        <div>
-                            <strong>重要提示：</strong> 上传过程中请保持页面打开，不要切换到其他应用或锁屏，否则可能导致上传失败。
-                        </div>
-                    </div>
-
                     <form id="uploadForm" enctype="multipart/form-data">
                         {% csrf_token %}
 
@@ -414,6 +406,7 @@
                             <li>报告内容清晰，文字识别效果好</li>
                             <li>建议使用正式医院的体检报告</li>
                             <li>图片格式建议为高清扫描件或照片，确保文字清晰可辨</li>
+                            <li><strong>上传过程中请保持该页面等待完成</strong></li>
                         </ul>
                     </div>
                     <div class="col-md-6">
