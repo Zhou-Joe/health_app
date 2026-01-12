@@ -7,7 +7,6 @@ Page({
     filePath: '',
     checkupDate: '',
     hospital: '',
-    department: '',
     workflows: [
       { value: 'vl_model', label: '多模态大模型模式（推荐）' },
       { value: 'ocr_llm', label: 'OCR+LLM模式' },
@@ -69,10 +68,6 @@ Page({
     this.setData({ hospital: e.detail.value })
   },
 
-  onDepartmentInput(e) {
-    this.setData({ department: e.detail.value })
-  },
-
   onWorkflowChange(e) {
     this.setData({ workflowIndex: e.detail.value })
   },
@@ -99,7 +94,6 @@ Page({
       const formData = {
         checkup_date: this.data.checkupDate,
         hospital: this.data.hospital,
-        department: this.data.department,
         workflow_type: this.data.workflows[this.data.workflowIndex].value
       }
 

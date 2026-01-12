@@ -31,14 +31,6 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">科室</text>
-        <input class="form-input"
-               placeholder="请输入科室（可选）"
-               value="{{department}}"
-               bindinput="onDepartmentInput" />
-      </view>
-
-      <view class="form-item">
         <text class="form-label">处理模式</text>
         <picker range="{{workflows}}" range-key="label" value="{{workflowIndex}}" bindchange="onWorkflowChange">
           <view class="form-value">{{workflows[workflowIndex].label}}</view>
