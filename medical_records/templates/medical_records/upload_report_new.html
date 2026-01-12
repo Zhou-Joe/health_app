@@ -959,13 +959,12 @@ async function uploadFile() {
         console.error('获取处理模式失败，使用默认模式:', error);
     }
 
-    // 根据处理模式选择处理方式
+    // 后台模式处理
     if (processingMode === 'background') {
-        // 后台模式
         try {
             addUploadLogEntry('📤 正在创建后台任务...', 'info');
 
-            const response = await fetch('{% url "medical_records:api_create_upload_task" %}', {
+            const bgResponse = await fetch('{% url "medical_records:api_create_upload_task" %}', {
                 method: 'POST',
                 body: formData,
                 headers: {
@@ -973,11 +972,11 @@ async function uploadFile() {
                 }
             });
 
-            if (!response.ok) {
-                throw new Error(`创建任务失败: HTTP ${response.status}`);
+            if (!bgResponse.ok) {
+                throw new Error(`创建任务失败: HTTP ${bgResponse.status}`);
             }
 
-            const data = await response.json();
+            const data = await bgResponse.json();
             const taskId = data.task_id;
 
             if (!taskId) {
@@ -991,42 +990,42 @@ async function uploadFile() {
             // 开始轮询任务状态
             await pollTaskStatus(taskId);
 
-        } catch (error) {
-            throw error;
+        } catch (bgError) {
+            throw bgError;
         }
     } else {
-        // 实时流式模式
+        // 实时流式模式处理
         try {
-            // 使用流式API，增加超时时间
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分钟超时
+        // 使用流式API，增加超时时间
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分钟超时
 
-            const response = await fetch('{% url "medical_records:api_stream_upload" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                signal: controller.signal
-            });
+        const response = await fetch('{% url "medical_records:api_stream_upload" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            signal: controller.signal
+        });
 
-            clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-            // 检查是否被取消
-            if (uploadCancelled) {
-                throw new Error('上传已取消');
-            }
+        // 检查是否被取消
+        if (uploadCancelled) {
+            throw new Error('上传已取消');
+        }
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-            // 读取流式响应
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let finalResult = null;
-            let buffer = '';
-            let uploadLLMOutputBuffer = '';
+        // 读取流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let finalResult = null;
+        let buffer = '';
+        let uploadLLMOutputBuffer = '';
 
         // HTML转义函数
         function escapeHtml(text) {
@@ -1193,10 +1192,10 @@ async function uploadFile() {
             });
         }
 
-        } catch (error) {
-            throw error;
+        } catch (streamError) {
+            throw streamError;
         }
-    } // end of if (processingMode === 'background') else
+    } // end of else (stream mode)
 
     } catch (error) {
         console.error('上传失败:', error);
