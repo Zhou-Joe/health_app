@@ -2215,3 +2215,39 @@ def update_checkup_notes(request, checkup_id):
             'success': False,
             'error': f'更新失败: {str(e)}'
         }, status=500)
+
+
+# ============================================================================
+# 后台任务状态API
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["GET"])
+@login_required
+def api_task_status(request, task_id):
+    """
+    查询后台任务状态
+    
+    Args:
+        task_id: 任务ID
+    """
+    try:
+        from .background_tasks import task_manager
+        
+        task = task_manager.get_task_status(task_id)
+        
+        if not task:
+            return JsonResponse({
+                'status': 'not_found',
+                'message': '任务不存在或已过期'
+            }, status=404)
+        
+        return JsonResponse(task)
+    
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"获取任务状态失败: {e}")
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
