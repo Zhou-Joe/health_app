@@ -59,7 +59,7 @@ class HealthIndicator(models.Model):
         ('other', '其他检查'),
     ]
 
-    checkup = models.ForeignKey(HealthCheckup, on_delete=models.CASCADE, verbose_name='体检报告')
+    checkup = models.ForeignKey(HealthCheckup, on_delete=models.CASCADE, verbose_name='体检报告', related_name='indicators')
     indicator_type = models.CharField(max_length=50, choices=INDICATOR_TYPES, verbose_name='指标类型')
     indicator_name = models.CharField(max_length=100, verbose_name='指标名称')
     value = models.CharField(max_length=100, verbose_name='检测值')

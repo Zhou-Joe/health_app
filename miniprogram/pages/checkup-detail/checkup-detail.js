@@ -17,6 +17,19 @@ Page({
       ])
 
       const indicators = indicatorsRes.data || []
+      console.log('=== 小程序指标数据调试 ===')
+      console.log('指标数量:', indicators.length)
+      console.log('前3个指标:')
+      indicators.slice(0, 3).forEach((i, idx) => {
+        console.log(`  指标${idx+1}:`, {
+          indicator_name: i.indicator_name,
+          value: i.value,
+          unit: i.unit,
+          reference_range: i.reference_range,
+          status: i.status
+        })
+      })
+
       const stats = { total: indicators.length, normal: 0, abnormal: 0 }
       indicators.forEach(i => { i.status === 'normal' ? stats.normal++ : stats.abnormal++ })
 

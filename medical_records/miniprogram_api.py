@@ -351,6 +351,11 @@ def miniprogram_indicators(request, checkup_id=None):
 
         serializer = HealthIndicatorSerializer(indicators_page, many=True)
 
+        # 调试：打印前3个指标数据
+        print(f"[小程序指标API] 返回 {len(serializer.data)} 个指标")
+        for i, indicator in enumerate(serializer.data[:3]):
+            print(f"  指标{i+1}: indicator_name='{indicator.get('indicator_name')}', value='{indicator.get('value')}', unit='{indicator.get('unit')}'")
+
         return Response({
             'success': True,
             'data': serializer.data,
