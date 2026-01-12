@@ -13,6 +13,9 @@
           <text class="hospital">{{item.hospital || '未知机构'}}</text>
           <text class="indicator-count">{{item.indicators_count}}项指标</text>
         </view>
+        <view class="checkup-notes" wx:if="{{item.notes}}">
+          <text class="notes-text">{{item.notes}}</text>
+        </view>
         <view class="checkup-footer">
           <text class="view-detail">查看详情 ></text>
         </view>

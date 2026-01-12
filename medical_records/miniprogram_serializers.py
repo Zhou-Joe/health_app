@@ -70,7 +70,7 @@ class MiniProgramCheckupListSerializer(serializers.ModelSerializer):
         model = HealthCheckup
         fields = [
             'id', 'checkup_date', 'hospital', 'report_file',
-            'created_at', 'indicators_count', 'status'
+            'created_at', 'indicators_count', 'status', 'notes'
         ]
         read_only_fields = ['user']
 
