@@ -7,12 +7,7 @@ Page({
     filePath: '',
     checkupDate: '',
     hospital: '',
-    workflows: [
-      { value: 'vl_model', label: '多模态大模型模式（推荐）' },
-      { value: 'ocr_llm', label: 'OCR+LLM模式' },
-      { value: 'vlm_transformers', label: 'VLM Transformers模式' }
-    ],
-    workflowIndex: 0,
+    notes: '',
     commonHospitals: [],
     uploading: false,
     showProgress: false,
@@ -84,8 +79,8 @@ Page({
     this.setData({ hospital: e.detail.value })
   },
 
-  onWorkflowChange(e) {
-    this.setData({ workflowIndex: e.detail.value })
+  onNotesInput(e) {
+    this.setData({ notes: e.detail.value })
   },
 
   selectHospital(e) {
@@ -107,10 +102,15 @@ Page({
     this.setData({ uploading: true })
 
     try {
+      // 根据文件类型自动选择处理模式
+      const isPDF = this.data.filePath.toLowerCase().endsWith('.pdf')
+      const workflow_type = isPDF ? 'ocr_llm' : 'vl_model'
+
       const formData = {
         checkup_date: this.data.checkupDate,
         hospital: this.data.hospital,
-        workflow_type: this.data.workflows[this.data.workflowIndex].value
+        notes: this.data.notes,
+        workflow_type: workflow_type
       }
 
       const res = await api.uploadReport(this.data.filePath, formData)

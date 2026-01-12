@@ -66,6 +66,11 @@
   border-bottom: 1rpx solid #F0F0F0;
 }
 
+.form-item-vertical {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .form-label {
   width: 150rpx;
   font-size: 28rpx;
@@ -81,6 +86,22 @@
 .form-input {
   flex: 1;
   font-size: 28rpx;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 120rpx;
+  padding: 16rpx;
+  background-color: #F8F9FA;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  margin-top: 12rpx;
+  box-sizing: border-box;
+}
+
+.form-item-vertical .form-label {
+  width: 100%;
+  margin-bottom: 8rpx;
 }
 
 .common-hospitals {

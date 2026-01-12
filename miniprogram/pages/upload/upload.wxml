@@ -30,11 +30,13 @@
                bindinput="onHospitalInput" />
       </view>
 
-      <view class="form-item">
-        <text class="form-label">处理模式</text>
-        <picker range="{{workflows}}" range-key="label" value="{{workflowIndex}}" bindchange="onWorkflowChange">
-          <view class="form-value">{{workflows[workflowIndex].label}}</view>
-        </picker>
+      <view class="form-item form-item-vertical">
+        <text class="form-label">报告描述</text>
+        <textarea class="form-textarea"
+                  placeholder="请输入报告描述，如：年度体检、入职体检等（选填）"
+                  value="{{notes}}"
+                  bindinput="onNotesInput"
+                  maxlength="200" />
       </view>
     </view>
 
