@@ -122,6 +122,7 @@ def miniprogram_upload_report(request):
         file = request.FILES['file']
         checkup_date = request.POST.get('checkup_date', datetime.now().strftime('%Y-%m-%d'))
         hospital = request.POST.get('hospital', '')
+        notes = request.POST.get('notes', '')
         workflow_type = request.POST.get('workflow_type', 'vl_model')  # 默认使用多模态模型
 
         # 保存文件
@@ -145,6 +146,7 @@ def miniprogram_upload_report(request):
             user=request.user,
             checkup_date=checkup_date,
             hospital=hospital,
+            notes=notes,
             report_file=file_path
         )
 
