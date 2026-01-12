@@ -924,7 +924,7 @@ class DocumentProcessingService:
                         value=clean_value,
                         unit=unit,
                         reference_range=normal_range or '',  # 确保 None 转为空字符串
-                        # status不传，使用模型的default值
+                        status=status or 'normal'  # 传入状态，如果为None则使用normal
                     )
                     saved_count += 1
                     status_display = status if status else 'normal(默认)'
@@ -1955,7 +1955,7 @@ class VisionLanguageModelService:
                         value=clean_value,
                         unit=unit,
                         reference_range=normal_range or '',  # 确保 None 转为空字符串
-                        # status不传，使用模型的default值
+                        status=status or 'normal'  # 传入状态，如果为None则使用normal
                     )
                     saved_count += 1
                     status_display = status if status else 'normal(默认)'
