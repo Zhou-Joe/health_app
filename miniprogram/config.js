@@ -47,10 +47,10 @@ module.exports = {
     // AI对话
     conversations: '/api/miniprogram/conversations/',
     conversationDetail: (id) => `/api/miniprogram/conversations/${id}/`,
+    conversationMessages: (id) => `/api/miniprogram/conversations/${id}/`, // 与conversationDetail相同
     createConversation: '/api/miniprogram/conversations/create/',
     adviceMessageStatus: (id) => `/api/miniprogram/advice-message/${id}/`,
     deleteConversation: (id) => `/api/miniprogram/conversations/${id}/delete/`,
-    conversationMessages: (id) => `/api/miniprogram/conversations/${id}/`,
     exportConversationPDF: (id) => `/api/miniprogram/conversations/${id}/export/pdf/`,
     exportConversationWord: (id) => `/api/miniprogram/conversations/${id}/export/word/`,
 
@@ -58,15 +58,15 @@ module.exports = {
     integrateData: '/api/miniprogram/integrate-data/',
 
     // 系统信息
-    servicesStatus: '/health/api/check-services/', // 网页端接口
-    systemSettings: '/health/api/settings/', // 网页端接口
+    servicesStatus: '/api/miniprogram/services-status/', // 小程序专用接口
+    systemSettings: '/api/miniprogram/system-settings/', // 小程序专用接口
     commonHospitals: '/api/miniprogram/hospitals/common/',
 
     // 导出功能（使用网页端接口）
-    exportHealthTrendsPDF: '/health/dashboard/export/pdf/',
-    exportHealthTrendsWord: '/health/dashboard/export/word/',
-    exportCheckupsPDF: '/health/export/checkups/pdf/',
-    exportCheckupsWord: '/health/export/checkups/word/'
+    exportHealthTrendsPDF: '/dashboard/export/pdf/',
+    exportHealthTrendsWord: '/dashboard/export/word/',
+    exportCheckupsPDF: '/export/checkups/pdf/',
+    exportCheckupsWord: '/export/checkups/word/'
   },
 
   // 存储键名
