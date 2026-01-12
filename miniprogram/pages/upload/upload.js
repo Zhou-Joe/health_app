@@ -33,6 +33,7 @@ Page({
     if (this.data.progressTimer) {
       clearInterval(this.data.progressTimer)
     }
+    wx.hideLoading()
   },
 
   async loadCommonHospitals() {
@@ -55,6 +56,8 @@ Page({
   onHide() {
     // 页面隐藏时，不停止轮询，让它在后台继续运行
     console.log('页面隐藏，轮询继续')
+    // 但关闭loading提示，避免阻塞用户操作
+    wx.hideLoading()
   },
 
   chooseFile() {
@@ -119,13 +122,20 @@ Page({
         checkupId: res.checkup_id
       })
 
-      util.showToast('上传成功，开始处理', 'success')
+      util.showToast('上传成功，后台处理中...', 'success')
       this.pollProgress()
+
+      // 显示loading提示后台处理中
+      wx.showLoading({
+        title: '正在处理报告...',
+        mask: true
+      })
     } catch (err) {
       console.error('上传失败详情:', err)
       console.error('错误信息:', err.message)
       console.error('错误堆栈:', err.stack)
       this.setData({ uploading: false })
+      wx.hideLoading()
       util.showToast(err.message || '上传失败')
     }
   },
@@ -160,11 +170,13 @@ Page({
         console.log('处理完成！')
         clearInterval(this.data.progressTimer)
         this.setData({ progress: 100, progressTimer: null })
+        wx.hideLoading()
         util.showToast('处理完成', 'success')
       } else if (res.status === 'failed') {
         console.error('处理失败:', res.error_message)
         clearInterval(this.data.progressTimer)
         this.setData({ progressTimer: null })
+        wx.hideLoading()
         util.showToast('处理失败：' + (res.error_message || '未知错误'))
       }
     } catch (err) {
