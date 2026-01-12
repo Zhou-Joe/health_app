@@ -2,7 +2,6 @@
   <view class="info-card card">
     <view class="info-row"><text class="label">体检机构</text><text class="value">{{checkup.hospital || '未知'}}</text></view>
     <view class="info-row"><text class="label">体检日期</text><text class="value">{{checkup.checkup_date}}</text></view>
-    <view class="info-row"><text class="label">科室</text><text class="value">{{checkup.department || '未知'}}</text></view>
   </view>
 
   <view class="stats-card card">
