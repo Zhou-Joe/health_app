@@ -2263,22 +2263,22 @@ def api_task_status(request, task_id):
 def api_processing_mode(request):
     """
     获取或设置用户的AI处理模式
-    
+
     GET: 获取当前模式
     POST: 设置模式
-    
+
     模式说明：
     - stream: 实时模式（流式响应），需要保持页面打开，可以看到实时输出
     - background: 后台模式（异步任务），可以离开页面，完成后查看结果
     """
     try:
         from .models import UserProfile
-        
+
         # 获取或创建用户配置
         user_profile, created = UserProfile.objects.get_or_create(
             user=request.user
         )
-        
+
         if request.method == 'GET':
             # 获取当前模式
             return JsonResponse({
@@ -2289,30 +2289,139 @@ def api_processing_mode(request):
                     'background': '后台模式：可以在后台处理，完成后查看结果，适合手机用户'
                 }.get(user_profile.processing_mode, '')
             })
-        
+
         elif request.method == 'POST':
             # 设置模式
             data = json.loads(request.body)
             new_mode = data.get('mode')
-            
+
             if new_mode not in ['stream', 'background']:
                 return JsonResponse({
                     'error': '无效的模式，必须是 stream 或 background'
                 }, status=400)
-            
+
             user_profile.processing_mode = new_mode
             user_profile.save()
-            
+
             return JsonResponse({
                 'success': True,
                 'mode': new_mode,
                 'mode_display': user_profile.get_processing_mode_display(),
                 'message': '已切换到' + user_profile.get_processing_mode_display()
             })
-    
+
     except Exception as e:
         logger = logging.getLogger(__name__)
         logger.error(f"处理模式设置失败: {e}")
         return JsonResponse({
             'error': f'操作失败: {str(e)}'
+        }, status=500)
+
+
+# ============================================================================
+# 后台上传任务API
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_create_upload_task(request):
+    """
+    创建后台上传任务
+
+    处理体检报告上传（后台模式），返回task_id用于查询状态
+    """
+    import uuid
+    from .background_tasks import task_manager
+
+    task_id = str(uuid.uuid4())
+
+    try:
+        # 获取表单数据
+        checkup_date = request.POST.get('checkup_date')
+        hospital = request.POST.get('hospital', '未知机构')
+        report_file = request.FILES.get('report_file')
+        workflow_type = request.POST.get('workflow_type', 'ocr_llm')
+
+        if not report_file:
+            return JsonResponse({
+                'error': '请选择要上传的文件'
+            }, status=400)
+
+        if not checkup_date:
+            return JsonResponse({
+                'error': '请选择体检日期'
+            }, status=400)
+
+        # 创建后台任务函数
+        def process_uploadInBackground():
+            """后台处理上传任务"""
+            try:
+                # 保存文件到临时位置
+                import tempfile
+                import shutil
+
+                # 创建临时文件
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(report_file.name)[1]) as tmp_file:
+                    for chunk in report_file.chunks():
+                        tmp_file.write(chunk)
+                    tmp_file_path = tmp_file.name
+
+                # 创建体检报告记录
+                checkup = HealthCheckup.objects.create(
+                    user=request.user,
+                    checkup_date=checkup_date,
+                    hospital=hospital
+                )
+
+                # 如果是图片文件，转换为PDF
+                if is_image_file(tmp_file_path):
+                    tmp_file_path = convert_image_to_pdf(tmp_file_path)
+
+                # 创建文档处理记录
+                processing = DocumentProcessing.objects.create(
+                    user=request.user,
+                    health_checkup=checkup,
+                    workflow_type=workflow_type
+                )
+
+                # 使用DocumentProcessingService处理文档
+                service = DocumentProcessingService(processing)
+                result = service.process_document(tmp_file_path, report_file.name)
+
+                # 清理临时文件
+                try:
+                    os.unlink(tmp_file_path)
+                except:
+                    pass
+
+                return {
+                    'success': True,
+                    'checkup_id': checkup.id,
+                    'indicators_count': HealthIndicator.objects.filter(checkup=checkup).count(),
+                    'result': result
+                }
+
+            except Exception as e:
+                logger = logging.getLogger(__name__)
+                logger.error(f"后台上传任务失败: {e}")
+                return {
+                    'success': False,
+                    'error': str(e)
+                }
+
+        # 创建后台任务
+        task = task_manager.create_task(task_id, process_uploadInBackground)
+
+        return JsonResponse({
+            'task_id': task_id,
+            'status': 'pending',
+            'message': '上传任务已创建，正在后台处理'
+        })
+
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"创建上传任务失败: {e}")
+        return JsonResponse({
+            'error': f'创建任务失败: {str(e)}'
         }, status=500)

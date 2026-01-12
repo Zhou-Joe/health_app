@@ -946,6 +946,170 @@ async function uploadFile() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // 获取用户的处理模式
+    let processingMode = 'background'; // 默认后台模式
+    try {
+        const modeResponse = await fetch('{% url "medical_records:api_processing_mode" %}');
+        if (modeResponse.ok) {
+            const modeData = await modeResponse.json();
+            processingMode = modeData.mode;
+            console.log('当前处理模式:', processingMode);
+        }
+    } catch (error) {
+        console.error('获取处理模式失败，使用默认模式:', error);
+    }
+
+    // 根据处理模式选择API
+    if (processingMode === 'background') {
+        // 后台模式
+        await processInBackgroundMode(formData);
+    } else {
+        // 实时模式
+        await processInStreamMode(formData, uploadCancelled, () => uploadCancelled);
+    }
+
+} catch (error) {
+    // 错误处理
+    console.error('上传失败:', error);
+
+    // 移除Wake Lock
+    if (wakeLock) {
+        wakeLock.release();
+    }
+
+    // 显示错误
+    addUploadLogEntry(`❌ 上传失败: ${error.message}`, 'error');
+
+    // 恢复上传按钮
+    const uploadBtn = document.getElementById('uploadBtn');
+    if (uploadBtn) {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="bi bi-upload"></i> 开始上传';
+    }
+
+    // 显示文件选择
+    const fileSelection = document.getElementById('fileSelection');
+    if (fileSelection) {
+        fileSelection.style.display = 'block';
+    }
+}
+
+/**
+ * 后台模式处理函数
+ */
+async function processInBackgroundMode(formData) {
+    try {
+        addUploadLogEntry('📤 正在创建后台任务...', 'info');
+
+        const response = await fetch('{% url "medical_records:api_create_upload_task" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`创建任务失败: HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const taskId = data.task_id;
+
+        if (!taskId) {
+            throw new Error('未返回任务ID');
+        }
+
+        addUploadLogEntry(`✅ 后台任务已创建 (ID: ${taskId.substring(0, 8)}...)`, 'success');
+        addUploadLogEntry('📋 任务正在后台处理，您可以离开此页面', 'info');
+        addUploadLogEntry('🔄 处理完成后，结果将保存到系统中', 'info');
+
+        // 开始轮询任务状态
+        await pollTaskStatus(taskId);
+
+    } catch (error) {
+        throw error;
+    }
+}
+
+/**
+ * 轮询任务状态
+ */
+async function pollTaskStatus(taskId) {
+    const maxAttempts = 600; // 最多轮询600次（30分钟，每3秒一次）
+    let attempts = 0;
+
+    const poll = async () => {
+        attempts++;
+
+        try {
+            const response = await fetch(`{% url "medical_records:api_task_status" task_id="TASK_ID" %}`.replace('TASK_ID', taskId));
+
+            if (!response.ok) {
+                throw new Error(`查询状态失败: HTTP ${response.status}`);
+            }
+
+            const task = await response.json();
+
+            // 更新进度
+            if (task.message) {
+                addUploadLogEntry(`📊 ${task.message}`, 'info');
+            }
+
+            if (task.status === 'completed') {
+                // 任务完成
+                addUploadLogEntry('✅ 处理完成！', 'success');
+
+                if (task.result) {
+                    const result = task.result;
+                    if (result.success) {
+                        addUploadLogEntry(`📈 提取了 ${result.indicators_count} 个健康指标`, 'success');
+
+                        // 跳转到详情页
+                        setTimeout(() => {
+                            window.location.href = `/health/checkup/${result.checkup_id}/`;
+                        }, 2000);
+                    } else {
+                        addUploadLogEntry(`❌ 处理失败: ${result.error}`, 'error');
+                    }
+                }
+
+                // 恢复上传按钮
+                const uploadBtn = document.getElementById('uploadBtn');
+                if (uploadBtn) {
+                    uploadBtn.disabled = false;
+                    uploadBtn.innerHTML = '<i class="bi bi-upload"></i> 开始上传';
+                }
+
+                return;
+            }
+
+            if (task.status === 'failed') {
+                // 任务失败
+                throw new Error(task.error || '任务执行失败');
+            }
+
+            // 继续轮询
+            if (attempts < maxAttempts) {
+                setTimeout(() => poll(), 3000); // 3秒后再次查询
+            } else {
+                throw new Error('任务超时');
+            }
+
+        } catch (error) {
+            addUploadLogEntry(`❌ 查询状态失败: ${error.message}`, 'error');
+            throw error;
+        }
+    };
+
+    // 开始轮询
+    await poll();
+}
+
+/**
+ * 实时流式模式处理函数
+ */
+async function processInStreamMode(formData, getUploadCancelled) {
     try {
         // 使用流式API，增加超时时间
         const controller = new AbortController();
@@ -963,7 +1127,7 @@ async function uploadFile() {
         clearTimeout(timeoutId);
 
         // 检查是否被取消
-        if (uploadCancelled) {
+        if (getUploadCancelled && getUploadCancelled()) {
             throw new Error('上传已取消');
         }
 
