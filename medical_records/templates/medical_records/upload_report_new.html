@@ -26,6 +26,14 @@
             <div class="card-body">
                 <!-- 上传区域 -->
                 <div id="uploadSection">
+                    <!-- 重要提示 -->
+                    <div class="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <strong>重要提示：</strong> 上传过程中请保持页面打开，不要切换到其他应用或锁屏，否则可能导致上传失败。
+                        </div>
+                    </div>
+
                     <form id="uploadForm" enctype="multipart/form-data">
                         {% csrf_token %}
 
@@ -915,15 +923,56 @@ async function uploadFile() {
         ocrResults.style.display = 'none';
     }
 
+    // Wake Lock API - 保持屏幕常亮
+    let wakeLock = null;
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Wake Lock activated');
+            }
+        } catch (err) {
+            console.log(`Wake Lock error: ${err.name}, ${err.message}`);
+        }
+    }
+
+    // 请求Wake Lock
+    await requestWakeLock();
+
+    // Page Visibility API - 检测页面可见性
+    let uploadCancelled = false;
+    const handleVisibilityChange = () => {
+        if (document.hidden) {
+            addUploadLogEntry('⚠️ 警告：请保持页面打开，切换后台可能导致上传失败', 'warning');
+        } else {
+            addUploadLogEntry('✅ 页面已恢复，继续上传...', 'info');
+            // 重新请求Wake Lock（因为切换后台会释放）
+            requestWakeLock();
+        }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     try {
-        // 使用流式API
+        // 使用流式API，增加超时时间
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分钟超时
+
         const response = await fetch('{% url "medical_records:api_stream_upload" %}', {
             method: 'POST',
             body: formData,
             headers: {
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
+            },
+            signal: controller.signal
         });
+
+        clearTimeout(timeoutId);
+
+        // 检查是否被取消
+        if (uploadCancelled) {
+            throw new Error('上传已取消');
+        }
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -1103,7 +1152,30 @@ async function uploadFile() {
 
     } catch (error) {
         console.error('上传失败:', error);
-        showError('上传失败: ' + error.message);
+
+        // 检查是否是超时错误
+        if (error.name === 'AbortError') {
+            showError('上传超时，请检查网络连接后重试');
+        } else if (error.message === '上传已取消') {
+            showError('上传已取消');
+        } else {
+            showError('上传失败: ' + error.message);
+        }
+    } finally {
+        // 清理资源
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+        // 释放Wake Lock
+        if (wakeLock !== null) {
+            wakeLock.release()
+                .then(() => {
+                    wakeLock = null;
+                    console.log('Wake Lock released');
+                })
+                .catch((err) => {
+                    console.error(`Wake Lock release error: ${err.name}, ${err.message}`);
+                });
+        }
     }
 }
 
