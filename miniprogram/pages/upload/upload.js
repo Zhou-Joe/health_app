@@ -44,6 +44,19 @@ Page({
     }
   },
 
+  onShow() {
+    // 页面显示时，如果有正在处理的上传，恢复轮询
+    if (this.data.processingId && !this.data.progressTimer) {
+      console.log('恢复轮询处理进度')
+      this.pollProgress()
+    }
+  },
+
+  onHide() {
+    // 页面隐藏时，不停止轮询，让它在后台继续运行
+    console.log('页面隐藏，轮询继续')
+  },
+
   chooseFile() {
     wx.chooseMessageFile({
       count: 1,
@@ -118,28 +131,47 @@ Page({
   },
 
   pollProgress() {
-    this.data.progressTimer = setInterval(async () => {
-      try {
-        const res = await api.getProcessingStatus(this.data.processingId)
+    console.log('开始轮询处理进度，processingId:', this.data.processingId)
 
-        this.setData({
-          progress: res.progress || 0,
-          statusText: this.getStatusText(res.status)
-        })
+    // 立即执行一次
+    this.checkProgress()
 
-        if (res.status === 'completed') {
-          clearInterval(this.data.progressTimer)
-          this.setData({ progress: 100 })
-          util.showToast('处理完成', 'success')
-        } else if (res.status === 'failed') {
-          clearInterval(this.data.progressTimer)
-          util.showToast('处理失败：' + (res.error_message || '未知错误'))
-        }
-      } catch (err) {
-        clearInterval(this.data.progressTimer)
-        util.showToast('获取状态失败')
-      }
+    // 然后定时轮询
+    this.data.progressTimer = setInterval(() => {
+      this.checkProgress()
     }, 2000)
+  },
+
+  async checkProgress() {
+    try {
+      console.log('查询处理状态，processingId:', this.data.processingId)
+      const res = await api.getProcessingStatus(this.data.processingId)
+
+      console.log('处理状态响应:', res)
+
+      this.setData({
+        progress: res.progress || 0,
+        statusText: this.getStatusText(res.status)
+      })
+
+      console.log('当前进度:', this.data.progress, '状态:', this.data.statusText)
+
+      if (res.status === 'completed') {
+        console.log('处理完成！')
+        clearInterval(this.data.progressTimer)
+        this.setData({ progress: 100, progressTimer: null })
+        util.showToast('处理完成', 'success')
+      } else if (res.status === 'failed') {
+        console.error('处理失败:', res.error_message)
+        clearInterval(this.data.progressTimer)
+        this.setData({ progressTimer: null })
+        util.showToast('处理失败：' + (res.error_message || '未知错误'))
+      }
+    } catch (err) {
+      console.error('获取状态失败:', err)
+      // 不要立即停止轮询，可能是网络波动
+      console.log('继续轮询...')
+    }
   },
 
   getStatusText(status) {
