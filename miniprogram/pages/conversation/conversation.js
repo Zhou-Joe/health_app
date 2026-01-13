@@ -375,6 +375,22 @@ Page({
   },
 
   /**
+   * 处理发送按钮点击
+   */
+  handleSendTap() {
+    const inputText = this.data.inputText.trim()
+
+    if (!inputText) {
+      util.showToast('请输入您的健康问题')
+      return
+    }
+
+    if (this.data.sending) return
+
+    this.sendMessage()
+  },
+
+  /**
    * 发送消息
    */
   async sendMessage() {

@@ -128,7 +128,7 @@
         class="message-input"
         value="{{inputText}}"
         bindinput="onInputChange"
-        placeholder="请描述您的健康问题..."
+        placeholder="请继续提问..."
         maxlength="1000"
         auto-height
         disable-default-padding
@@ -137,8 +137,7 @@
         cursor-spacing="10" />
       <button
         class="send-btn {{inputText.trim() ? 'active' : ''}}"
-        bindtap="sendMessage"
-        disabled="{{!inputText.trim() || sending}}">
+        bindtap="handleSendTap">
         <text class="send-icon" wx:if="{{!sending}}">➤</text>
         <text class="send-text" wx:if="{{sending}}">...</text>
       </button>
