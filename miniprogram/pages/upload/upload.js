@@ -5,6 +5,7 @@ const util = require('../../utils/util.js')
 Page({
   data: {
     filePath: '',
+    fileName: '',
     checkupDate: '',
     hospital: '',
     notes: '',
@@ -62,13 +63,19 @@ Page({
       extension: ['pdf', 'png', 'jpg', 'jpeg'],
       success: (res) => {
         const file = res.tempFiles[0]
-        this.setData({ filePath: file.path })
+        this.setData({
+          filePath: file.path,
+          fileName: file.name
+        })
       }
     })
   },
 
   removeFile() {
-    this.setData({ filePath: '' })
+    this.setData({
+      filePath: '',
+      fileName: ''
+    })
   },
 
   onDateChange(e) {

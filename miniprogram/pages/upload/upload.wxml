@@ -7,9 +7,9 @@
     <view class="upload-area" bindtap="chooseFile">
       <image wx:if="{{!filePath}}" class="upload-icon" src="/images/upload.png"></image>
       <text wx:if="{{!filePath}}" class="upload-text">点击上传PDF或图片</text>
-      <view wx:else class="file-preview">
-        <image class="file-image" src="{{filePath}}" mode="aspectFit"></image>
-        <view class="file-remove" bindtap="removeFile" catchtap="removeFile">×</view>
+      <view wx:else class="file-info">
+        <text class="file-name">{{fileName}}</text>
+        <text class="file-remove" bindtap="removeFile" catchtap="removeFile">✕</text>
       </view>
     </view>
 
