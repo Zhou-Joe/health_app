@@ -898,7 +898,12 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
                     prompt_parts.append(f"性别：{user_profile.get_gender_display()}")
                     if user_profile.age:
                         prompt_parts.append(f"年龄：{user_profile.age}岁")
-            except:
+            except UserProfile.DoesNotExist:
+                # 用户没有个人信息记录，跳过
+                pass
+            except Exception as e:
+                # 其他异常也跳过，但记录日志
+                print(f"[警告] 获取用户个人信息时出错: {e}")
                 pass
 
             # 添加对话上下文
@@ -949,8 +954,12 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
                 prompt_parts.append(f"性别：{user_profile.get_gender_display()}")
                 if user_profile.age:
                     prompt_parts.append(f"年龄：{user_profile.age}岁")
-        except:
-            # 如果用户信息不存在，跳过
+        except UserProfile.DoesNotExist:
+            # 用户没有个人信息记录，跳过
+            pass
+        except Exception as e:
+            # 其他异常也跳过，但记录日志
+            print(f"[警告] 获取用户个人信息时出错: {e}")
             pass
 
         # 添加对话上下文（简化格式以节省token）
