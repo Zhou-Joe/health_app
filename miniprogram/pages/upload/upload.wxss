@@ -29,8 +29,49 @@
   transition: all 0.3s ease;
 }
 
-.upload-area:active {
-  background: linear-gradient(135deg, #FFF5F0 0%, #FFFAFA 100%);
+.upload-buttons {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+}
+
+.upload-btn {
+  flex: 1;
+  height: 120rpx;
+  background: #FFFFFF;
+  border: 2rpx solid #F0F0F0;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.upload-btn:active {
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  border-color: transparent;
+}
+
+.upload-btn::after {
+  border: none;
+}
+
+.btn-icon {
+  font-size: 48rpx;
+  margin-bottom: 8rpx;
+}
+
+.btn-text {
+  font-size: 26rpx;
+  color: #666666;
+  font-weight: 500;
+}
+
+.upload-btn:active .btn-text {
+  color: #5A4A4A;
 }
 
 .upload-icon {

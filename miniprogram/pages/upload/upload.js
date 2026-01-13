@@ -6,6 +6,7 @@ Page({
   data: {
     filePath: '',
     fileName: '',
+    fileType: '', // 'image' 或 'pdf'
     checkupDate: '',
     hospital: '',
     notes: '',
@@ -58,7 +59,7 @@ Page({
     wx.hideLoading()
   },
 
-  chooseFile() {
+  chooseImage() {
     wx.chooseImage({
       count: 1,
       sizeType: ['original', 'compressed'],
@@ -67,7 +68,8 @@ Page({
         const filePath = res.tempFilePaths[0]
         this.setData({
           filePath: filePath,
-          fileName: 'report.jpg'
+          fileName: 'report.jpg',
+          fileType: 'image'
         })
       },
       fail: (err) => {
@@ -77,10 +79,31 @@ Page({
     })
   },
 
+  choosePDF() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['pdf'],
+      success: (res) => {
+        const file = res.tempFiles[0]
+        this.setData({
+          filePath: file.path,
+          fileName: file.name,
+          fileType: 'pdf'
+        })
+      },
+      fail: (err) => {
+        console.error('选择PDF失败:', err)
+        util.showToast('选择PDF失败')
+      }
+    })
+  },
+
   removeFile() {
     this.setData({
       filePath: '',
-      fileName: ''
+      fileName: '',
+      fileType: ''
     })
   },
 
@@ -115,12 +138,15 @@ Page({
     this.setData({ uploading: true })
 
     try {
-      // 使用视觉模型处理图片
+      // 根据文件类型自动选择处理模式
+      const isPDF = this.data.fileType === 'pdf'
+      const workflow_type = isPDF ? 'ocr_llm' : 'vl_model'
+
       const formData = {
         checkup_date: this.data.checkupDate,
         hospital: this.data.hospital,
         notes: this.data.notes,
-        workflow_type: 'vl_model'
+        workflow_type: workflow_type
       }
 
       const res = await api.uploadReport(this.data.filePath, formData)

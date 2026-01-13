@@ -4,9 +4,17 @@
     <view class="card-title">上传体检报告</view>
 
     <!-- 上传区域 -->
-    <view class="upload-area" bindtap="chooseFile">
-      <image wx:if="{{!filePath}}" class="upload-icon" src="/images/upload.png"></image>
-      <text wx:if="{{!filePath}}" class="upload-text">点击上传PDF或图片</text>
+    <view class="upload-area">
+      <view wx:if="{{!filePath}}" class="upload-buttons">
+        <button class="upload-btn" bindtap="chooseImage">
+          <text class="btn-icon">📷</text>
+          <text class="btn-text">选择照片</text>
+        </button>
+        <button class="upload-btn" bindtap="choosePDF">
+          <text class="btn-icon">📄</text>
+          <text class="btn-text">选择PDF</text>
+        </button>
+      </view>
       <view wx:else class="file-info">
         <text class="file-name">{{fileName}}</text>
         <text class="file-remove" bindtap="removeFile" catchtap="removeFile">✕</text>
