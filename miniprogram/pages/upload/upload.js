@@ -26,8 +26,10 @@ Page({
   },
 
   onUnload() {
+    // 清理定时器
     if (this.data.progressTimer) {
       clearInterval(this.data.progressTimer)
+      this.setData({ progressTimer: null })
     }
     wx.hideLoading()
   },
@@ -51,8 +53,8 @@ Page({
 
   onHide() {
     // 页面隐藏时，不停止轮询，让它在后台继续运行
-    console.log('页面隐藏，轮询继续')
-    // 但关闭loading提示，避免阻塞用户操作
+    console.log('页面隐藏，轮询继续，当前状态:', this.data.statusText)
+    // 关闭loading提示，避免阻塞用户操作
     wx.hideLoading()
   },
 
@@ -154,37 +156,66 @@ Page({
     this.checkProgress()
 
     // 然后定时轮询
-    this.data.progressTimer = setInterval(() => {
+    const timer = setInterval(() => {
       this.checkProgress()
     }, 2000)
+
+    // 保存timer到data中
+    this.setData({ progressTimer: timer })
   },
 
   async checkProgress() {
+    // 如果已经完成或失败，不再查询
+    if (this.data.progress === 100 || this.data.statusText === '处理失败') {
+      return
+    }
+
     try {
       console.log('查询处理状态，processingId:', this.data.processingId)
       const res = await api.getProcessingStatus(this.data.processingId)
 
       console.log('处理状态响应:', res)
 
+      const statusText = this.getStatusText(res.status)
+      const oldStatus = this.data.statusText
+
       this.setData({
         progress: res.progress || 0,
-        statusText: this.getStatusText(res.status)
+        statusText: statusText
       })
 
       console.log('当前进度:', this.data.progress, '状态:', this.data.statusText)
 
+      // 状态变化时显示对应的toast
+      if (oldStatus !== statusText && statusText !== '处理完成' && statusText !== '处理失败') {
+        util.showToast(statusText + '...', 'loading', 1500)
+      }
+
       if (res.status === 'completed') {
         console.log('处理完成！')
-        clearInterval(this.data.progressTimer)
-        this.setData({ progress: 100, progressTimer: null })
+        // 停止轮询
+        if (this.data.progressTimer) {
+          clearInterval(this.data.progressTimer)
+          this.setData({
+            progress: 100,
+            progressTimer: null,
+            statusText: '处理完成'
+          })
+        }
         wx.hideLoading()
-        util.showToast('处理完成', 'success')
+        util.showToast('✅ 处理完成！', 'success')
       } else if (res.status === 'failed') {
         console.error('处理失败:', res.error_message)
-        clearInterval(this.data.progressTimer)
-        this.setData({ progressTimer: null })
+        // 停止轮询
+        if (this.data.progressTimer) {
+          clearInterval(this.data.progressTimer)
+          this.setData({
+            progressTimer: null,
+            statusText: '处理失败'
+          })
+        }
         wx.hideLoading()
-        util.showToast('处理失败：' + (res.error_message || '未知错误'))
+        util.showToast('❌ 处理失败：' + (res.error_message || '未知错误'))
       }
     } catch (err) {
       console.error('获取状态失败:', err)
