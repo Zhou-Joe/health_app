@@ -52,8 +52,7 @@
 
   <button class="submit-btn"
           bindtap="handleSubmit"
-          loading="{{submitting}}"
-          disabled="{{!canSubmit}}">
+          loading="{{submitting}}">
     {{submitting ? '提交中...' : '完成'}}
   </button>
 </view>
