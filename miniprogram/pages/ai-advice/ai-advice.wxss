@@ -10,7 +10,13 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 40rpx 30rpx;
   margin-bottom: 20rpx;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  flex: 1;
 }
 
 .page-title {
@@ -25,6 +31,24 @@
   display: block;
   font-size: 26rpx;
   color: rgba(255, 255, 255, 0.9);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.history-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 50rpx;
+  padding: 12rpx 24rpx;
+  font-size: 26rpx;
+}
+
+.history-btn::after {
+  border: none;
 }
 
 /* ==================== 卡片通用样式 ==================== */

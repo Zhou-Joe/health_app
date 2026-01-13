@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "咨询历史",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}

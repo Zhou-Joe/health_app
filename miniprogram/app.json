@@ -8,6 +8,7 @@
     "pages/indicator-edit/indicator-edit",
     "pages/ai-advice/ai-advice",
     "pages/conversation/conversation",
+    "pages/conversation-history/conversation-history",
     "pages/integration/integration",
     "pages/settings/settings",
     "pages/complete-profile/complete-profile"

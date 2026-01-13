@@ -33,6 +33,15 @@ Page({
   },
 
   /**
+   * 跳转到对话历史页面
+   */
+  goToHistory() {
+    wx.navigateTo({
+      url: '/pages/conversation-history/conversation-history'
+    })
+  },
+
+  /**
    * 加载数据
    */
   async loadData() {

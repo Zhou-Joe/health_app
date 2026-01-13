@@ -1,0 +1,45 @@
+<!--pages/conversation-history/conversation-history.wxml-->
+<view class="history-container">
+  <!-- 顶部标题 -->
+  <view class="page-header">
+    <text class="page-title">咨询历史</text>
+    <text class="page-subtitle">查看所有AI健康咨询记录</text>
+  </view>
+
+  <!-- 对话列表 -->
+  <view class="conversation-list" wx:if="{{conversations.length > 0}}">
+    <view class="conversation-item card"
+          wx:for="{{conversations}}"
+          wx:key="id"
+          bindtap="goToConversation"
+          data-id="{{item.id}}">
+      <view class="item-header">
+        <text class="item-title">{{item.title}}</text>
+        <view class="item-actions">
+          <text class="delete-icon" catchtap="deleteConversation" data-id="{{item.id}}">🗑️</text>
+        </view>
+      </view>
+
+      <view class="item-meta">
+        <text class="meta-text">{{item.message_count}}条消息</text>
+        <text class="meta-text">{{item.created_at}}</text>
+      </view>
+
+      <view class="item-preview" wx:if="{{item.latest_question}}">
+        <text class="preview-text">{{item.latest_question}}</text>
+      </view>
+
+      <view class="item-footer">
+        <text class="view-text">查看对话 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-container" wx:else>
+    <image class="empty-icon" src="/images/empty.png" mode="aspectFit"></image>
+    <text class="empty-text">暂无咨询记录</text>
+    <text class="empty-hint">开始您的第一次AI健康咨询吧</text>
+    <button class="btn-primary mt-20" bindtap="goToAIAdvice">开始咨询</button>
+  </view>
+</view>

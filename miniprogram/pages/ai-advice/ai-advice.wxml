@@ -2,8 +2,13 @@
 <view class="ai-advice-container">
   <!-- 顶部标题 -->
   <view class="page-header">
-    <text class="page-title">AI健康医生</text>
-    <text class="page-subtitle">智能分析您的健康数据</text>
+    <view class="header-left">
+      <text class="page-title">AI健康医生</text>
+      <text class="page-subtitle">智能分析您的健康数据</text>
+    </view>
+    <view class="header-right">
+      <button class="history-btn" bindtap="goToHistory">📋 历史</button>
+    </view>
   </view>
 
   <!-- 对话模式选择 -->
