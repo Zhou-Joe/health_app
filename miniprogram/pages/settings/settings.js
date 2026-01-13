@@ -49,7 +49,12 @@ Page({
       let ageDisplay = '未知'
       if (user.birth_date) {
         // 后端已经计算好了age，直接使用
-        ageDisplay = user.age ? `${user.age}岁` : '未知'
+        // 注意：age可能是0，所以使用 !== null 判断
+        if (user.age !== null && user.age !== undefined) {
+          ageDisplay = `${user.age}岁`
+        } else {
+          ageDisplay = '未知'
+        }
         console.log('[调试] 计算后的ageDisplay:', ageDisplay)
       } else {
         console.log('[调试] birth_date为空，年龄显示未知')

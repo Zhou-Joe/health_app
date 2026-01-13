@@ -1140,6 +1140,15 @@ def miniprogram_complete_profile(request):
             from datetime import datetime
             try:
                 birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+
+                # 验证出生日期不能是未来日期
+                from datetime import date
+                if birth_date > date.today():
+                    return Response({
+                        'success': False,
+                        'message': '出生日期不能是未来日期'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
                 user_profile.birth_date = birth_date
                 print(f"[调试] 出生日期已更新: {birth_date}")
             except Exception as e:
