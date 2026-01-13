@@ -39,14 +39,27 @@ Page({
       const res = await api.getUserInfo()
       const user = res.user
 
+      console.log('[调试] 用户信息:', user)
+
+      // 计算年龄显示
+      let ageDisplay = '未知'
+      if (user.birth_date) {
+        // 后端已经计算好了age，直接使用
+        ageDisplay = user.age ? `${user.age}岁` : '未知'
+      } else {
+        ageDisplay = '未知'
+      }
+
       // 构建用户profile数据
       const userProfile = {
         nickname: user.first_name || '',
         gender: user.gender || '',
         genderDisplay: this.getGenderDisplay(user.gender),
         birthDate: user.birth_date || '',
-        age: user.age || ''
+        age: ageDisplay
       }
+
+      console.log('[调试] userProfile:', userProfile)
 
       this.setData({
         userProfile,

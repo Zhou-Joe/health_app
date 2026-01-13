@@ -40,7 +40,7 @@
       <view class="profile-item">
         <text class="item-label">年龄</text>
         <view class="item-value-row">
-          <text class="item-value">{{userProfile.age || '未知'}}</text>
+          <text class="item-value">{{userProfile.age || '未知'}}{{userProfile.age && userProfile.age !== '未知' ? '（根据出生日期自动计算）' : ''}}</text>
         </view>
       </view>
     </view>
