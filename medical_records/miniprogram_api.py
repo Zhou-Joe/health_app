@@ -84,7 +84,7 @@ def miniprogram_login(request):
                 username=openid,
                 defaults={
                     'first_name': nickname,
-                    'email': f"{openid}@wechat.com",
+                    'email': '',
                     'is_active': True
                 }
             )
