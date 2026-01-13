@@ -75,7 +75,7 @@ class MiniProgramCheckupListSerializer(serializers.ModelSerializer):
         read_only_fields = ['user']
 
     def get_indicators_count(self, obj):
-        return obj.healthindicator_set.count()
+        return obj.indicators.count()
 
     def get_status(self, obj):
         """从DocumentProcessing获取处理状态"""

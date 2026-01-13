@@ -788,7 +788,7 @@ class CheckupReportsExporter:
         # 收集所有体检报告的指标数据
         self.indicators = {}
         for checkup in checkups:
-            for indicator in checkup.healthindicator_set.all().order_by('indicator_type', 'indicator_name'):
+            for indicator in checkup.indicators.all().order_by('indicator_type', 'indicator_name'):
                 if indicator.indicator_type not in self.indicators:
                     self.indicators[indicator.indicator_type] = []
                 self.indicators[indicator.indicator_type].append(indicator)

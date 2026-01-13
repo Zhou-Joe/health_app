@@ -1267,18 +1267,18 @@ def data_integration(request):
                 selected_user = User.objects.get(id=selected_user_id)
                 checkups = HealthCheckup.objects.filter(
                     user=selected_user
-                ).prefetch_related('healthindicator_set').order_by('-checkup_date')
+                ).prefetch_related('indicators').order_by('-checkup_date')
             except User.DoesNotExist:
                 checkups = HealthCheckup.objects.none()
         else:
             # 默认显示所有用户的报告
-            checkups = HealthCheckup.objects.all().prefetch_related('healthindicator_set').order_by('-checkup_date')
+            checkups = HealthCheckup.objects.all().prefetch_related('indicators').order_by('-checkup_date')
     else:
         # 普通用户只能查看自己的报告
         users = None
         checkups = HealthCheckup.objects.filter(
             user=request.user
-        ).prefetch_related('healthindicator_set').order_by('-checkup_date')
+        ).prefetch_related('indicators').order_by('-checkup_date')
 
     context = {
         'checkups': checkups,
