@@ -6,20 +6,6 @@
   </view>
 
   <view class="login-form">
-    <!-- 微信一键登录 -->
-    <button class="wechat-login-btn"
-            bindtap="handleWechatLogin"
-            loading="{{wechatLoading}}">
-      <text class="btn-icon">📱</text>
-      <text>{{wechatLoading ? '登录中...' : '微信一键登录'}}</text>
-    </button>
-
-    <view class="divider">
-      <view class="divider-line"></view>
-      <text class="divider-text">或</text>
-      <view class="divider-line"></view>
-    </view>
-
     <!-- 账号密码登录 -->
     <view class="form-item">
       <input class="input-field"
@@ -40,6 +26,19 @@
             bindtap="handleLogin"
             loading="{{loading}}">
       {{loading ? '登录中...' : '登录'}}
+    </button>
+
+    <view class="divider">
+      <view class="divider-line"></view>
+      <text class="divider-text">或</text>
+      <view class="divider-line"></view>
+    </view>
+
+    <!-- 微信一键登录 -->
+    <button class="wechat-login-btn"
+            bindtap="handleWechatLogin"
+            loading="{{wechatLoading}}">
+      {{wechatLoading ? '登录中...' : '微信一键登录'}}
     </button>
   </view>
 
