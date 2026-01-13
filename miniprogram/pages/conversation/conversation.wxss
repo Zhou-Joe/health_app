@@ -415,7 +415,7 @@
   width: 88rpx;
   height: 88rpx;
   border-radius: 44rpx;
-  background-color: #CCCCCC;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   display: flex;
   align-items: center;
@@ -424,16 +424,17 @@
   margin: 0;
   padding: 0;
   transition: all 0.3s ease;
+  opacity: 0.5;
 }
 
 .send-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  opacity: 1;
   box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.4);
+  transform: scale(1.05);
 }
 
 .send-btn[disabled] {
-  background-color: #CCCCCC !important;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .send-icon {
