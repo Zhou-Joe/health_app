@@ -14,7 +14,7 @@ import uuid
 import os
 from datetime import datetime, timedelta
 
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing
+from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing, Conversation
 from .services import DocumentProcessingService, VisionLanguageModelService, AIService
 from .miniprogram_serializers import (
     UserSerializer, HealthCheckupSerializer, HealthIndicatorSerializer,
