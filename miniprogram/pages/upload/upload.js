@@ -59,16 +59,20 @@ Page({
   },
 
   chooseFile() {
-    wx.chooseMessageFile({
+    wx.chooseImage({
       count: 1,
-      type: 'file',
-      extension: ['pdf', 'png', 'jpg', 'jpeg'],
+      sizeType: ['original', 'compressed'],
+      sourceType: ['album', 'camera'],
       success: (res) => {
-        const file = res.tempFiles[0]
+        const filePath = res.tempFilePaths[0]
         this.setData({
-          filePath: file.path,
-          fileName: file.name
+          filePath: filePath,
+          fileName: 'report.jpg'
         })
+      },
+      fail: (err) => {
+        console.error('选择图片失败:', err)
+        util.showToast('选择图片失败')
       }
     })
   },
@@ -111,15 +115,12 @@ Page({
     this.setData({ uploading: true })
 
     try {
-      // 根据文件类型自动选择处理模式
-      const isPDF = this.data.filePath.toLowerCase().endsWith('.pdf')
-      const workflow_type = isPDF ? 'ocr_llm' : 'vl_model'
-
+      // 使用视觉模型处理图片
       const formData = {
         checkup_date: this.data.checkupDate,
         hospital: this.data.hospital,
         notes: this.data.notes,
-        workflow_type: workflow_type
+        workflow_type: 'vl_model'
       }
 
       const res = await api.uploadReport(this.data.filePath, formData)
