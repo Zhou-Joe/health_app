@@ -74,6 +74,18 @@
   color: #5A4A4A;
 }
 
+.upload-tip {
+  margin-top: 24rpx;
+  text-align: center;
+  padding: 0 20rpx;
+}
+
+.tip-text {
+  font-size: 24rpx;
+  color: #AAAAAA;
+  line-height: 1.6;
+}
+
 .upload-icon {
   width: 80rpx;
   height: 80rpx;
