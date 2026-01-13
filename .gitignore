@@ -77,3 +77,4 @@ miniprogram/project.private.config.json
 # Temporary files
 *.tmp
 *.temp
+.claude/
