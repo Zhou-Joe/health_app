@@ -43,13 +43,13 @@
                bindinput="onHospitalInput" />
       </view>
 
-      <view class="form-item form-item-vertical">
+      <view class="form-item">
         <text class="form-label">报告描述</text>
-        <textarea class="form-textarea"
-                  placeholder="请输入报告描述，如：年度体检、入职体检等（选填）"
-                  value="{{notes}}"
-                  bindinput="onNotesInput"
-                  maxlength="200" />
+        <input class="form-input"
+               placeholder="如：年度体检、入职体检等（选填）"
+               value="{{notes}}"
+               bindinput="onNotesInput"
+               maxlength="50" />
       </view>
     </view>
 
