@@ -39,9 +39,45 @@ def miniprogram_login(request):
             nickname = data.get('nickname', '微信用户')
             avatar_url = data.get('avatarUrl', '')
 
-            # TODO: 实际项目中应该调用微信服务器API获取openid
-            # 这里为了演示，使用code作为openid（实际应该调用微信API）
-            openid = f"wx_{code[:16]}"
+            # 调用微信API获取openid
+            from .wechat_config import WECHAT_APPID, WECHAT_APP_SECRET, WECHAT_CODE2SESSION_URL
+
+            if not WECHAT_APPID or not WECHAT_APP_SECRET:
+                # 如果未配置AppID和AppSecret，使用开发模式（使用code作为临时openid）
+                import warnings
+                warnings.warn("微信小程序AppID或AppSecret未配置，使用开发模式（每次登录创建新用户）")
+                openid = f"dev_wx_{code[:16]}"
+            else:
+                # 调用微信code2Session API获取openid
+                import requests
+                params = {
+                    'appid': WECHAT_APPID,
+                    'secret': WECHAT_APP_SECRET,
+                    'js_code': code,
+                    'grant_type': 'authorization_code'
+                }
+
+                print(f"[微信登录] 调用code2Session API，code: {code[:10]}...")
+                response = requests.get(WECHAT_CODE2SESSION_URL, params=params, timeout=5)
+                result = response.json()
+
+                if 'errcode' in result:
+                    print(f"[微信登录] API错误: {result}")
+                    return Response({
+                        'success': False,
+                        'message': f'微信登录失败: {result.get("errmsg", "未知错误")}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                openid = result.get('openid')
+                session_key = result.get('session_key')
+
+                if not openid:
+                    return Response({
+                        'success': False,
+                        'message': '无法获取用户openid'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                print(f"[微信登录] 获取openid成功: {openid[:10]}...")
 
             # 查找或创建用户
             user, created = User.objects.get_or_create(
@@ -52,6 +88,11 @@ def miniprogram_login(request):
                     'is_active': True
                 }
             )
+
+            if created:
+                print(f"[微信登录] 创建新用户: {openid[:10]}...")
+            else:
+                print(f"[微信登录] 用户已存在: {openid[:10]}...")
 
             # 检查是否有UserProfile
             from .models import UserProfile
