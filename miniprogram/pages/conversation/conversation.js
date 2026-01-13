@@ -621,34 +621,62 @@ Page({
     const items = ['导出为PDF', '导出为Word']
     const index = await util.showActionSheet(items)
 
+    if (index !== 0 && index !== 1) {
+      return
+    }
+
     util.showLoading('生成中...')
     try {
-      let filePath
-      if (index === 0) {
-        filePath = await api.exportConversationPDF(this.data.conversationId)
-      } else if (index === 1) {
-        filePath = await api.exportConversationWord(this.data.conversationId)
-      } else {
-        return
-      }
+      const token = wx.getStorageSync('token')
+      const baseUrl = 'https://www.zctestbench.asia/health'
+      const exportUrl = index === 0
+        ? `${baseUrl}/api/miniprogram/conversations/${this.data.conversationId}/export/pdf/`
+        : `${baseUrl}/api/miniprogram/conversations/${this.data.conversationId}/export/word/`
+
+      console.log('[导出] 开始下载:', exportUrl)
+
+      // 下载文件
+      const downloadRes = await new Promise((resolve, reject) => {
+        wx.downloadFile({
+          url: exportUrl,
+          header: {
+            'Authorization': `Token ${token}`
+          },
+          success: (res) => {
+            console.log('[导出] 下载响应状态码:', res.statusCode)
+            if (res.statusCode === 200) {
+              resolve(res.tempFilePath)
+            } else {
+              reject(new Error(`下载失败，状态码: ${res.statusCode}`))
+            }
+          },
+          fail: (err) => {
+            console.error('[导出] 下载失败:', err)
+            reject(new Error('网络下载失败，请检查网络连接'))
+          }
+        })
+      })
 
       util.hideLoading()
 
+      // 打开文档
       wx.openDocument({
-        filePath,
+        filePath: downloadRes,
         fileType: index === 0 ? 'pdf' : 'docx',
         showMenu: true,
         success: () => {
-          console.log('文档打开成功')
+          console.log('[导出] 文档打开成功')
+          util.showToast('导出成功', 'success')
         },
         fail: (err) => {
-          console.error('打开文档失败:', err)
+          console.error('[导出] 打开文档失败:', err)
           util.showToast('打开文档失败')
         }
       })
+
     } catch (err) {
-      console.error('导出失败:', err)
-      util.showToast(err.message || '导出失败')
+      console.error('[导出] 导出失败:', err)
+      util.showToast(err.message || '导出失败，请稍后重试')
       util.hideLoading()
     }
   },

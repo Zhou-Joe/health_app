@@ -121,6 +121,92 @@ Page({
   },
 
   /**
+   * 导出对话
+   */
+  async exportConversation(e) {
+    const conversationId = e.currentTarget.dataset.id
+
+    const items = ['导出为PDF', '导出为Word']
+    const index = await util.showActionSheet(items)
+
+    if (index !== 0 && index !== 1) {
+      return
+    }
+
+    util.showLoading('生成中...')
+    try {
+      const token = wx.getStorageSync('token')
+      const baseUrl = 'https://www.zctestbench.asia/health'
+      const exportUrl = index === 0
+        ? `${baseUrl}/api/miniprogram/conversations/${conversationId}/export/pdf/`
+        : `${baseUrl}/api/miniprogram/conversations/${conversationId}/export/word/`
+
+      console.log('[导出] 开始下载:', exportUrl)
+
+      // 下载文件
+      const downloadRes = await new Promise((resolve, reject) => {
+        wx.downloadFile({
+          url: exportUrl,
+          header: {
+            'Authorization': `Token ${token}`
+          },
+          success: (res) => {
+            console.log('[导出] 下载响应状态码:', res.statusCode)
+            if (res.statusCode === 200) {
+              resolve(res.tempFilePath)
+            } else if (res.statusCode === 400) {
+              // 业务错误，尝试读取错误信息
+              wx.request({
+                url: exportUrl,
+                header: { 'Authorization': `Token ${token}` },
+                method: 'GET',
+                success: (errRes) => {
+                  if (errRes.data && errRes.data.message) {
+                    reject(new Error(errRes.data.message))
+                  } else {
+                    reject(new Error('对话无消息内容或其他业务错误'))
+                  }
+                },
+                fail: () => {
+                  reject(new Error('对话无消息内容或其他业务错误'))
+                }
+              })
+            } else {
+              reject(new Error(`服务器错误(${res.statusCode})，请联系管理员查看后台日志`))
+            }
+          },
+          fail: (err) => {
+            console.error('[导出] 下载失败:', err)
+            reject(new Error('网络下载失败，请检查网络连接或配置下载域名白名单'))
+          }
+        })
+      })
+
+      util.hideLoading()
+
+      // 打开文档
+      wx.openDocument({
+        filePath: downloadRes,
+        fileType: index === 0 ? 'pdf' : 'docx',
+        showMenu: true,
+        success: () => {
+          console.log('[导出] 文档打开成功')
+          util.showToast('导出成功', 'success')
+        },
+        fail: (err) => {
+          console.error('[导出] 打开文档失败:', err)
+          util.showToast('打开文档失败')
+        }
+      })
+
+    } catch (err) {
+      console.error('[导出] 导出失败:', err)
+      util.showToast(err.message || '导出失败，请稍后重试')
+      util.hideLoading()
+    }
+  },
+
+  /**
    * 跳转到AI咨询页面
    */
   goToAIAdvice() {

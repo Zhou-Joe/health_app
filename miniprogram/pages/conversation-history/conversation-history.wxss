@@ -63,6 +63,14 @@
   display: flex;
   align-items: center;
   margin-left: 16rpx;
+  gap: 16rpx;
+}
+
+.export-text {
+  font-size: 26rpx;
+  color: #FF9A9E;
+  font-weight: 500;
+  padding: 8rpx;
 }
 
 .delete-text {

@@ -32,6 +32,7 @@ urlpatterns = [
     path('conversations/<int:conversation_id>/', miniprogram_api.miniprogram_conversation_detail, name='conversation_detail'),
     path('advice-message/<int:advice_id>/', miniprogram_api.miniprogram_advice_message_status, name='advice_message_status'),
     path('conversations/<int:conversation_id>/delete/', miniprogram_api.miniprogram_delete_conversation, name='delete_conversation'),
+    path('conversations/<int:conversation_id>/test-export/', miniprogram_api.test_export_conversation, name='test_export_conversation'),
     path('conversations/<int:conversation_id>/export/pdf/', miniprogram_api.miniprogram_export_conversation_pdf, name='export_conversation_pdf'),
     path('conversations/<int:conversation_id>/export/word/', miniprogram_api.miniprogram_export_conversation_word, name='export_conversation_word'),
 

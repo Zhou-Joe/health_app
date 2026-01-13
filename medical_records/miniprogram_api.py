@@ -1182,6 +1182,53 @@ def process_document_background(document_processing_id, file_path):
         document_processing.error_message = str(e)
         document_processing.save()
 
+# ==================== 测试导出接口 ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def test_export_conversation(request, conversation_id):
+    """测试导出接口，返回诊断信息"""
+    try:
+        # 验证对话归属
+        conversation = Conversation.objects.get(
+            id=conversation_id,
+            user=request.user
+        )
+
+        # 检查对话是否有消息
+        messages = HealthAdvice.objects.filter(conversation_id=conversation_id).order_by('created_at')
+
+        result = {
+            'success': True,
+            'conversation_id': conversation_id,
+            'title': conversation.title,
+            'message_count': messages.count(),
+            'messages': []
+        }
+
+        for msg in messages[:5]:  # 只返回前5条消息的信息
+            result['messages'].append({
+                'id': msg.id,
+                'question_length': len(msg.question) if msg.question else 0,
+                'answer_length': len(msg.answer) if msg.answer else 0,
+                'question_preview': (msg.question or '')[:50] if msg.question else None,
+                'created_at': msg.created_at.isoformat() if msg.created_at else None
+            })
+
+        return Response(result)
+
+    except Conversation.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '对话不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        return Response({
+            'success': False,
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # ==================== 导出对话为PDF/Word ====================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1190,10 +1237,19 @@ def miniprogram_export_conversation_pdf(request, conversation_id):
     try:
         from .export_utils import ConversationExporter
 
+        # 验证对话归属
         conversation = Conversation.objects.get(
             id=conversation_id,
             user=request.user
         )
+
+        # 检查对话是否有消息
+        message_count = HealthAdvice.objects.filter(conversation_id=conversation_id).count()
+        if message_count == 0:
+            return Response({
+                'success': False,
+                'message': '该对话暂无消息内容'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         exporter = ConversationExporter(conversation_id)
         return exporter.export_to_pdf()
@@ -1204,6 +1260,10 @@ def miniprogram_export_conversation_pdf(request, conversation_id):
             'message': '对话不存在'
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'[导出PDF] conversation_id={conversation_id}, error: {str(e)}')
+        print(f'[导出PDF] traceback: {error_details}')
         return Response({
             'success': False,
             'message': f'导出PDF失败: {str(e)}'
@@ -1216,10 +1276,19 @@ def miniprogram_export_conversation_word(request, conversation_id):
     try:
         from .export_utils import ConversationExporter
 
+        # 验证对话归属
         conversation = Conversation.objects.get(
             id=conversation_id,
             user=request.user
         )
+
+        # 检查对话是否有消息
+        message_count = HealthAdvice.objects.filter(conversation_id=conversation_id).count()
+        if message_count == 0:
+            return Response({
+                'success': False,
+                'message': '该对话暂无消息内容'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         exporter = ConversationExporter(conversation_id)
         return exporter.export_to_word()
@@ -1230,6 +1299,10 @@ def miniprogram_export_conversation_word(request, conversation_id):
             'message': '对话不存在'
         }, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'[导出Word] conversation_id={conversation_id}, error: {str(e)}')
+        print(f'[导出Word] traceback: {error_details}')
         return Response({
             'success': False,
             'message': f'导出Word失败: {str(e)}'
