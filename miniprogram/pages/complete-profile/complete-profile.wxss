@@ -1,7 +1,10 @@
 /* pages/complete-profile/complete-profile.wxss */
 .profile-container {
   min-height: 100vh;
-  background-color: #F5F5F5;
+  background-color: #FFFFFF;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.08) 0%, transparent 50%);
   padding: 40rpx 30rpx;
 }
 
@@ -13,7 +16,7 @@
 .header-title {
   display: block;
   font-size: 40rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #333333;
   margin-bottom: 16rpx;
 }
@@ -21,14 +24,16 @@
 .header-desc {
   display: block;
   font-size: 28rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .profile-form {
-  background-color: #FFFFFF;
-  border-radius: 16rpx;
+  background-color: #FAFAFA;
+  border-radius: 24rpx;
   padding: 40rpx;
   margin-bottom: 40rpx;
+  border: 2rpx solid #F0F0F0;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
 .form-item {
@@ -50,23 +55,25 @@
 .input {
   width: 100%;
   height: 88rpx;
-  background-color: #F8F9FA;
-  border-radius: 12rpx;
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
   padding: 0 30rpx;
   font-size: 28rpx;
   box-sizing: border-box;
+  border: 2rpx solid #F0F0F0;
 }
 
 .picker-value {
   width: 100%;
   height: 88rpx;
-  background-color: #F8F9FA;
-  border-radius: 12rpx;
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
   padding: 0 30rpx;
   font-size: 28rpx;
   color: #333333;
   line-height: 88rpx;
   box-sizing: border-box;
+  border: 2rpx solid #F0F0F0;
 }
 
 .gender-group {
@@ -77,19 +84,21 @@
 .gender-option {
   flex: 1;
   height: 120rpx;
-  background-color: #F8F9FA;
-  border-radius: 12rpx;
+  background-color: #FFFFFF;
+  border-radius: 20rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 2rpx solid transparent;
+  border: 2rpx solid #F0F0F0;
   transition: all 0.3s;
 }
 
 .gender-option.active {
-  background-color: #E3F2FD;
-  border-color: #4A90E2;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  border-color: transparent;
+  color: #5A4A4A;
+  box-shadow: 0 6rpx 20rpx rgba(255, 154, 158, 0.3);
 }
 
 .gender-icon {
@@ -105,8 +114,9 @@
 .tip-box {
   margin-top: 40rpx;
   padding: 20rpx;
-  background-color: #FFF9E6;
-  border-radius: 12rpx;
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFF3CD 100%);
+  border-radius: 20rpx;
+  border-left: 4rpx solid #FFDAB9;
   display: flex;
   align-items: center;
 }
@@ -126,14 +136,17 @@
 .submit-btn {
   width: 100%;
   height: 88rpx;
-  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
   font-size: 32rpx;
-  font-weight: 600;
-  border-radius: 12rpx;
+  font-weight: 500;
+  border-radius: 20rpx;
   border: none;
+  box-shadow: 0 8rpx 24rpx rgba(255, 154, 158, 0.3);
 }
 
 .submit-btn[disabled] {
-  background: #CCCCCC;
+  background: #EEEEEE;
+  color: #AAAAAA;
+  box-shadow: none;
 }

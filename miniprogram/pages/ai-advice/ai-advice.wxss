@@ -1,13 +1,13 @@
 /* pages/ai-advice/ai-advice.wxss */
 .ai-advice-container {
   min-height: 100vh;
-  background-color: #F5F5F5;
+  background-color: #FAFAFA;
   padding-bottom: 40rpx;
 }
 
 /* ==================== 页面头部 ==================== */
 .page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   padding: 40rpx 30rpx;
   margin-bottom: 20rpx;
   display: flex;
@@ -22,7 +22,7 @@
 .page-title {
   display: block;
   font-size: 44rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #FFFFFF;
   margin-bottom: 8rpx;
 }
@@ -54,7 +54,7 @@
 /* ==================== 卡片通用样式 ==================== */
 .section-card {
   background-color: #FFFFFF;
-  border-radius: 16rpx;
+  border-radius: 24rpx;
   padding: 30rpx;
   margin: 20rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
@@ -73,7 +73,7 @@
 
 .title-text {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #333333;
 }
 
@@ -89,14 +89,14 @@
   align-items: center;
   padding: 24rpx;
   border: 2rpx solid #E0E0E0;
-  border-radius: 12rpx;
+  border-radius: 20rpx;
   background-color: #FAFAFA;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .mode-option.active {
-  border-color: #667eea;
+  border-color: #FF9A9E;
   background: linear-gradient(135deg, #F0F4FF 0%, #E8EEFF 100%);
 }
 
@@ -112,7 +112,7 @@
 .mode-title {
   display: block;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #333333;
   margin-bottom: 4rpx;
 }
@@ -120,12 +120,12 @@
 .mode-desc {
   display: block;
   font-size: 24rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .mode-check {
   font-size: 32rpx;
-  color: #667eea;
+  color: #FF9A9E;
   font-weight: bold;
 }
 
@@ -153,15 +153,15 @@
   display: flex;
   align-items: center;
   padding: 16rpx;
-  background-color: #F5F5F5;
-  border-radius: 12rpx;
+  background-color: #FAFAFA;
+  border-radius: 20rpx;
   border: 2rpx solid transparent;
   transition: all 0.3s ease;
 }
 
 .conv-item.active {
   background-color: #F0F4FF;
-  border-color: #667eea;
+  border-color: #FF9A9E;
 }
 
 .conv-main {
@@ -178,7 +178,7 @@
 .conv-count {
   display: block;
   font-size: 24rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .conv-delete {
@@ -199,7 +199,7 @@
   align-items: center;
   padding: 24rpx;
   border: 2rpx solid #E0E0E0;
-  border-radius: 12rpx;
+  border-radius: 20rpx;
   background-color: #FAFAFA;
   transition: all 0.3s ease;
   position: relative;
@@ -222,7 +222,7 @@
 .report-mode-title {
   display: block;
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #333333;
   margin-bottom: 4rpx;
 }
@@ -230,7 +230,7 @@
 .report-mode-desc {
   display: block;
   font-size: 24rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .report-mode-check {
@@ -253,7 +253,7 @@
 .action-btn {
   flex: 1;
   padding: 16rpx;
-  background-color: #F5F5F5;
+  background-color: #FAFAFA;
   border: 1rpx solid #E0E0E0;
   border-radius: 8rpx;
   font-size: 26rpx;
@@ -269,7 +269,7 @@
   display: flex;
   align-items: center;
   padding: 20rpx;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid #FAFAFA;
   background-color: #FFFFFF;
   transition: background-color 0.3s ease;
 }
@@ -293,8 +293,8 @@
 }
 
 .report-item.selected .report-check {
-  background-color: #667eea;
-  border-color: #667eea;
+  background-color: #FF9A9E;
+  border-color: #FF9A9E;
   color: #FFFFFF;
 }
 
@@ -307,18 +307,18 @@
 
 .report-hospital {
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #333333;
 }
 
 .report-date {
   font-size: 24rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .report-count {
   font-size: 24rpx;
-  color: #667eea;
+  color: #FF9A9E;
 }
 
 .selected-tip {
@@ -331,7 +331,7 @@
 
 .tip-text {
   font-size: 26rpx;
-  color: #667eea;
+  color: #FF9A9E;
   font-weight: 500;
 }
 
@@ -343,7 +343,7 @@
 .empty-text {
   display: block;
   font-size: 28rpx;
-  color: #999999;
+  color: #AAAAAA;
   margin-bottom: 8rpx;
 }
 
@@ -360,7 +360,7 @@
   max-height: 400rpx;
   padding: 20rpx;
   background-color: #F8F9FA;
-  border-radius: 12rpx;
+  border-radius: 20rpx;
   font-size: 30rpx;
   line-height: 1.6;
   color: #333333;
@@ -374,11 +374,11 @@
 .submit-btn {
   width: 100%;
   padding: 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   border: none;
   border-radius: 50rpx;
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #FFFFFF;
   transition: all 0.3s ease;
   opacity: 0.5;

@@ -3,12 +3,12 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #F5F5F5;
+  background-color: #FAFAFA;
 }
 
 /* ==================== 顶部工具栏 ==================== */
 .chat-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   padding: 20rpx 30rpx;
   display: flex;
   align-items: center;
@@ -42,7 +42,7 @@
 
 .header-title {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #FFFFFF;
 }
 
@@ -89,13 +89,13 @@
 
 .title-text {
   font-size: 30rpx;
-  font-weight: 600;
+  font-weight: 500;
   color: #333333;
 }
 
 .selected-count {
   font-size: 24rpx;
-  color: #667eea;
+  color: #FF9A9E;
 }
 
 .selector-actions {
@@ -106,7 +106,7 @@
 .text-btn {
   background-color: transparent;
   border: none;
-  color: #667eea;
+  color: #FF9A9E;
   font-size: 28rpx;
   padding: 0;
   margin: 0;
@@ -122,14 +122,14 @@
   display: flex;
   align-items: center;
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid #FAFAFA;
   transition: background-color 0.3s ease;
 }
 
 .report-item.no-reports-option {
   background: linear-gradient(135deg, #E8F5E8 0%, #F0FFF0 100%);
   border: 2rpx solid #28A745;
-  border-radius: 12rpx;
+  border-radius: 20rpx;
   padding: 24rpx 20rpx;
   margin-bottom: 16rpx;
 }
@@ -167,8 +167,8 @@
 }
 
 .report-item.selected .report-check {
-  background-color: #667eea;
-  border-color: #667eea;
+  background-color: #FF9A9E;
+  border-color: #FF9A9E;
 }
 
 .check-icon {
@@ -192,7 +192,7 @@
 
 .report-date {
   font-size: 24rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .report-desc {
@@ -234,25 +234,25 @@
 
 .user-avatar {
   margin-left: 20rpx;
-  background-color: #667eea;
+  background-color: #FF9A9E;
   box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
 }
 
 .ai-avatar {
   margin-right: 20rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   box-shadow: 0 2rpx 8rpx rgba(118, 75, 162, 0.3);
 }
 
 .message-bubble {
   max-width: 70%;
   padding: 24rpx 28rpx;
-  border-radius: 16rpx;
+  border-radius: 24rpx;
   position: relative;
 }
 
 .user-bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   color: #FFFFFF;
   border-bottom-right-radius: 4rpx;
 }
@@ -296,7 +296,7 @@
 }
 
 .ai-bubble .message-time {
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .meta-action {
@@ -305,7 +305,7 @@
 }
 
 .ai-bubble .meta-action {
-  color: #667eea;
+  color: #FF9A9E;
 }
 
 /* AI输入状态 */
@@ -325,7 +325,7 @@
   width: 12rpx;
   height: 12rpx;
   border-radius: 6rpx;
-  background-color: #667eea;
+  background-color: #FF9A9E;
   animation: typing 1.4s infinite ease-in-out;
 }
 
@@ -350,7 +350,7 @@
 
 .typing-text {
   font-size: 24rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .list-footer {
@@ -369,7 +369,7 @@
   margin-bottom: 16rpx;
   padding: 16rpx 20rpx;
   background: linear-gradient(135deg, #F0F4FF 0%, #E8EEFF 100%);
-  border-radius: 12rpx;
+  border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -382,13 +382,13 @@
 
 .tip-text {
   font-size: 26rpx;
-  color: #667eea;
+  color: #FF9A9E;
   margin-right: 16rpx;
 }
 
 .tip-action {
   font-size: 26rpx;
-  color: #667eea;
+  color: #FF9A9E;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -406,7 +406,7 @@
   max-height: 300rpx;
   padding: 20rpx 24rpx;
   background-color: #F8F9FA;
-  border-radius: 16rpx;
+  border-radius: 24rpx;
   font-size: 30rpx;
   line-height: 1.6;
 }
@@ -415,7 +415,7 @@
   width: 88rpx;
   height: 88rpx;
   border-radius: 44rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   border: none;
   display: flex;
   align-items: center;
@@ -466,7 +466,7 @@
 
 .quick-question-item:active {
   background-color: #F0F4FF;
-  border-color: #667eea;
+  border-color: #FF9A9E;
   transform: scale(0.95);
 }
 
