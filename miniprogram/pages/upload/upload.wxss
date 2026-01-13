@@ -1,32 +1,48 @@
 /* pages/upload/upload.wxss */
 .upload-container {
   padding: 20rpx;
+  background: #FFFFFF;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.06) 0%, transparent 50%);
+  min-height: 100vh;
 }
 
 .upload-card {
   margin-bottom: 20rpx;
+  background: #FAFAFA;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  border: 2rpx solid #F0F0F0;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
 .upload-area {
-  border: 2rpx dashed #D9D9D9;
-  border-radius: 12rpx;
-  padding: 40rpx 30rpx;
+  border: 3rpx dashed #FFDAB9;
+  background: linear-gradient(135deg, #FFFAF8 0%, #FFF5F5 100%);
+  border-radius: 24rpx;
+  padding: 60rpx 30rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   margin-bottom: 30rpx;
+  transition: all 0.3s ease;
+}
+
+.upload-area:active {
+  background: linear-gradient(135deg, #FFF5F0 0%, #FFFAFA 100%);
 }
 
 .upload-icon {
   width: 80rpx;
   height: 80rpx;
   margin-bottom: 16rpx;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .upload-text {
   font-size: 28rpx;
-  color: #999999;
+  color: #AAAAAA;
 }
 
 .file-info {
@@ -35,9 +51,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 20rpx;
-  background-color: #F8F9FA;
-  border-radius: 8rpx;
+  padding: 20rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  border: 2rpx solid #F0F0F0;
 }
 
 .file-name {
@@ -51,16 +68,17 @@
 }
 
 .file-remove {
-  width: 40rpx;
-  height: 40rpx;
-  background-color: #FF5252;
-  color: #FFFFFF;
+  width: 48rpx;
+  height: 48rpx;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 28rpx;
   flex-shrink: 0;
+  box-shadow: 0 4rpx 12rpx rgba(255, 154, 158, 0.25);
 }
 
 .form-section {
@@ -70,8 +88,8 @@
 .form-item {
   display: flex;
   align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #F0F0F0;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #F0F0F0;
 }
 
 .form-item-vertical {
@@ -83,6 +101,7 @@
   width: 150rpx;
   font-size: 28rpx;
   color: #333333;
+  font-weight: 500;
 }
 
 .form-value {
@@ -99,12 +118,13 @@
 .form-textarea {
   width: 100%;
   min-height: 120rpx;
-  padding: 16rpx;
-  background-color: #F8F9FA;
-  border-radius: 8rpx;
+  padding: 20rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
   font-size: 28rpx;
   margin-top: 12rpx;
   box-sizing: border-box;
+  border: 2rpx solid #F0F0F0;
 }
 
 .form-item-vertical .form-label {
@@ -118,7 +138,7 @@
 
 .section-label {
   font-size: 26rpx;
-  color: #999999;
+  color: #AAAAAA;
   margin-bottom: 16rpx;
   display: block;
 }
@@ -130,11 +150,19 @@
 }
 
 .hospital-tag {
-  padding: 12rpx 24rpx;
-  background-color: #F0F0F0;
-  border-radius: 24rpx;
+  padding: 14rpx 28rpx;
+  background: #FFFFFF;
+  border-radius: 30rpx;
   font-size: 26rpx;
   color: #666666;
+  border: 2rpx solid #F0F0F0;
+  transition: all 0.3s ease;
+}
+
+.hospital-tag:active {
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
+  border-color: transparent;
 }
 
 .submit-btn {
@@ -144,6 +172,11 @@
 
 .progress-card {
   margin-top: 20rpx;
+  background: #FAFAFA;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  border: 2rpx solid #F0F0F0;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
 .progress-info {
@@ -156,24 +189,25 @@
 .progress-status {
   font-size: 28rpx;
   color: #333333;
+  font-weight: 500;
 }
 
 .progress-percent {
   font-size: 32rpx;
-  font-weight: 600;
-  color: #4A90E2;
+  font-weight: 500;
+  color: #FF9A9E;
 }
 
 .progress-tip {
   display: block;
   text-align: center;
   font-size: 26rpx;
-  color: #999999;
+  color: #AAAAAA;
   margin-top: 20rpx;
 }
 
 .progress-tip.success {
-  color: #07C160;
+  color: #A8EDEA;
   font-weight: 500;
 }
 
