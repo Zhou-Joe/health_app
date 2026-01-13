@@ -68,7 +68,7 @@
     </view>
 
     <!-- 提交按钮 -->
-    <button class="submit-btn btn-primary"
+    <button class="submit-btn"
             bindtap="handleSubmit"
             loading="{{uploading}}"
             disabled="{{!filePath || uploading}}">
