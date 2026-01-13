@@ -43,5 +43,29 @@ Page({
   },
 
   addIndicator() { wx.navigateTo({ url: `/pages/indicator-edit/indicator-edit?checkupId=${this.data.checkup.id}` }) },
-  editIndicator(e) { wx.navigateTo({ url: `/pages/indicator-edit/indicator-edit?id=${e.currentTarget.dataset.id}&checkupId=${this.data.checkup.id}` }) }
+  editIndicator(e) { wx.navigateTo({ url: `/pages/indicator-edit/indicator-edit?id=${e.currentTarget.dataset.id}&checkupId=${this.data.checkup.id}` }) },
+
+  /**
+   * 删除报告
+   */
+  async deleteCheckup() {
+    const confirm = await util.showConfirm('确定要删除这份体检报告吗？删除后无法恢复。')
+    if (!confirm) return
+
+    util.showLoading('删除中...')
+    try {
+      await api.deleteCheckup(this.data.checkup.id)
+      util.showToast('删除成功', 'success')
+
+      // 返回上一页
+      setTimeout(() => {
+        wx.navigateBack()
+      }, 1500)
+    } catch (err) {
+      console.error('删除失败:', err)
+      util.showToast(err.message || '删除失败')
+    } finally {
+      util.hideLoading()
+    }
+  }
 })

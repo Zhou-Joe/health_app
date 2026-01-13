@@ -40,14 +40,15 @@
     <!-- 选择对话 -->
     <view class="conversation-select" wx:if="{{conversationMode === 'continue' && conversations.length > 0}}">
       <view class="select-label">选择要继续的对话：</view>
-      <view class="conversation-chips">
-        <view class="conv-chip {{selectedConversationId === item.id ? 'active' : ''}}"
+      <view class="conversation-list">
+        <view class="conv-item {{selectedConversationId === item.id ? 'active' : ''}}"
               wx:for="{{conversations}}"
-              wx:key="id"
-              bindtap="selectConversation"
-              data-id="{{item.id}}">
-          <text class="chip-text">{{item.title}}</text>
-          <text class="chip-count">({{item.message_count}}条)</text>
+              wx:key="id">
+          <view class="conv-main" bindtap="selectConversation" data-id="{{item.id}}">
+            <text class="conv-title">{{item.title}}</text>
+            <text class="conv-count">{{item.message_count}}条消息</text>
+          </view>
+          <view class="conv-delete" catchtap="deleteConversation" data-id="{{item.id}}">删除</view>
         </view>
       </view>
     </view>

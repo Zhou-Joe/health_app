@@ -12,6 +12,9 @@
       <button class="icon-btn" bindtap="toggleReportSelector" wx:if="{{conversationMode === 'new'}}">
         <text class="icon">📋</text>
       </button>
+      <button class="icon-btn" bindtap="deleteConversation" wx:if="{{conversationId}}">
+        <text class="icon">🗑️</text>
+      </button>
       <button class="icon-btn" bindtap="exportConversation" wx:if="{{conversationId}}">
         <text class="icon">📤</text>
       </button>

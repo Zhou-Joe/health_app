@@ -119,39 +119,48 @@
   display: block;
 }
 
-.conversation-chips {
+.conversation-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 12rpx;
 }
 
-.conv-chip {
-  padding: 12rpx 20rpx;
+.conv-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx;
   background-color: #F5F5F5;
-  border-radius: 20rpx;
+  border-radius: 12rpx;
   border: 2rpx solid transparent;
   transition: all 0.3s ease;
 }
 
-.conv-chip.active {
-  background-color: #667eea;
+.conv-item.active {
+  background-color: #F0F4FF;
   border-color: #667eea;
 }
 
-.conv-chip.active .chip-text,
-.conv-chip.active .chip-count {
-  color: #FFFFFF;
+.conv-main {
+  flex: 1;
 }
 
-.chip-text {
-  font-size: 26rpx;
+.conv-title {
+  display: block;
+  font-size: 28rpx;
   color: #333333;
+  margin-bottom: 4rpx;
 }
 
-.chip-count {
+.conv-count {
+  display: block;
   font-size: 24rpx;
   color: #999999;
-  margin-left: 4rpx;
+}
+
+.conv-delete {
+  font-size: 26rpx;
+  color: #FF5252;
+  padding: 8rpx 16rpx;
 }
 
 /* ==================== 报告模式选择 ==================== */

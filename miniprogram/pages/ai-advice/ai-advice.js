@@ -80,6 +80,36 @@ Page({
   },
 
   /**
+   * 删除对话
+   */
+  async deleteConversation(e) {
+    const id = e.currentTarget.dataset.id
+
+    const confirm = await util.showConfirm('确定要删除这个对话吗？删除后无法恢复。')
+    if (!confirm) return
+
+    util.showLoading('删除中...')
+    try {
+      await api.deleteConversation(id)
+      util.showToast('删除成功', 'success')
+
+      // 从列表中移除
+      const conversations = this.data.conversations.filter(c => c.id !== id)
+      let selectedConversationId = this.data.selectedConversationId
+      if (selectedConversationId === id) {
+        selectedConversationId = conversations.length > 0 ? conversations[0].id : null
+      }
+
+      this.setData({ conversations, selectedConversationId })
+    } catch (err) {
+      console.error('删除失败:', err)
+      util.showToast(err.message || '删除失败')
+    } finally {
+      util.hideLoading()
+    }
+  },
+
+  /**
    * 选择报告模式
    */
   selectReportMode(e) {

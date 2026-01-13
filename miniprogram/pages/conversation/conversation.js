@@ -628,6 +628,35 @@ Page({
   },
 
   /**
+   * 删除对话
+   */
+  async deleteConversation() {
+    if (!this.data.conversationId) {
+      util.showToast('无法删除新对话')
+      return
+    }
+
+    const confirm = await util.showConfirm('确定要删除这个对话吗？删除后无法恢复。')
+    if (!confirm) return
+
+    util.showLoading('删除中...')
+    try {
+      await api.deleteConversation(this.data.conversationId)
+      util.showToast('删除成功', 'success')
+
+      // 返回上一页
+      setTimeout(() => {
+        wx.navigateBack()
+      }, 1500)
+    } catch (err) {
+      console.error('删除失败:', err)
+      util.showToast(err.message || '删除失败')
+    } finally {
+      util.hideLoading()
+    }
+  },
+
+  /**
    * 设置快捷问题
    */
   setQuickQuestion(e) {

@@ -2,6 +2,9 @@
   <view class="info-card card">
     <view class="info-row"><text class="label">体检机构</text><text class="value">{{checkup.hospital || '未知'}}</text></view>
     <view class="info-row"><text class="label">体检日期</text><text class="value">{{checkup.checkup_date}}</text></view>
+    <view class="action-row">
+      <button class="delete-checkup-btn" bindtap="deleteCheckup">删除报告</button>
+    </view>
   </view>
 
   <view class="notes-card card" wx:if="{{checkup.notes}}">
