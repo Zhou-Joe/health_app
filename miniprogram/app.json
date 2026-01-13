@@ -22,29 +22,39 @@
   },
   "tabBar": {
     "color": "#666666",
-    "selectedColor": "#4A90E2",
+    "selectedColor": "#FF9A9E",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/dashboard/dashboard",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/checkups/checkups",
-        "text": "报告"
+        "text": "报告",
+        "iconPath": "images/tabbar/report.png",
+        "selectedIconPath": "images/tabbar/report-active.png"
       },
       {
         "pagePath": "pages/upload/upload",
-        "text": "上传"
+        "text": "上传",
+        "iconPath": "images/tabbar/upload.png",
+        "selectedIconPath": "images/tabbar/upload-active.png"
       },
       {
         "pagePath": "pages/ai-advice/ai-advice",
-        "text": "AI咨询"
+        "text": "AI咨询",
+        "iconPath": "images/tabbar/ai.png",
+        "selectedIconPath": "images/tabbar/ai-active.png"
       },
       {
         "pagePath": "pages/settings/settings",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "images/tabbar/user.png",
+        "selectedIconPath": "images/tabbar/user-active.png"
       }
     ]
   },
