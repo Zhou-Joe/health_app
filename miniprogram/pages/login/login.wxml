@@ -1,8 +1,8 @@
 <!--pages/login/login.wxml-->
 <view class="login-container">
   <view class="login-header">
-    <text class="app-name">健康档案</text>
-    <text class="app-desc">智能健康管理系统</text>
+    <text class="app-name">我的健康档案</text>
+    <text class="app-desc">AI驱动健康管理及咨询平台</text>
   </view>
 
   <view class="login-form">
