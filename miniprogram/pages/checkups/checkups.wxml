@@ -20,7 +20,7 @@
             <text class="view-detail">查看详情 ></text>
           </view>
           <view class="footer-right">
-            <text class="delete-btn" bindtap="deleteCheckup" data-id="{{item.id}}" catchtap="stopPropagation">删除</text>
+            <text class="delete-btn" catchtap="deleteCheckup" data-id="{{item.id}}">删除</text>
           </view>
         </view>
       </view>
