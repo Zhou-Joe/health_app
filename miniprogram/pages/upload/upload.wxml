@@ -7,13 +7,13 @@
     <view class="upload-area">
       <view wx:if="{{!filePath}}">
         <view class="upload-buttons">
-          <button class="upload-btn" bindtap="chooseImage">
-            <text class="btn-icon">📷</text>
-            <text class="btn-text">选择照片</text>
-          </button>
           <button class="upload-btn" bindtap="choosePDF">
             <text class="btn-icon">📄</text>
-            <text class="btn-text">选择PDF</text>
+            <text class="btn-text">选择体检、诊断报告</text>
+          </button>
+          <button class="upload-btn" bindtap="chooseImage">
+            <text class="btn-icon">📷</text>
+            <text class="btn-text">选择病症照片</text>
           </button>
         </view>
         <view class="upload-tip">
