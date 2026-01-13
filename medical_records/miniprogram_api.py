@@ -123,10 +123,7 @@ def miniprogram_upload_report(request):
         checkup_date = request.POST.get('checkup_date', datetime.now().strftime('%Y-%m-%d'))
         hospital = request.POST.get('hospital', '')
         notes = request.POST.get('notes', '')
-
-        # 从系统设置获取默认工作流（与网页端保持一致）
-        default_workflow = SystemSettings.get_default_workflow()
-        workflow_type = request.POST.get('workflow_type', default_workflow)
+        workflow_type = request.POST.get('workflow_type', 'vl_model')  # 图片默认使用多模态模型
 
         # 保存文件
         file_name = f"miniprogram_{uuid.uuid4().hex[:8]}_{file.name}"
