@@ -7,6 +7,7 @@ urlpatterns = [
     # 用户认证
     path('login/', miniprogram_api.miniprogram_login, name='login'),
     path('user-info/', miniprogram_api.miniprogram_user_info, name='user_info'),
+    path('complete-profile/', miniprogram_api.miniprogram_complete_profile, name='complete_profile'),
 
     # 体检报告管理
     path('upload/', miniprogram_api.miniprogram_upload_report, name='upload_report'),

@@ -1,0 +1,59 @@
+<!--pages/complete-profile/complete-profile.wxml-->
+<view class="profile-container">
+  <view class="profile-header">
+    <text class="header-title">完善个人信息</text>
+    <text class="header-desc">首次登录，请完善以下信息</text>
+  </view>
+
+  <view class="profile-form">
+    <view class="form-item">
+      <text class="label">昵称</text>
+      <input class="input"
+             placeholder="请输入昵称"
+             value="{{nickname}}"
+             bindinput="onNicknameInput" />
+    </view>
+
+    <view class="form-item">
+      <text class="label">性别</text>
+      <view class="gender-group">
+        <view class="gender-option {{gender === 'male' ? 'active' : ''}}"
+              bindtap="selectGender"
+              data-gender="male">
+          <text class="gender-icon">👨</text>
+          <text class="gender-text">男</text>
+        </view>
+        <view class="gender-option {{gender === 'female' ? 'active' : ''}}"
+              bindtap="selectGender"
+              data-gender="female">
+          <text class="gender-icon">👩</text>
+          <text class="gender-text">女</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <text class="label">出生日期</text>
+      <picker mode="date"
+              value="{{birthDate}}"
+              end="{{today}}"
+              bindchange="onBirthDateChange">
+        <view class="picker-value">
+          {{birthDate || '请选择出生日期'}}
+        </view>
+      </picker>
+    </view>
+
+    <view class="tip-box">
+      <text class="tip-icon">💡</text>
+      <text class="tip-text">完善个人信息有助于提供更精准的健康建议</text>
+    </view>
+  </view>
+
+  <button class="submit-btn"
+          bindtap="handleSubmit"
+          loading="{{submitting}}"
+          disabled="{{!canSubmit}}">
+    {{submitting ? '提交中...' : '完成'}}
+  </button>
+</view>

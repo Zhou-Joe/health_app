@@ -20,6 +20,7 @@ module.exports = {
     // 用户认证
     login: '/api/miniprogram/login/',
     userInfo: '/api/miniprogram/user-info/',
+    completeProfile: '/api/miniprogram/complete-profile/',
 
     // 体检报告
     checkups: '/api/miniprogram/checkups/',
@@ -88,7 +89,8 @@ module.exports = {
     aiAdvice: '/pages/ai-advice/ai-advice',
     conversation: '/pages/conversation/conversation',
     integration: '/pages/integration/integration',
-    settings: '/pages/settings/settings'
+    settings: '/pages/settings/settings',
+    completeProfile: '/pages/complete-profile/complete-profile'
   },
 
   // 工作流类型

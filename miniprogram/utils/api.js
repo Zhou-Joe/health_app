@@ -10,6 +10,10 @@ module.exports = {
   // ==================== 用户认证 ====================
   login: (data) => request.post(config.api.login, data),
 
+  wechatLogin: (data) => request.post(config.api.login, data),
+
+  completeProfile: (data) => request.post(config.api.completeProfile, data),
+
   getUserInfo: () => request.get(config.api.userInfo),
 
   // ==================== 体检报告管理 ====================

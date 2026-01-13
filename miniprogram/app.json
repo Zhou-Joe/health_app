@@ -9,7 +9,8 @@
     "pages/ai-advice/ai-advice",
     "pages/conversation/conversation",
     "pages/integration/integration",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/complete-profile/complete-profile"
   ],
   "window": {
     "backgroundTextStyle": "light",

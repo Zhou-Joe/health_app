@@ -34,11 +34,16 @@ def miniprogram_login(request):
         # 2. 用户名密码登录（测试用）
 
         if 'code' in data:
-            # 微信小程序登录（这里需要实际的微信API集成）
-            # 目前先创建或获取用户
-            openid = data.get('openid', f"wx_{uuid.uuid4().hex[:16]}")
+            # 微信小程序登录
+            code = data['code']
             nickname = data.get('nickname', '微信用户')
+            avatar_url = data.get('avatarUrl', '')
 
+            # TODO: 实际项目中应该调用微信服务器API获取openid
+            # 这里为了演示，使用code作为openid（实际应该调用微信API）
+            openid = f"wx_{code[:16]}"
+
+            # 查找或创建用户
             user, created = User.objects.get_or_create(
                 username=openid,
                 defaults={
@@ -48,9 +53,12 @@ def miniprogram_login(request):
                 }
             )
 
-            if created:
-                # 为新用户创建默认设置
-                pass
+            # 检查是否有UserProfile
+            from .models import UserProfile
+            user_profile, profile_created = UserProfile.objects.get_or_create(user=user)
+
+            # 判断是否首次登录（没有设置个人信息）
+            is_first_login = not (user_profile.birth_date or user_profile.gender)
 
             login(request, user)
 
@@ -58,7 +66,9 @@ def miniprogram_login(request):
                 'success': True,
                 'message': '登录成功',
                 'user': UserSerializer(user).data,
-                'token': get_or_create_token(user)
+                'token': get_or_create_token(user),
+                'is_first_login': is_first_login,
+                'need_complete_profile': is_first_login
             })
 
         elif 'username' in data and 'password' in data:
@@ -1084,4 +1094,46 @@ def miniprogram_export_conversation_word(request, conversation_id):
         return Response({
             'success': False,
             'message': f'导出Word失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# ==================== 完善个人信息 ====================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_complete_profile(request):
+    """完善用户个人信息"""
+    try:
+        from .models import UserProfile
+
+        data = json.loads(request.body)
+
+        # 获取或创建UserProfile
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+        # 更新用户信息
+        if 'nickname' in data:
+            request.user.first_name = data['nickname']
+            request.user.save()
+
+        # 更新UserProfile
+        if 'birth_date' in data:
+            from datetime import datetime
+            try:
+                birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
+                user_profile.birth_date = birth_date
+            except:
+                pass
+
+        if 'gender' in data:
+            user_profile.gender = data['gender']
+
+        user_profile.save()
+
+        return Response({
+            'success': True,
+            'message': '个人信息保存成功',
+            'user': UserSerializer(request.user).data
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'保存失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
