@@ -41,10 +41,6 @@
             loading="{{loading}}">
       {{loading ? '登录中...' : '登录'}}
     </button>
-
-    <view class="login-tips">
-      <text class="tip-text">测试账号：直接输入任意用户名和密码即可</text>
-    </view>
   </view>
 
   <view class="login-footer">
