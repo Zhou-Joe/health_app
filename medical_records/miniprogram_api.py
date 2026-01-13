@@ -1104,14 +1104,17 @@ def miniprogram_complete_profile(request):
         from .models import UserProfile
 
         data = json.loads(request.body)
+        print(f"[调试] 接收到的数据: {data}")
 
         # 获取或创建UserProfile
         user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        print(f"[调试] UserProfile {'创建' if created else '获取'}成功")
 
         # 更新用户信息
         if 'nickname' in data:
             request.user.first_name = data['nickname']
             request.user.save()
+            print(f"[调试] 昵称已更新: {data['nickname']}")
 
         # 更新UserProfile
         if 'birth_date' in data:
@@ -1119,13 +1122,16 @@ def miniprogram_complete_profile(request):
             try:
                 birth_date = datetime.strptime(data['birth_date'], '%Y-%m-%d').date()
                 user_profile.birth_date = birth_date
-            except:
-                pass
+                print(f"[调试] 出生日期已更新: {birth_date}")
+            except Exception as e:
+                print(f"[调试] 出生日期解析失败: {e}")
 
         if 'gender' in data:
             user_profile.gender = data['gender']
+            print(f"[调试] 性别已更新: {data['gender']}")
 
         user_profile.save()
+        print(f"[调试] UserProfile已保存")
 
         return Response({
             'success': True,
@@ -1133,6 +1139,9 @@ def miniprogram_complete_profile(request):
             'user': UserSerializer(request.user).data
         })
     except Exception as e:
+        print(f"[调试] 保存失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({
             'success': False,
             'message': f'保存失败: {str(e)}'

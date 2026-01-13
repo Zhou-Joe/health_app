@@ -1,11 +1,41 @@
 from rest_framework import serializers
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing
+from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing, UserProfile
 from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
+    """用户序列化器，包含UserProfile信息"""
+    birth_date = serializers.SerializerMethodField()
+    gender = serializers.SerializerMethodField()
+    age = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'birth_date', 'gender', 'age']
+
+    def get_birth_date(self, obj):
+        """获取出生日期"""
+        try:
+            profile = obj.userprofile
+            return profile.birth_date.isoformat() if profile.birth_date else None
+        except UserProfile.DoesNotExist:
+            return None
+
+    def get_gender(self, obj):
+        """获取性别"""
+        try:
+            profile = obj.userprofile
+            return profile.gender if profile.gender else None
+        except UserProfile.DoesNotExist:
+            return None
+
+    def get_age(self, obj):
+        """获取年龄"""
+        try:
+            profile = obj.userprofile
+            return profile.age if profile.birth_date else None
+        except UserProfile.DoesNotExist:
+            return None
+
 
 class HealthIndicatorSerializer(serializers.ModelSerializer):
     """健康指标序列化器"""
