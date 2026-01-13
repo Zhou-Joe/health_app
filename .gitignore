@@ -74,9 +74,6 @@ npm-debug.log
 # WeChat Miniprogram
 miniprogram/project.private.config.json
 
-# WeChat Config (contains sensitive AppSecret)
-medical_records/wechat_config.py
-
 # Temporary files
 *.tmp
 *.temp
