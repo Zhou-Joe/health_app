@@ -39,14 +39,20 @@ Page({
       const res = await api.getUserInfo()
       const user = res.user
 
-      console.log('[调试] 用户信息:', user)
+      console.log('[调试] API返回的完整用户信息:', JSON.stringify(user, null, 2))
+      console.log('[调试] user.birth_date:', user.birth_date)
+      console.log('[调试] user.gender:', user.gender)
+      console.log('[调试] user.age:', user.age)
+      console.log('[调试] user.age类型:', typeof user.age)
 
       // 计算年龄显示
       let ageDisplay = '未知'
       if (user.birth_date) {
         // 后端已经计算好了age，直接使用
         ageDisplay = user.age ? `${user.age}岁` : '未知'
+        console.log('[调试] 计算后的ageDisplay:', ageDisplay)
       } else {
+        console.log('[调试] birth_date为空，年龄显示未知')
         ageDisplay = '未知'
       }
 
@@ -59,7 +65,7 @@ Page({
         age: ageDisplay
       }
 
-      console.log('[调试] userProfile:', userProfile)
+      console.log('[调试] 最终userProfile:', userProfile)
 
       this.setData({
         userProfile,
