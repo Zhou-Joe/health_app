@@ -430,44 +430,123 @@ def miniprogram_indicators(request, checkup_id=None):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def miniprogram_get_advice(request):
-    """获取AI健康建议"""
+    """获取AI健康建议 - 支持对话模式和报告分析"""
     try:
         data = json.loads(request.body)
-        checkup_id = data.get('checkup_id')
 
-        if not checkup_id:
+        # 支持两种模式：
+        # 1. 旧模式：checkup_id（单份报告分析）
+        # 2. 新模式：question + selected_reports + conversation_id（对话模式）
+
+        checkup_id = data.get('checkup_id')
+        question = data.get('question')
+        selected_reports_ids = data.get('selected_reports', [])
+        conversation_id = data.get('conversation_id')
+
+        # 对话模式（新）
+        if question:
+            from .views import generate_ai_advice
+            from .models import Conversation
+
+            # 处理对话
+            if conversation_id:
+                try:
+                    conversation = Conversation.objects.get(
+                        id=conversation_id,
+                        user=request.user,
+                        is_active=True
+                    )
+                except Conversation.DoesNotExist:
+                    return Response({
+                        'success': False,
+                        'message': '对话不存在或已删除'
+                    }, status=status.HTTP_404_NOT_FOUND)
+            else:
+                # 创建新对话
+                question_text = question[:50]
+                if len(question) > 50:
+                    question_text += '...'
+                conversation = Conversation.create_new_conversation(
+                    request.user,
+                    f"健康咨询: {question_text}"
+                )
+
+            # 处理报告选择
+            selected_reports = None
+            if selected_reports_ids and len(selected_reports_ids) > 0:
+                selected_reports = HealthCheckup.objects.filter(
+                    id__in=selected_reports_ids,
+                    user=request.user
+                )
+
+            # 生成AI响应
+            answer, prompt_sent, conversation_context = generate_ai_advice(
+                question,
+                request.user,
+                selected_reports,
+                conversation
+            )
+
+            # 保存对话记录
+            selected_reports_json = json.dumps(selected_reports_ids) if selected_reports_ids else None
+            health_advice = HealthAdvice.objects.create(
+                user=request.user,
+                question=question,
+                answer=answer,
+                prompt_sent=prompt_sent,
+                conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
+                conversation=conversation,
+                selected_reports=selected_reports_json
+            )
+
+            return Response({
+                'success': True,
+                'answer': answer,
+                'prompt': prompt_sent,
+                'conversation_id': conversation.id
+            })
+
+        # 旧模式：单份报告分析
+        elif checkup_id:
+            if not checkup_id:
+                return Response({
+                    'success': False,
+                    'message': '请提供体检记录ID'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            checkup = HealthCheckup.objects.get(
+                id=checkup_id,
+                user=request.user
+            )
+
+            # 获取健康指标
+            indicators = HealthIndicator.objects.filter(checkup=checkup)
+
+            # 生成AI建议
+            ai_service = AIService()
+            advice = ai_service.get_health_advice(indicators)
+
+            # 保存建议
+            health_advice = HealthAdvice.objects.create(
+                user=request.user,
+                checkup=checkup,
+                advice_type='ai_analysis',
+                advice_content=advice
+            )
+
+            serializer = HealthAdviceSerializer(health_advice)
+
+            return Response({
+                'success': True,
+                'message': 'AI建议生成成功',
+                'data': serializer.data
+            })
+
+        else:
             return Response({
                 'success': False,
-                'message': '请提供体检记录ID'
+                'message': '请提供question或checkup_id参数'
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        checkup = HealthCheckup.objects.get(
-            id=checkup_id,
-            user=request.user
-        )
-
-        # 获取健康指标
-        indicators = HealthIndicator.objects.filter(checkup=checkup)
-
-        # 生成AI建议
-        ai_service = AIService()
-        advice = ai_service.get_health_advice(indicators)
-
-        # 保存建议
-        health_advice = HealthAdvice.objects.create(
-            user=request.user,
-            checkup=checkup,
-            advice_type='ai_analysis',
-            advice_content=advice
-        )
-
-        serializer = HealthAdviceSerializer(health_advice)
-
-        return Response({
-            'success': True,
-            'message': 'AI建议生成成功',
-            'data': serializer.data
-        })
 
     except HealthCheckup.DoesNotExist:
         return Response({
