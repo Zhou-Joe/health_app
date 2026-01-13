@@ -22,22 +22,16 @@
       <view class="mode-option {{conversationMode === 'new' ? 'active' : ''}}"
             bindtap="selectConversationMode"
             data-mode="new">
-        <view class="mode-icon">✨</view>
-        <view class="mode-content">
-          <text class="mode-title">创建新对话</text>
-          <text class="mode-desc">开始一个全新的健康咨询</text>
-        </view>
+        <text class="mode-icon">✨</text>
+        <text class="mode-title">创建新对话</text>
         <view class="mode-check" wx:if="{{conversationMode === 'new'}}">✓</view>
       </view>
 
       <view class="mode-option {{conversationMode === 'continue' ? 'active' : ''}}"
             bindtap="selectConversationMode"
             data-mode="continue">
-        <view class="mode-icon">🔄</view>
-        <view class="mode-content">
-          <text class="mode-title">继续对话</text>
-          <text class="mode-desc">基于之前的对话继续咨询</text>
-        </view>
+        <text class="mode-icon">🔄</text>
+        <text class="mode-title">继续对话</text>
         <view class="mode-check" wx:if="{{conversationMode === 'continue'}}">✓</view>
       </view>
     </view>
@@ -71,10 +65,7 @@
             bindtap="selectReportMode"
             data-mode="none">
         <text class="report-mode-icon">💭</text>
-        <view class="report-mode-content">
-          <text class="report-mode-title">不使用报告</text>
-          <text class="report-mode-desc">仅基于问题提供一般性建议</text>
-        </view>
+        <text class="report-mode-title">不使用报告</text>
         <view class="report-mode-check" wx:if="{{reportMode === 'none'}}">✓</view>
       </view>
 
@@ -82,10 +73,7 @@
             bindtap="selectReportMode"
             data-mode="select">
         <text class="report-mode-icon">📊</text>
-        <view class="report-mode-content">
-          <text class="report-mode-title">选择报告</text>
-          <text class="report-mode-desc">AI将基于您选择的报告分析</text>
-        </view>
+        <text class="report-mode-title">选择报告</text>
         <view class="report-mode-check" wx:if="{{reportMode === 'select'}}">✓</view>
       </view>
     </view>

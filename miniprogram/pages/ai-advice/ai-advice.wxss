@@ -80,51 +80,41 @@
 /* ==================== 对话模式选择 ==================== */
 .mode-selector {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 16rpx;
 }
 
 .mode-option {
+  flex: 1;
   display: flex;
   align-items: center;
-  padding: 24rpx;
+  justify-content: center;
+  padding: 20rpx 16rpx;
   border: 2rpx solid #E0E0E0;
   border-radius: 20rpx;
   background-color: #FAFAFA;
   transition: all 0.3s ease;
   position: relative;
+  gap: 8rpx;
 }
 
 .mode-option.active {
   border-color: #FF9A9E;
-  background: linear-gradient(135deg, #F0F4FF 0%, #E8EEFF 100%);
+  background: linear-gradient(135deg, #FFE5E5 0%, #FFF0F0 100%);
 }
 
 .mode-icon {
-  font-size: 40rpx;
-  margin-right: 16rpx;
-}
-
-.mode-content {
-  flex: 1;
+  font-size: 32rpx;
 }
 
 .mode-title {
-  display: block;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 500;
   color: #333333;
-  margin-bottom: 4rpx;
-}
-
-.mode-desc {
-  display: block;
-  font-size: 24rpx;
-  color: #AAAAAA;
 }
 
 .mode-check {
-  font-size: 32rpx;
+  font-size: 28rpx;
   color: #FF9A9E;
   font-weight: bold;
 }
@@ -190,52 +180,42 @@
 /* ==================== 报告模式选择 ==================== */
 .report-mode-selector {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 16rpx;
 }
 
 .report-mode-option {
+  flex: 1;
   display: flex;
   align-items: center;
-  padding: 24rpx;
+  justify-content: center;
+  padding: 20rpx 16rpx;
   border: 2rpx solid #E0E0E0;
   border-radius: 20rpx;
   background-color: #FAFAFA;
   transition: all 0.3s ease;
   position: relative;
+  gap: 8rpx;
 }
 
 .report-mode-option.active {
-  border-color: #28A745;
-  background: linear-gradient(135deg, #E8F5E8 0%, #F0FFF0 100%);
+  border-color: #A8EDEA;
+  background: linear-gradient(135deg, #E8F5FF 0%, #E0F7FA 100%);
 }
 
 .report-mode-icon {
-  font-size: 40rpx;
-  margin-right: 16rpx;
-}
-
-.report-mode-content {
-  flex: 1;
+  font-size: 32rpx;
 }
 
 .report-mode-title {
-  display: block;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 500;
   color: #333333;
-  margin-bottom: 4rpx;
-}
-
-.report-mode-desc {
-  display: block;
-  font-size: 24rpx;
-  color: #AAAAAA;
 }
 
 .report-mode-check {
-  font-size: 32rpx;
-  color: #28A745;
+  font-size: 28rpx;
+  color: #A8EDEA;
   font-weight: bold;
 }
 
@@ -246,17 +226,18 @@
 
 .report-actions {
   display: flex;
-  gap: 12rpx;
+  gap: 8rpx;
   margin-bottom: 16rpx;
 }
 
 .action-btn {
   flex: 1;
-  padding: 16rpx;
-  background-color: #FAFAFA;
-  border: 1rpx solid #E0E0E0;
-  border-radius: 8rpx;
-  font-size: 26rpx;
+  padding: 12rpx 8rpx;
+  background-color: #FFFFFF;
+  border: 2rpx solid #E0E0E0;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  font-weight: 500;
   color: #666666;
 }
 
