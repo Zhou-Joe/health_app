@@ -229,7 +229,15 @@ Page({
         })
       })
 
-      this.setData({ messages })
+      // 获取对话中最后一条消息使用的报告ID
+      const lastSelectedReports = res.data?.last_selected_reports || []
+
+      this.setData({
+        messages,
+        selectedReportIds: lastSelectedReports
+      })
+
+      console.log('[对话] 已加载上一轮对话的报告设置:', lastSelectedReports)
     } catch (err) {
       console.error('加载对话失败:', err)
       util.showToast(err.message || '加载失败')
@@ -413,6 +421,12 @@ Page({
 
       if (this.data.conversationMode === 'continue' && this.data.conversationId) {
         requestData.conversation_id = this.data.conversationId
+        console.log('[对话] 继续对话，使用报告设置:', this.data.selectedReportIds)
+
+        // 如果有使用报告，给用户提示
+        if (this.data.selectedReportIds.length > 0) {
+          console.log(`[对话] 本次对话将引用 ${this.data.selectedReportIds.length} 份报告`)
+        }
       }
 
       // 由于小程序不支持SSE，使用普通请求

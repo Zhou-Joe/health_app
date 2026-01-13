@@ -767,11 +767,14 @@ def miniprogram_create_conversation(request):
             )
 
         # 立即创建一个空的HealthAdvice记录，用于存储流式生成的内容
+        # 保存选中的报告ID列表
+        selected_reports_json = json.dumps(selected_reports_ids) if selected_reports_ids else None
         health_advice = HealthAdvice.objects.create(
             user=request.user,
             question=question,
             answer='',  # 初始为空，后续更新
-            conversation=conversation
+            conversation=conversation,
+            selected_reports=selected_reports_json
         )
 
         print(f"[小程序] 创建对话成功，conversation_id: {conversation.id}, advice_id: {health_advice.id}")
@@ -907,13 +910,28 @@ def miniprogram_conversation_detail(request, conversation_id):
         messages = HealthAdvice.get_conversation_messages(conversation_id)
 
         message_list = []
+        last_selected_reports = []
+
         for msg in messages:
+            # 解析selected_reports
+            msg_selected_reports = []
+            if msg.selected_reports:
+                try:
+                    msg_selected_reports = json.loads(msg.selected_reports)
+                except:
+                    pass
+
             message_list.append({
                 'id': msg.id,
                 'question': msg.question,
                 'answer': msg.answer,
-                'created_at': msg.created_at.isoformat()
+                'created_at': msg.created_at.isoformat(),
+                'selected_reports': msg_selected_reports
             })
+
+            # 保存最后一条消息的selected_reports
+            if msg_selected_reports:
+                last_selected_reports = msg_selected_reports
 
         return Response({
             'success': True,
@@ -923,7 +941,8 @@ def miniprogram_conversation_detail(request, conversation_id):
                 'created_at': conversation.created_at.isoformat(),
                 'updated_at': conversation.updated_at.isoformat(),
                 'messages': message_list,
-                'message_count': len(message_list)
+                'message_count': len(message_list),
+                'last_selected_reports': last_selected_reports
             }
         })
 
