@@ -211,11 +211,14 @@ Page({
       const messageList = res.data?.messages || []
 
       messageList.forEach(msg => {
+        // 格式化时间，去掉毫秒
+        const formattedTime = util.formatDate(new Date(msg.created_at), 'YYYY-MM-DD HH:mm:ss')
+
         messages.push({
           id: msg.id,
           role: 'user',
           content: msg.question,
-          created_at: msg.created_at
+          created_at: formattedTime
         })
         // AI消息转换为Markdown
         const aiContent = msg.answer || ''
@@ -224,7 +227,7 @@ Page({
           role: 'ai',
           content: aiContent,
           markdownData: this.convertMarkdown(aiContent),
-          created_at: msg.created_at,
+          created_at: formattedTime,
           prompt_sent: msg.prompt_sent
         })
       })
@@ -413,7 +416,7 @@ Page({
       id: Date.now(),
       role: 'user',
       content: inputText,
-      created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
+      created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
     }
 
     const messages = [...this.data.messages, userMsg]
@@ -451,7 +454,7 @@ Page({
         id: Date.now() + 1,
         role: 'ai',
         content: '正在分析您的健康数据，请稍候...',
-        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
+        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
       }
 
       this.setData({
@@ -540,7 +543,7 @@ Page({
         id: Date.now(),
         role: 'ai',
         content: res.answer || res.data?.answer || '抱歉，AI医生暂时无法回复。',
-        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm')
+        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
       }
 
       this.setData({

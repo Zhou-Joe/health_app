@@ -272,10 +272,21 @@
   line-height: 1.8;
   word-wrap: break-word;
   white-space: pre-wrap;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .ai-text {
   color: #333333;
+}
+
+/* rich-text内容样式 */
+.message-bubble rich-text {
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: #333333;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .message-meta {
