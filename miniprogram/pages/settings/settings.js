@@ -150,6 +150,11 @@ Page({
   async saveEdit() {
     const { editField, editValue } = this.data
 
+    console.log('[保存] 开始保存')
+    console.log('[保存] editField:', editField)
+    console.log('[保存] editValue:', editValue)
+    console.log('[保存] 当前userProfile:', this.data.userProfile)
+
     // 验证
     if (editField.key === 'nickname') {
       if (!editValue || !editValue.trim()) {
@@ -170,6 +175,7 @@ Page({
         util.showToast('请选择出生日期')
         return
       }
+      console.log('[保存] 出生日期验证通过:', editValue)
     }
 
     this.setData({ saving: true })
@@ -186,15 +192,19 @@ Page({
       // 注意：需要映射驼峰命名到下划线命名
       if (editField.key === 'birthDate') {
         data.birth_date = editValue
+        console.log('[保存] 更新birth_date:', editValue)
       } else if (editField.key === 'nickname') {
         data.nickname = editValue
+        console.log('[保存] 更新nickname:', editValue)
       } else if (editField.key === 'gender') {
         data.gender = editValue
+        console.log('[保存] 更新gender:', editValue)
       }
 
-      console.log('[保存] 请求数据:', data)
+      console.log('[保存] 最终请求数据:', JSON.stringify(data, null, 2))
 
-      await api.completeProfile(data)
+      const res = await api.completeProfile(data)
+      console.log('[保存] API响应:', res)
 
       util.showToast('保存成功', 'success')
 
@@ -204,7 +214,8 @@ Page({
         this.loadUserProfile()
       }, 1000)
     } catch (err) {
-      console.error('保存失败:', err)
+      console.error('[保存] 保存失败:', err)
+      console.error('[保存] 错误详情:', JSON.stringify(err, null, 2))
       util.showToast(err.message || '保存失败')
     } finally {
       this.setData({ saving: false })
