@@ -172,6 +172,11 @@
   margin-top: 20rpx;
 }
 
+.progress-tip.success {
+  color: #07C160;
+  font-weight: 500;
+}
+
 .view-result-btn {
   width: 100%;
   margin-top: 20rpx;

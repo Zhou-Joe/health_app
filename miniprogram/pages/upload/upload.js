@@ -203,7 +203,20 @@ Page({
           })
         }
         wx.hideLoading()
-        util.showToast('✅ 处理完成！', 'success')
+
+        // 显示成功提示
+        wx.showToast({
+          title: '✅ 处理完成！',
+          icon: 'success',
+          duration: 1500
+        })
+
+        // 自动跳转到报告详情页
+        setTimeout(() => {
+          wx.redirectTo({
+            url: `/pages/checkup-detail/checkup-detail?id=${this.data.checkupId}`
+          })
+        }, 1500)
       } else if (res.status === 'failed') {
         console.error('处理失败:', res.error_message)
         // 停止轮询
@@ -235,11 +248,5 @@ Page({
       failed: '处理失败'
     }
     return statusMap[status] || status
-  },
-
-  viewResult() {
-    wx.navigateTo({
-      url: `/pages/checkup-detail/checkup-detail?id=${this.data.checkupId}`
-    })
   }
 })

@@ -72,6 +72,6 @@
     </view>
     <progress percent="{{progress}}" stroke-width="8" activeColor="#4A90E2" />
     <text class="progress-tip" wx:if="{{progress < 100}}">正在处理中，请稍候...</text>
-    <button class="view-result-btn mt-20" wx:else bindtap="viewResult">查看结果</button>
+    <text class="progress-tip success" wx:else>✅ 处理完成，即将跳转到报告详情...</text>
   </view>
 </view>

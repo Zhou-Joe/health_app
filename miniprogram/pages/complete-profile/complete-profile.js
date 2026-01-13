@@ -60,18 +60,22 @@ Page({
         birth_date: this.data.birthDate
       })
 
-      util.showToast('保存成功', 'success')
+      // 显示成功提示
+      wx.showToast({
+        title: '✅ 注册成功！',
+        icon: 'success',
+        duration: 1500
+      })
 
-      // 跳转到首页
+      // 延迟跳转到首页，让用户看到成功提示
       setTimeout(() => {
-        wx.switchTab({
+        wx.reLaunch({
           url: '/pages/dashboard/dashboard'
         })
       }, 1500)
     } catch (err) {
       console.error('保存失败:', err)
       util.showToast(err.message || '保存失败')
-    } finally {
       this.setData({ submitting: false })
     }
   }
