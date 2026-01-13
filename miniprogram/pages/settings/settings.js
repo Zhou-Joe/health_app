@@ -183,7 +183,16 @@ Page({
       }
 
       // 更新当前编辑的字段
-      data[editField.key] = editValue
+      // 注意：需要映射驼峰命名到下划线命名
+      if (editField.key === 'birthDate') {
+        data.birth_date = editValue
+      } else if (editField.key === 'nickname') {
+        data.nickname = editValue
+      } else if (editField.key === 'gender') {
+        data.gender = editValue
+      }
+
+      console.log('[保存] 请求数据:', data)
 
       await api.completeProfile(data)
 
