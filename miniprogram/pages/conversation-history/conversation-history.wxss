@@ -65,8 +65,10 @@
   margin-left: 16rpx;
 }
 
-.delete-icon {
-  font-size: 36rpx;
+.delete-text {
+  font-size: 26rpx;
+  color: #FF8A8A;
+  font-weight: 500;
   padding: 8rpx;
 }
 
