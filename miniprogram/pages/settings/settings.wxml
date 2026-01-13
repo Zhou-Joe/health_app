@@ -9,60 +9,48 @@
     </view>
   </view>
 
-  <!-- 系统设置 -->
-  <view class="settings-section">
-    <view class="section-title">系统设置</view>
-    <view class="settings-list card">
-      <view class="setting-item">
-        <text class="item-label">服务器地址</text>
-        <input class="server-input"
-               value="{{serverUrl}}"
-               bindinput="onServerUrlChange"
-               placeholder="http://localhost:8000" />
-      </view>
-      <view class="setting-item" bindtap="testConnection">
-        <text class="item-label">测试连接</text>
-        <text class="item-arrow">›</text>
-      </view>
-      <view class="setting-item" bindtap="checkServicesStatus">
-        <text class="item-label">检查服务状态</text>
-        <text class="item-arrow">›</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 服务状态 -->
-  <view class="settings-section" wx:if="{{servicesStatus.services}}">
-    <view class="section-title">服务状态</view>
-    <view class="settings-list card">
-      <view class="service-item" wx:for="{{servicesStatus.services}}" wx:key="name">
-        <view class="service-info">
-          <text class="service-name">{{item.name}}</text>
-          <text class="service-status status-{{item.status}}">
-            {{item.status === 'available' ? '正常' : '异常'}}
-          </text>
+  <!-- 个人信息 -->
+  <view class="profile-section">
+    <view class="section-title">个人信息</view>
+    <view class="profile-list card">
+      <view class="profile-item" bindtap="editNickname">
+        <text class="item-label">昵称</text>
+        <view class="item-value-row">
+          <text class="item-value">{{userProfile.nickname || '未设置'}}</text>
+          <text class="item-arrow">›</text>
         </view>
-        <view class="service-desc">{{item.description || ''}}</view>
       </view>
-    </view>
-  </view>
 
-  <!-- 数据管理 -->
-  <view class="settings-section">
-    <view class="section-title">数据管理</view>
-    <view class="settings-list card">
-      <view class="setting-item" bindtap="clearCache">
-        <text class="item-label">清除缓存</text>
-        <text class="item-desc">清除所有本地缓存数据</text>
+      <view class="profile-item" bindtap="editGender">
+        <text class="item-label">性别</text>
+        <view class="item-value-row">
+          <text class="item-value">{{userProfile.genderDisplay || '未设置'}}</text>
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="profile-item" bindtap="editBirthDate">
+        <text class="item-label">出生日期</text>
+        <view class="item-value-row">
+          <text class="item-value">{{userProfile.birthDate || '未设置'}}</text>
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="profile-item">
+        <text class="item-label">年龄</text>
+        <view class="item-value-row">
+          <text class="item-value">{{userProfile.age || '未知'}}</text>
+        </view>
       </view>
     </view>
   </view>
 
   <!-- 其他 -->
-  <view class="settings-section">
+  <view class="other-section">
     <view class="section-title">其他</view>
-    <view class="settings-list card">
-      <view class="setting-item" bindtap="showAbout">
+    <view class="other-list card">
+      <view class="other-item" bindtap="showAbout">
         <text class="item-label">关于</text>
         <text class="item-value">v1.0.0</text>
       </view>
@@ -72,5 +60,53 @@
   <!-- 退出登录 -->
   <view class="action-section">
     <button class="logout-btn" bindtap="handleLogout">退出登录</button>
+  </view>
+</view>
+
+<!-- 修改昵称弹窗 -->
+<view class="modal-mask" wx:if="{{showEditModal}}" bindtap="closeModal">
+  <view class="modal-container" catchtap="stopPropagation">
+    <view class="modal-title">修改{{editField.label}}</view>
+    <view class="modal-content">
+      <!-- 昵称输入 -->
+      <input wx:if="{{editField.key === 'nickname'}}"
+             class="modal-input"
+             value="{{editValue}}"
+             bindinput="onEditInput"
+             placeholder="请输入昵称" />
+
+      <!-- 性别选择 -->
+      <view wx:if="{{editField.key === 'gender'}}" class="gender-options">
+        <view class="gender-option {{editValue === 'male' ? 'active' : ''}}"
+              bindtap="selectGender"
+              data-value="male">
+          <text class="gender-icon">👨</text>
+          <text class="gender-text">男</text>
+        </view>
+        <view class="gender-option {{editValue === 'female' ? 'active' : ''}}"
+              bindtap="selectGender"
+              data-value="female">
+          <text class="gender-icon">👩</text>
+          <text class="gender-text">女</text>
+        </view>
+      </view>
+
+      <!-- 出生日期选择 -->
+      <picker wx:if="{{editField.key === 'birthDate'}}"
+              mode="date"
+              value="{{editValue}}"
+              end="{{today}}"
+              bindchange="onBirthDateChange">
+        <view class="picker-value">
+          {{editValue || '请选择出生日期'}}
+        </view>
+      </picker>
+    </view>
+    <view class="modal-actions">
+      <button class="modal-btn cancel-btn" bindtap="closeModal">取消</button>
+      <button class="modal-btn confirm-btn" bindtap="saveEdit" loading="{{saving}}">
+        {{saving ? '保存中...' : '保存'}}
+      </button>
+    </view>
   </view>
 </view>

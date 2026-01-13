@@ -5,92 +5,195 @@
 const app = getApp()
 const api = require('../../utils/api.js')
 const util = require('../../utils/util.js')
-const config = require('../../config.js')
 
 Page({
   data: {
     userInfo: {},
-    serverUrl: config.server.baseUrl,
-    systemSettings: {},
-    servicesStatus: {},
-    loading: false
+    userProfile: {},
+    showEditModal: false,
+    editField: {},
+    editValue: '',
+    saving: false,
+    today: ''
   },
 
   onLoad() {
+    // 设置今天的日期
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
     this.setData({
-      userInfo: app.globalData.userInfo || {},
-      serverUrl: config.server.baseUrl
+      today: `${year}-${month}-${day}`,
+      userInfo: app.globalData.userInfo || {}
     })
-    this.loadSystemSettings()
-    this.checkServicesStatus()
+
+    this.loadUserProfile()
   },
 
   /**
-   * 加载系统设置
+   * 加载用户个人信息
    */
-  async loadSystemSettings() {
+  async loadUserProfile() {
     try {
-      const res = await api.getSystemSettings()
-      this.setData({ systemSettings: res.data || res })
+      const res = await api.getUserInfo()
+      const user = res.user
+
+      // 构建用户profile数据
+      const userProfile = {
+        nickname: user.first_name || '',
+        gender: user.gender || '',
+        genderDisplay: this.getGenderDisplay(user.gender),
+        birthDate: user.birth_date || '',
+        age: user.age || ''
+      }
+
+      this.setData({
+        userProfile,
+        userInfo: user
+      })
     } catch (err) {
-      console.error('加载系统设置失败:', err)
+      console.error('加载用户信息失败:', err)
     }
   },
 
   /**
-   * 检查服务状态
+   * 获取性别显示文本
    */
-  async checkServicesStatus() {
-    util.showLoading('检查中...')
+  getGenderDisplay(gender) {
+    if (!gender) return '未设置'
+    return gender === 'male' ? '男' : '女'
+  },
+
+  /**
+   * 编辑昵称
+   */
+  editNickname() {
+    this.setData({
+      showEditModal: true,
+      editField: { key: 'nickname', label: '昵称' },
+      editValue: this.data.userProfile.nickname || ''
+    })
+  },
+
+  /**
+   * 编辑性别
+   */
+  editGender() {
+    this.setData({
+      showEditModal: true,
+      editField: { key: 'gender', label: '性别' },
+      editValue: this.data.userProfile.gender || ''
+    })
+  },
+
+  /**
+   * 编辑出生日期
+   */
+  editBirthDate() {
+    this.setData({
+      showEditModal: true,
+      editField: { key: 'birthDate', label: '出生日期' },
+      editValue: this.data.userProfile.birthDate || ''
+    })
+  },
+
+  /**
+   * 输入框输入事件
+   */
+  onEditInput(e) {
+    this.setData({ editValue: e.detail.value })
+  },
+
+  /**
+   * 选择性别
+   */
+  selectGender(e) {
+    const gender = e.currentTarget.dataset.value
+    this.setData({ editValue: gender })
+  },
+
+  /**
+   * 出生日期变更
+   */
+  onBirthDateChange(e) {
+    this.setData({ editValue: e.detail.value })
+  },
+
+  /**
+   * 保存编辑
+   */
+  async saveEdit() {
+    const { editField, editValue } = this.data
+
+    // 验证
+    if (editField.key === 'nickname') {
+      if (!editValue || !editValue.trim()) {
+        util.showToast('请输入昵称')
+        return
+      }
+    }
+
+    if (editField.key === 'gender') {
+      if (!editValue) {
+        util.showToast('请选择性别')
+        return
+      }
+    }
+
+    if (editField.key === 'birthDate') {
+      if (!editValue) {
+        util.showToast('请选择出生日期')
+        return
+      }
+    }
+
+    this.setData({ saving: true })
+
     try {
-      const res = await api.getServicesStatus()
-      this.setData({ servicesStatus: res })
+      // 调用完善个人信息API
+      const data = {
+        nickname: this.data.userProfile.nickname,
+        gender: this.data.userProfile.gender,
+        birth_date: this.data.userProfile.birthDate
+      }
+
+      // 更新当前编辑的字段
+      data[editField.key] = editValue
+
+      await api.completeProfile(data)
+
+      util.showToast('保存成功', 'success')
+
+      // 关闭弹窗并重新加载数据
+      this.closeModal()
+      setTimeout(() => {
+        this.loadUserProfile()
+      }, 1000)
     } catch (err) {
-      console.error('检查服务状态失败:', err)
-      util.showToast('检查失败')
+      console.error('保存失败:', err)
+      util.showToast(err.message || '保存失败')
     } finally {
-      util.hideLoading()
+      this.setData({ saving: false })
     }
   },
 
   /**
-   * 服务器地址变更
+   * 关闭弹窗
    */
-  onServerUrlChange(e) {
-    this.setData({ serverUrl: e.detail.value })
+  closeModal() {
+    this.setData({
+      showEditModal: false,
+      editField: {},
+      editValue: ''
+    })
   },
 
   /**
-   * 保存服务器地址
+   * 阻止冒泡
    */
-  saveServerUrl() {
-    const url = this.data.serverUrl.trim()
-    if (!url) {
-      util.showToast('请输入服务器地址')
-      return
-    }
-
-    // 这里应该保存到本地存储并更新config
-    wx.setStorageSync('serverUrl', url)
-    util.showToast('已保存，请重启小程序生效', 'success')
-  },
-
-  /**
-   * 清除缓存
-   */
-  async clearCache() {
-    const confirm = await util.showConfirm('确定要清除所有缓存吗？')
-    if (!confirm) return
-
-    try {
-      wx.clearStorageSync()
-      util.showToast('缓存已清除', 'success')
-
-      // 重新加载登录信息
-      app.checkLogin()
-    } catch (err) {
-      util.showToast('清除失败')
-    }
+  stopPropagation() {
+    // 空函数，用于阻止事件冒泡
   },
 
   /**
@@ -117,20 +220,5 @@ Page({
       showCancel: false,
       confirmText: '知道了'
     })
-  },
-
-  /**
-   * 测试连接
-   */
-  async testConnection() {
-    util.showLoading('测试连接...')
-    try {
-      await api.getSystemSettings()
-      util.showToast('连接成功', 'success')
-    } catch (err) {
-      util.showToast('连接失败')
-    } finally {
-      util.hideLoading()
-    }
   }
 })
