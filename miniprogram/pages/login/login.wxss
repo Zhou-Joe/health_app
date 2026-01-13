@@ -3,10 +3,12 @@
   min-height: 100vh;
   background: #FFFFFF;
   background-image:
-    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.03) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(254, 207, 239, 0.02) 0%, transparent 40%);
-  background-size: 100% 100%, 100% 100%, 100% 100%;
+    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(254, 207, 239, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(255, 154, 158, 0.08) 0%, transparent 30%),
+    radial-gradient(circle at 10% 90%, rgba(168, 237, 234, 0.1) 0%, transparent 35%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
   padding: 120rpx 60rpx;
   display: flex;
   flex-direction: column;
@@ -89,7 +91,7 @@
   width: 100%;
   height: 96rpx;
   background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #FFFFFF;
+  color: #5A4A4A;
   font-size: 32rpx;
   font-weight: 500;
   border-radius: 20rpx;
@@ -102,7 +104,7 @@
   width: 100%;
   height: 96rpx;
   background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
-  color: #FFFFFF;
+  color: #5A4A4A;
   font-size: 32rpx;
   font-weight: 500;
   border-radius: 20rpx;
