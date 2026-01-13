@@ -1,12 +1,15 @@
 /* pages/conversation-history/conversation-history.wxss */
 .history-container {
   min-height: 100vh;
-  background-color: #F5F5F5;
+  background: #FFFFFF;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.06) 0%, transparent 50%);
 }
 
 /* ==================== 页面头部 ==================== */
 .page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   padding: 40rpx 30rpx;
   text-align: center;
 }
@@ -105,7 +108,8 @@
 
 .view-text {
   font-size: 28rpx;
-  color: #667eea;
+  color: #FF9A9E;
+  font-weight: 500;
 }
 
 /* ==================== 空状态 ==================== */
@@ -142,12 +146,14 @@
 
 /* ==================== 通用按钮样式 ==================== */
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
   border: none;
   border-radius: 50rpx;
   padding: 24rpx 60rpx;
   font-size: 28rpx;
+  font-weight: 500;
+  box-shadow: 0 8rpx 24rpx rgba(255, 154, 158, 0.3);
 }
 
 .btn-primary::after {

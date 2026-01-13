@@ -36,14 +36,14 @@
 
 .back-btn {
   font-size: 32rpx;
-  color: #FFFFFF;
+  color: #5A4A4A;
   font-weight: 500;
 }
 
 .header-title {
   font-size: 32rpx;
   font-weight: 500;
-  color: #FFFFFF;
+  color: #5A4A4A;
 }
 
 .icon-btn {
@@ -139,7 +139,7 @@
 }
 
 .report-item.no-reports-option.selected .report-hospital {
-  color: #FFFFFF;
+  color: #5A4A4A;
 }
 
 .report-item.no-reports-option.selected .report-desc {
@@ -173,7 +173,7 @@
 
 .check-icon {
   font-size: 24rpx;
-  color: #FFFFFF;
+  color: #5A4A4A;
   font-weight: bold;
 }
 
@@ -253,7 +253,7 @@
 
 .user-bubble {
   background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #FFFFFF;
+  color: #5A4A4A;
   border-bottom-right-radius: 4rpx;
 }
 
@@ -439,13 +439,13 @@
 
 .send-icon {
   font-size: 40rpx;
-  color: #FFFFFF;
+  color: #5A4A4A;
   line-height: 1;
 }
 
 .send-text {
   font-size: 28rpx;
-  color: #FFFFFF;
+  color: #5A4A4A;
 }
 
 /* 快捷问题 */
