@@ -394,6 +394,13 @@ Page({
   },
 
   /**
+   * 处理导出按钮点击
+   */
+  handleExport() {
+    this.exportConversation()
+  },
+
+  /**
    * 发送消息
    */
   async sendMessage() {

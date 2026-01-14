@@ -129,12 +129,19 @@
         adjust-position="{{true}}"
         show-confirm-bar="{{false}}"
         cursor-spacing="10" />
-      <button
-        class="send-btn {{inputText.trim() ? 'active' : ''}}"
-        bindtap="handleSendTap">
-        <text class="send-icon" wx:if="{{!sending}}">➤</text>
-        <text class="send-text" wx:if="{{sending}}">...</text>
-      </button>
+      <view class="action-buttons">
+        <button
+          class="send-btn {{inputText.trim() ? 'active' : ''}}"
+          bindtap="handleSendTap">
+          <text class="btn-text" wx:if="{{!sending}}">发送</text>
+          <text class="btn-text" wx:if="{{sending}}">...</text>
+        </button>
+        <button
+          class="export-btn"
+          bindtap="handleExport">
+          <text class="btn-text">导出</text>
+        </button>
+      </view>
     </view>
 
     <!-- 快捷问题建议 -->

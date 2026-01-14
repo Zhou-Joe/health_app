@@ -412,7 +412,7 @@
 }
 
 .message-input {
-  flex: 1;
+  flex: 2;
   min-height: 80rpx;
   max-height: 300rpx;
   padding: 20rpx 24rpx;
@@ -422,30 +422,50 @@
   line-height: 1.6;
 }
 
-.send-btn {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: 44rpx;
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+.action-buttons {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.send-btn, .export-btn {
+  height: 72rpx;
+  border-radius: 20rpx;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
   margin: 0;
   padding: 0;
+  font-size: 26rpx;
   transition: all 0.3s ease;
+}
+
+.send-btn {
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
   opacity: 0.5;
 }
 
 .send-btn.active {
   opacity: 1;
-  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.4);
-  transform: scale(1.05);
+  box-shadow: 0 4rpx 12rpx rgba(255, 154, 158, 0.4);
 }
 
 .send-btn[disabled] {
   opacity: 0.5;
+}
+
+.export-btn {
+  background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
+  color: #5A4A4A;
+}
+
+.btn-text {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #5A4A4A;
 }
 
 .send-icon {
