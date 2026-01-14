@@ -89,7 +89,6 @@
             wx:key="type"
             bindtap="switchTrendType"
             data-type="{{item.type}}">
-        <text class="trend-icon">{{item.icon}}</text>
         <text class="trend-name">{{item.name}}</text>
         <text class="trend-count">({{item.count}})</text>
       </view>
