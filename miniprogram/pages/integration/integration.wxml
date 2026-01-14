@@ -4,6 +4,63 @@
     <text class="intro-text">选择多份体检报告，AI将自动统一指标名称、单位和参考范围</text>
   </view>
 
+  <!-- 检测重复报告 -->
+  <view class="duplicate-detection card">
+    <view class="section-title">
+      <text>重复报告检测</text>
+      <text class="detect-btn" bindtap="detectDuplicates">检测重复</text>
+    </view>
+
+    <view class="duplicate-list" wx:if="{{duplicateGroups.length > 0}}">
+      <view class="duplicate-group" wx:for="{{duplicateGroups}}" wx:key="date">
+        <view class="duplicate-header">
+          <text class="duplicate-title">{{item.date}} · {{item.hospital}}</text>
+          <text class="duplicate-count">{{item.count}}份重复</text>
+        </view>
+
+        <view class="duplicate-checkups">
+          <view class="duplicate-checkup-item"
+                wx:for="{{item.checkups}}"
+                wx:for-item="checkup"
+                wx:key="id">
+            <view class="checkup-radio"
+                  bindtap="selectTargetCheckup"
+                  data-group-index="{{index}}"
+                  data-checkup-id="{{checkup.id}}">
+              <view class="radio-icon {{item.targetCheckupId === checkup.id ? 'checked' : ''}}">
+                {{item.targetCheckupId === checkup.id ? '●' : '○'}}
+              </view>
+            </view>
+            <view class="checkup-details">
+              <text class="checkup-id">ID: {{checkup.id}}</text>
+              <text class="checkup-meta">{{checkup.indicators_count}}项指标 · {{checkup.created_at}}</text>
+              <text class="checkup-notes" wx:if="{{checkup.notes}}">备注: {{checkup.notes}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="duplicate-actions">
+          <text class="target-hint">已选择ID {{item.targetCheckupId}} 作为主报告</text>
+          <button class="merge-btn"
+                  bindtap="mergeDuplicates"
+                  data-group-index="{{index}}"
+                  disabled="{{!item.targetCheckupId || item.merging}}"
+                  loading="{{item.merging}}">
+            {{item.merging ? '合并中...' : '合并这组'}}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="no-duplicates" wx:elif="{{hasChecked && duplicateGroups.length === 0}}">
+      <text class="no-duplicates-text">✓ 未发现重复报告</text>
+    </view>
+
+    <view class="detect-hint" wx:else>
+      <text class="hint-text">点击"检测重复"按钮查找相同日期和机构的报告</text>
+    </view>
+  </view>
+
   <view class="checkups-list card">
     <view class="section-title">选择要整合的报告（至少2份）</view>
     <view class="checkup-item" wx:for="{{checkups}}" wx:key="id">

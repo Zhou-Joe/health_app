@@ -154,6 +154,12 @@ module.exports = {
   getIndicatorTypes: () =>
     request.get(config.api.indicatorTypes),
 
+  detectDuplicates: () =>
+    request.get(config.api.detectDuplicates),
+
+  mergeDuplicates: (data) =>
+    request.post(config.api.mergeDuplicates, data),
+
   // ==================== 导出功能 ====================
   exportHealthTrendsPDF: () =>
     request.downloadFile(config.api.exportHealthTrendsPDF),

@@ -64,6 +64,8 @@ module.exports = {
     systemSettings: '/api/miniprogram/system-settings/', // 小程序专用接口
     commonHospitals: '/api/miniprogram/hospitals/common/',
     indicatorTypes: '/api/miniprogram/indicator-types/', // 获取指标类型统计
+    detectDuplicates: '/api/miniprogram/detect-duplicates/', // 检测重复报告
+    mergeDuplicates: '/api/miniprogram/merge-duplicates/', // 合并重复报告
 
     // 导出功能（使用网页端接口）
     exportHealthTrendsPDF: '/dashboard/export/pdf/',

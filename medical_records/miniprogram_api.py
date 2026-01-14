@@ -1307,6 +1307,144 @@ def miniprogram_indicator_types(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# ==================== 检测和合并重复报告 ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_detect_duplicate_checkups(request):
+    """检测重复的体检报告（相同日期和机构）"""
+    try:
+        from django.db.models import Count, Q
+        from collections import defaultdict
+
+        # 获取用户所有体检报告
+        user_checkups = HealthCheckup.objects.filter(
+            user=request.user
+        ).order_by('-checkup_date', '-created_at')
+
+        # 按日期和机构分组
+        groups = defaultdict(list)
+        for checkup in user_checkups:
+            key = (checkup.checkup_date, checkup.hospital)
+            groups[key].append({
+                'id': checkup.id,
+                'checkup_date': checkup.checkup_date.strftime('%Y-%m-%d'),
+                'hospital': checkup.hospital,
+                'notes': checkup.notes,
+                'indicators_count': checkup.indicators.count(),
+                'created_at': checkup.created_at.strftime('%Y-%m-%d %H:%M')
+            })
+
+        # 找出重复的报告组（每组超过1个报告）
+        duplicate_groups = []
+        for (date, hospital), checkups_list in groups.items():
+            if len(checkups_list) > 1:
+                duplicate_groups.append({
+                    'date': date,
+                    'hospital': hospital,
+                    'checkups': checkups_list,
+                    'count': len(checkups_list)
+                })
+
+        return Response({
+            'success': True,
+            'data': duplicate_groups,
+            'total': len(duplicate_groups),
+            'has_duplicates': len(duplicate_groups) > 0
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'检测重复报告失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_merge_duplicate_checkups(request):
+    """合并重复的体检报告"""
+    try:
+        from django.db import transaction
+
+        data = json.loads(request.body)
+        target_checkup_id = data.get('target_checkup_id')
+        source_checkup_ids = data.get('source_checkup_ids', [])
+
+        if not target_checkup_id or not source_checkup_ids:
+            return Response({
+                'success': False,
+                'message': '缺少必要参数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取目标报告
+        try:
+            target_checkup = HealthCheckup.objects.get(
+                id=target_checkup_id,
+                user=request.user
+            )
+        except HealthCheckup.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': '目标报告不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 获取要合并的源报告
+        source_checkups = HealthCheckup.objects.filter(
+            id__in=source_checkup_ids,
+            user=request.user
+        )
+
+        if not source_checkups.exists():
+            return Response({
+                'success': False,
+                'message': '没有找到要合并的源报告'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        merged_count = 0
+        error_messages = []
+
+        # 使用事务进行合并
+        with transaction.atomic():
+            for source_checkup in source_checkups:
+                try:
+                    # 追加备注
+                    if source_checkup.notes:
+                        if target_checkup.notes:
+                            target_checkup.notes = f"{target_checkup.notes}\n[来自合并] {source_checkup.notes}"
+                        else:
+                            target_checkup.notes = f"[来自合并] {source_checkup.notes}"
+
+                    # 迁移指标到目标报告
+                    indicators_moved = source_checkup.indicators.all().update(
+                        checkup=target_checkup
+                    )
+
+                    # 删除源报告
+                    source_checkup.delete()
+
+                    merged_count += 1
+
+                except Exception as e:
+                    error_messages.append(f"合并报告 {source_checkup.id} 失败: {str(e)}")
+
+            # 保存目标报告的备注更新
+            if source_checkups.count() > 0:
+                target_checkup.save()
+
+        return Response({
+            'success': True,
+            'message': f'成功合并 {merged_count} 份报告',
+            'merged_count': merged_count,
+            'errors': error_messages
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'合并报告失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # ==================== 后台处理函数（复用现有的）====================
 def process_document_background(document_processing_id, file_path):
     """后台处理文档（复用现有逻辑）"""

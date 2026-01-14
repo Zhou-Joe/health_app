@@ -7,7 +7,10 @@ Page({
     selectedIds: [],
     selectedIdSet: {},  // 用Set来存储选中的ID，方便快速查找
     integrating: false,
-    userPrompt: ''  // 用户自定义提示词
+    userPrompt: '',  // 用户自定义提示词
+    // 重复报告相关
+    duplicateGroups: [],
+    hasChecked: false
   },
 
   onLoad() {
@@ -130,5 +133,124 @@ Page({
     wx.navigateTo({
       url: '/pages/integration-result/integration-result'
     })
+  },
+
+  /**
+   * 检测重复报告
+   */
+  async detectDuplicates() {
+    util.showLoading('检测中...')
+    try {
+      const res = await api.detectDuplicates()
+      console.log('重复报告检测结果:', res)
+
+      const groups = res.data || []
+      // 为每组初始化主报告ID（默认选第一个）
+      groups.forEach(group => {
+        if (!group.targetCheckupId && group.checkups.length > 0) {
+          group.targetCheckupId = group.checkups[0].id
+        }
+      })
+
+      this.setData({
+        duplicateGroups: groups,
+        hasChecked: true
+      })
+
+      if (groups.length === 0) {
+        util.showToast('未发现重复报告')
+      } else {
+        util.showToast(`发现 ${groups.length} 组重复报告`)
+      }
+    } catch (err) {
+      console.error('检测重复报告失败:', err)
+      util.showToast(err.message || '检测失败')
+    } finally {
+      util.hideLoading()
+    }
+  },
+
+  /**
+   * 选择主报告
+   */
+  selectTargetCheckup(e) {
+    const groupIndex = e.currentTarget.dataset.groupIndex
+    const checkupId = parseInt(e.currentTarget.dataset.checkupId)
+
+    const duplicateGroups = [...this.data.duplicateGroups]
+    duplicateGroups[groupIndex].targetCheckupId = checkupId
+
+    this.setData({ duplicateGroups })
+  },
+
+  /**
+   * 合并重复报告
+   */
+  async mergeDuplicates(e) {
+    const groupIndex = e.currentTarget.dataset.groupIndex
+    const group = this.data.duplicateGroups[groupIndex]
+
+    if (!group.targetCheckupId) {
+      return util.showToast('请先选择主报告')
+    }
+
+    // 获取要合并的源报告ID（除了主报告之外的所有报告）
+    const sourceCheckupIds = group.checkups
+      .filter(c => c.id !== group.targetCheckupId)
+      .map(c => c.id)
+
+    if (sourceCheckupIds.length === 0) {
+      return util.showToast('没有要合并的报告')
+    }
+
+    const confirmMsg = `确定将 ${sourceCheckupIds.length} 份报告合并到 ID ${group.targetCheckupId} 中吗？此操作不可撤销。`
+
+    wx.showModal({
+      title: '确认合并',
+      content: confirmMsg,
+      success: async (res) => {
+        if (res.confirm) {
+          await this.doMergeDuplicates(groupIndex, group.targetCheckupId, sourceCheckupIds)
+        }
+      }
+    })
+  },
+
+  async doMergeDuplicates(groupIndex, targetCheckupId, sourceCheckupIds) {
+    const duplicateGroups = [...this.data.duplicateGroups]
+    duplicateGroups[groupIndex].merging = true
+    this.setData({ duplicateGroups })
+
+    try {
+      const res = await api.mergeDuplicates({
+        target_checkup_id: targetCheckupId,
+        source_checkup_ids: sourceCheckupIds
+      })
+
+      console.log('合并结果:', res)
+
+      util.showToast(res.message || '合并成功')
+
+      // 移除已合并的组
+      duplicateGroups.splice(groupIndex, 1)
+      this.setData({ duplicateGroups })
+
+      // 刷新报告列表
+      await this.loadCheckups()
+
+      // 如果所有重复都处理完了
+      if (duplicateGroups.length === 0) {
+        wx.showModal({
+          title: '全部完成',
+          content: '所有重复报告已合并完成',
+          showCancel: false
+        })
+      }
+    } catch (err) {
+      console.error('合并失败:', err)
+      util.showToast(err.message || '合并失败')
+      duplicateGroups[groupIndex].merging = false
+      this.setData({ duplicateGroups })
+    }
   }
 })
