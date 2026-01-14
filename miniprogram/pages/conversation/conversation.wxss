@@ -414,7 +414,7 @@
 .message-input {
   flex: 1;
   max-width: 400rpx;
-  min-height: 80rpx;
+  min-height: 72rpx;
   max-height: 300rpx;
   padding: 20rpx 24rpx;
   background-color: #F8F9FA;
@@ -431,8 +431,8 @@
   gap: 12rpx;
 }
 
-.send-btn, .export-btn {
-  height: 56rpx;
+.send-btn {
+  height: 72rpx;
   width: 120rpx;
   min-width: 120rpx;
   max-width: 120rpx;
@@ -444,17 +444,14 @@
   margin: 0;
   padding: 0 8rpx;
   font-size: 24rpx;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
+  opacity: 0.5;
   transition: all 0.3s ease;
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.send-btn {
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #5A4A4A;
-  opacity: 0.5;
 }
 
 .send-btn.active {
