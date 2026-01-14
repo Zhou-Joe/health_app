@@ -425,7 +425,7 @@
 
 .action-buttons {
   flex-shrink: 0;
-  width: 80rpx;
+  width: 120rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
@@ -433,9 +433,9 @@
 
 .send-btn, .export-btn {
   height: 56rpx;
-  width: 80rpx;
-  min-width: 80rpx;
-  max-width: 80rpx;
+  width: 120rpx;
+  min-width: 120rpx;
+  max-width: 120rpx;
   border-radius: 20rpx;
   border: none;
   display: flex;
@@ -443,7 +443,7 @@
   justify-content: center;
   margin: 0;
   padding: 0 8rpx;
-  font-size: 22rpx;
+  font-size: 24rpx;
   transition: all 0.3s ease;
   box-sizing: border-box;
   white-space: nowrap;
