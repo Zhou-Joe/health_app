@@ -432,7 +432,7 @@
 }
 
 .send-btn, .export-btn {
-  height: 72rpx;
+  height: 56rpx;
   width: 100%;
   border-radius: 20rpx;
   border: none;
