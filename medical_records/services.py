@@ -604,38 +604,42 @@ class DocumentProcessingService:
             '变形', '畸形', '瘢痕', '瘘管', '窦道'
         ]
 
-        # 检查关键词映射（包含新的分类）
+        # 检查关键词映射（使用新的类型代码，与模型INDICATOR_TYPES一致）
         type_mapping = {
-            'physical_exam': physical_exam_keywords,
+            'general_exam': physical_exam_keywords,
             'blood_routine': blood_routine_keywords,
             'biochemistry': biochemistry_keywords,
             'liver_function': liver_function_keywords,
             'kidney_function': kidney_function_keywords,
-            'thyroid_function': thyroid_function_keywords,
+            'thyroid': thyroid_function_keywords,
             'tumor_markers': tumor_markers_keywords,
-            'urine_exam': urine_exam_keywords,
+            'urine': urine_exam_keywords,
             'blood_rheology': blood_rheology_keywords,
-            'eye_exam': eye_exam_keywords,
-            'ultrasound_exam': ultrasound_keywords,
-            'imaging_exam': imaging_keywords,
-            'diagnosis': diagnosis_keywords,
-            'symptoms': symptoms_keywords,
+            'coagulation': [],  # 凝血功能
+            'stool': [],  # 粪便检查
+            'pathology': diagnosis_keywords,  # 病症诊断归为病理检查
+            'ultrasound': ultrasound_keywords,
+            'X_ray': imaging_keywords,
+            'CT_MRI': imaging_keywords,
+            'endoscopy': [],  # 内镜检查
+            'special_organs': eye_exam_keywords,  # 眼科等专科检查
+            'other': symptoms_keywords,  # 症状描述归为其他检查
         }
 
         # 优先检查病症诊断和症状（最高优先级）
         for keyword in diagnosis_keywords:
             if keyword in indicator_name:
-                return 'diagnosis'
-        
+                return 'pathology'
+
         for keyword in symptoms_keywords:
             if keyword in indicator_name:
-                return 'symptoms'
+                return 'other'
 
         # 特殊处理一些复合词
         if '收缩压/舒张压' in indicator_name or '血压' in indicator_name:
-            return 'physical_exam'  # 血压归为体格检查
+            return 'general_exam'  # 血压归为一般检查
         if '体重指数' in indicator_name or 'BMI' in indicator_name:
-            return 'physical_exam'
+            return 'general_exam'
 
         # 优先处理超声和影像学检查相关的特殊词汇（中等优先级）
         ultrasound_patterns = ['超声', 'B超', '彩超', '多普勒', '超声心动图']
@@ -643,11 +647,14 @@ class DocumentProcessingService:
 
         for pattern in ultrasound_patterns:
             if pattern in indicator_name:
-                return 'ultrasound_exam'
+                return 'ultrasound'
 
         for pattern in imaging_patterns:
             if pattern in indicator_name:
-                return 'imaging_exam'
+                # X光单独归类，CT/MRI合并归类
+                if 'X光' in indicator_name or 'X线' in indicator_name or '胸片' in indicator_name:
+                    return 'X_ray'
+                return 'CT_MRI'
 
         # 处理器官相关的检查（最低优先级，只有在没有任何其他匹配时才使用）
         organ_keywords = [
@@ -679,8 +686,11 @@ class DocumentProcessingService:
                     # 如果包含影像学关键词，则归为影像学，否则归为超声
                     for pattern in imaging_patterns:
                         if pattern in indicator_name:
-                            return 'imaging_exam'
-                    return 'ultrasound_exam'
+                            # X光单独归类
+                            if 'X光' in indicator_name or 'X线' in indicator_name or '胸片' in indicator_name:
+                                return 'X_ray'
+                            return 'CT_MRI'
+                    return 'ultrasound'
 
         # 模糊匹配其他类型（最低优先级）
         for indicator_type, keywords in type_mapping.items():
@@ -688,7 +698,7 @@ class DocumentProcessingService:
                 if keyword in indicator_name:
                     return indicator_type
 
-        return 'other_exam'
+        return 'other'  # 默认归为其他检查
 
     def _extract_unit_from_value(self, measured_value, indicator_name):
         """从测量值中提取单位"""
