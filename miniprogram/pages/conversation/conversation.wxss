@@ -424,7 +424,7 @@
 
 .action-buttons {
   flex-shrink: 0;
-  width: 160rpx;
+  width: 110rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
@@ -439,7 +439,7 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 0 16rpx;
+  padding: 0;
   font-size: 26rpx;
   transition: all 0.3s ease;
   box-sizing: border-box;
