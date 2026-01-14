@@ -113,21 +113,21 @@
         </div>
     </div>
 
-    <!-- 重复报告检测 -->
+    <!-- 合并报告 -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card border-warning">
                 <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i class="bi bi-files"></i> 重复报告检测
+                        <i class="bi bi-merge"></i> 合并报告
                     </h5>
                     <button class="btn btn-sm btn-dark" onclick="detectDuplicates()">
-                        <i class="bi bi-search"></i> 检测重复
+                        <i class="bi bi-search"></i> 查找相同报告
                     </button>
                 </div>
                 <div class="card-body" id="duplicateCheckupsContainer">
                     <p class="text-muted mb-0">
-                        <i class="bi bi-info-circle"></i> 点击"检测重复"按钮查找相同日期和机构的报告
+                        <i class="bi bi-info-circle"></i> 点击"查找相同报告"按钮查找相同日期和机构的报告
                     </p>
                 </div>
             </div>
@@ -1221,11 +1221,11 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ==================== 重复报告检测和合并 ====================
+// ==================== 合并报告功能 ====================
 
 let duplicateCheckupsData = null;
 
-// 检测重复报告
+// 查找相同报告
 async function detectDuplicates() {
     try {
         const response = await fetch('/api/miniprogram/detect-duplicates/', {
@@ -1243,15 +1243,15 @@ async function detectDuplicates() {
         } else if (result.success && !result.has_duplicates) {
             document.getElementById('duplicateCheckupsContainer').innerHTML = `
                 <div class="alert alert-success mb-0">
-                    <i class="bi bi-check-circle"></i> 未发现重复报告
+                    <i class="bi bi-check-circle"></i> 未发现相同日期和机构的报告
                 </div>
             `;
         } else {
-            alert('检测失败：' + (result.message || '未知错误'));
+            alert('查找失败：' + (result.message || '未知错误'));
         }
     } catch (error) {
-        console.error('检测重复报告失败:', error);
-        alert('检测失败，请稍后重试');
+        console.error('查找相同报告失败:', error);
+        alert('查找失败，请稍后重试');
     }
 }
 
@@ -1268,7 +1268,7 @@ function renderDuplicateCheckups(groups) {
                             <i class="bi bi-exclamation-triangle"></i>
                             ${group.date} · ${group.hospital}
                         </h6>
-                        <span class="badge bg-danger">${group.count}份重复</span>
+                        <span class="badge bg-danger">${group.count}份相同报告</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -1294,7 +1294,7 @@ function renderDuplicateCheckups(groups) {
                     <button class="btn btn-danger btn-sm"
                             onclick="mergeDuplicates(${groupIndex})"
                             id="merge-btn-${groupIndex}">
-                        <i class="bi bi-merge"></i> 合并这组重复报告
+                        <i class="bi bi-merge"></i> 合并这组
                     </button>
                 </div>
             </div>

@@ -139,10 +139,10 @@ Page({
    * 检测重复报告
    */
   async detectDuplicates() {
-    util.showLoading('检测中...')
+    util.showLoading('查找中...')
     try {
       const res = await api.detectDuplicates()
-      console.log('重复报告检测结果:', res)
+      console.log('相同报告检测结果:', res)
 
       const groups = res.data || []
       // 为每组初始化主报告ID（默认选第一个）
@@ -158,13 +158,13 @@ Page({
       })
 
       if (groups.length === 0) {
-        util.showToast('未发现重复报告')
+        util.showToast('未发现相同日期和机构的报告')
       } else {
-        util.showToast(`发现 ${groups.length} 组重复报告`)
+        util.showToast(`发现 ${groups.length} 组相同报告`)
       }
     } catch (err) {
-      console.error('检测重复报告失败:', err)
-      util.showToast(err.message || '检测失败')
+      console.error('查找相同报告失败:', err)
+      util.showToast(err.message || '查找失败')
     } finally {
       util.hideLoading()
     }
