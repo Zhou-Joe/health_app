@@ -126,20 +126,11 @@ Page({
   async exportConversation(e) {
     const conversationId = e.currentTarget.dataset.id
 
-    const items = ['导出为PDF', '导出为Word']
-    const index = await util.showActionSheet(items)
-
-    if (index !== 0 && index !== 1) {
-      return
-    }
-
     util.showLoading('生成中...')
     try {
       const token = wx.getStorageSync('token')
       const baseUrl = 'https://www.zctestbench.asia/health'
-      const exportUrl = index === 0
-        ? `${baseUrl}/api/miniprogram/conversations/${conversationId}/export/pdf/`
-        : `${baseUrl}/api/miniprogram/conversations/${conversationId}/export/word/`
+      const exportUrl = `${baseUrl}/api/miniprogram/conversations/${conversationId}/export/word/`
 
       console.log('[导出] 开始下载:', exportUrl)
 
@@ -187,7 +178,7 @@ Page({
       // 打开文档
       wx.openDocument({
         filePath: downloadRes,
-        fileType: index === 0 ? 'pdf' : 'docx',
+        fileType: 'docx',
         showMenu: true,
         success: () => {
           console.log('[导出] 文档打开成功')
