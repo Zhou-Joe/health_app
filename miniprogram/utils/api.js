@@ -135,6 +135,9 @@ module.exports = {
   integrateData: (data) =>
     request.post(config.api.integrateData, data),
 
+  applyIntegration: (data) =>
+    request.post(config.api.applyIntegration, data),
+
   // ==================== 系统信息 ====================
   getServicesStatus: () =>
     request.get(config.api.servicesStatus),

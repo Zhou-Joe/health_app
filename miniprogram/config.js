@@ -57,6 +57,7 @@ module.exports = {
 
     // 数据整合
     integrateData: '/api/miniprogram/integrate-data/',
+    applyIntegration: '/api/miniprogram/apply-integration/',
 
     // 系统信息
     servicesStatus: '/api/miniprogram/services-status/', // 小程序专用接口

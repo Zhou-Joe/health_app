@@ -38,6 +38,7 @@ urlpatterns = [
 
     # 数据整合
     path('integrate-data/', miniprogram_api.miniprogram_integrate_data, name='integrate_data'),
+    path('apply-integration/', miniprogram_api.miniprogram_apply_integration, name='apply_integration'),
 
     # 系统状态和设置
     path('services-status/', miniprogram_api.miniprogram_services_status, name='services_status'),

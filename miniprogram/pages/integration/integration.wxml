@@ -19,6 +19,19 @@
     </view>
   </view>
 
+  <!-- 自定义提示词 -->
+  <view class="user-prompt-card card">
+    <view class="section-title">自定义提示词（可选）</view>
+    <textarea
+      class="prompt-input"
+      placeholder="例如：请特别关注血压、血糖指标；确保日期格式统一..."
+      value="{{userPrompt}}"
+      bindinput="onPromptInput"
+      maxlength="200"
+    />
+    <text class="prompt-hint">可选。添加你希望AI特别关注的方面，留空则使用默认规则</text>
+  </view>
+
   <view class="action-area">
     <text class="selected-count">已选择 {{selectedIds.length}} 份报告</text>
     <button class="integrate-btn btn-primary"

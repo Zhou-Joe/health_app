@@ -1,4 +1,4 @@
-.integration-container { padding: 20rpx; }
+.integration-container { padding: 20rpx; padding-bottom: 120rpx; }
 .intro-card { margin-bottom: 20rpx; text-align: center; }
 .intro-text { font-size: 26rpx; color: #666; line-height: 1.6; margin-top: 16rpx; }
 .section-title { font-size: 28rpx; font-weight: 600; color: #333; margin-bottom: 20rpx; }
@@ -10,6 +10,25 @@
 .checkup-info { flex: 1; }
 .hospital { display: block; font-size: 30rpx; color: #333; margin-bottom: 8rpx; }
 .date { font-size: 26rpx; color: #999; }
-.action-area { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx; background-color: #FFF; border-top: 1rpx solid #F0F0F0; }
+
+/* 自定义提示词卡片 */
+.user-prompt-card { margin-bottom: 20rpx; }
+.prompt-input {
+  width: 100%;
+  min-height: 120rpx;
+  padding: 20rpx;
+  border: 1rpx solid #E0E0E0;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  margin-bottom: 10rpx;
+}
+.prompt-hint {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.5;
+}
+
+.action-area { position: fixed; bottom: 0; left: 0; right: 0; padding: 20rpx; background-color: #FFF; border-top: 1rpx solid #F0F0F0; box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.05); }
 .selected-count { display: block; text-align: center; font-size: 26rpx; color: #666; margin-bottom: 16rpx; }
 .integrate-btn { width: 100%; }

@@ -1,0 +1,94 @@
+<view class="result-container">
+  <!-- 统计信息 -->
+  <view class="stats-card card">
+    <view class="card-title">整合结果</view>
+    <view class="stats-grid">
+      <view class="stat-item">
+        <text class="stat-value">{{result.total_indicators}}</text>
+        <text class="stat-label">总指标数</text>
+      </view>
+      <view class="stat-item highlight">
+        <text class="stat-value">{{result.changed_count}}</text>
+        <text class="stat-label">需统一</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-value">{{result.unchanged_count}}</text>
+        <text class="stat-label">无变化</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 变更列表 -->
+  <view class="changes-card card">
+    <view class="card-title">变更详情</view>
+    <view class="changes-list">
+      <block wx:if="{{changes.length > 0}}">
+        <view class="change-item {{item.unchanged ? 'unchanged' : 'changed'}}"
+              wx:for="{{changes}}"
+              wx:key="indicator_id">
+          <view class="change-header">
+            <text class="change-name">{{item.original.indicator_name}}</text>
+            <text class="change-badge {{item.unchanged ? 'badge-unchanged' : 'badge-changed'}}">
+              {{item.unchanged ? '无变化' : '需统一'}}
+            </text>
+          </view>
+
+          <!-- 原始值 -->
+          <view class="change-row">
+            <text class="row-label">原始值：</text>
+            <text class="row-value">{{item.original.value}} {{item.original.unit}}</text>
+          </view>
+
+          <!-- 修改说明 -->
+          <block wx:if="{{!item.unchanged && item.changes}}">
+            <view class="change-row" wx:if="{{item.changes.indicator_name}}">
+              <text class="row-label">指标名：</text>
+              <text class="row-old">{{item.original.indicator_name}}</text>
+              <text class="row-arrow">→</text>
+              <text class="row-new">{{item.changes.indicator_name}}</text>
+            </view>
+
+            <view class="change-row" wx:if="{{item.changes.value}}">
+              <text class="row-label">数值：</text>
+              <text class="row-old">{{item.original.value}}</text>
+              <text class="row-arrow">→</text>
+              <text class="row-new">{{item.changes.value}}</text>
+            </view>
+
+            <view class="change-row" wx:if="{{item.changes.unit}}">
+              <text class="row-label">单位：</text>
+              <text class="row-old">{{item.original.unit || '无'}}</text>
+              <text class="row-arrow">→</text>
+              <text class="row-new">{{item.changes.unit}}</text>
+            </view>
+
+            <view class="change-row" wx:if="{{item.changes.indicator_type}}">
+              <text class="row-label">分类：</text>
+              <text class="row-old">{{item.original.indicator_type}}</text>
+              <text class="row-arrow">→</text>
+              <text class="row-new">{{item.changes.indicator_type}}</text>
+            </view>
+          </block>
+
+          <!-- 修改理由 -->
+          <view class="change-reason" wx:if="{{item.reason}}">
+            <text class="reason-label">理由：</text>
+            <text class="reason-text">{{item.reason}}</text>
+          </view>
+        </view>
+      </block>
+
+      <view class="empty-state" wx:else>
+        <text class="empty-text">没有需要变更的指标</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-buttons">
+    <button class="btn-secondary" bindtap="goBack">返回</button>
+    <button class="btn-primary" bindtap="applyChanges" disabled="{{result.changed_count === 0}}">
+      应用更改 ({{result.changed_count}})
+    </button>
+  </view>
+</view>

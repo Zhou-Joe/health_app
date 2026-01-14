@@ -1,0 +1,180 @@
+.result-container {
+  padding: 20rpx;
+  padding-bottom: 150rpx;
+}
+
+/* 统计卡片 */
+.stats-card {
+  margin-bottom: 20rpx;
+}
+
+.stats-grid {
+  display: flex;
+  justify-content: space-around;
+  padding: 20rpx 0;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #4A90E2;
+}
+
+.stat-item.highlight .stat-value {
+  color: #FF9A9E;
+}
+
+.stat-label {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+  margin-top: 8rpx;
+}
+
+/* 变更列表 */
+.changes-card {
+  margin-bottom: 20rpx;
+}
+
+.changes-list {
+  margin-top: 20rpx;
+}
+
+.change-item {
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  border-radius: 12rpx;
+  border-left: 4rpx solid;
+}
+
+.change-item.changed {
+  background-color: #FFF3F0;
+  border-left-color: #FF9A9E;
+}
+
+.change-item.unchanged {
+  background-color: #F5F5F5;
+  border-left-color: #999;
+}
+
+.change-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.change-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.change-badge {
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+}
+
+.badge-changed {
+  background-color: #FF9A9E;
+  color: white;
+}
+
+.badge-unchanged {
+  background-color: #999;
+  color: white;
+}
+
+.change-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+  font-size: 28rpx;
+}
+
+.row-label {
+  color: #666;
+  margin-right: 8rpx;
+  min-width: 120rpx;
+}
+
+.row-value {
+  color: #333;
+  flex: 1;
+}
+
+.row-old {
+  color: #999;
+  text-decoration: line-through;
+  margin-right: 8rpx;
+}
+
+.row-new {
+  color: #FF9A9E;
+  font-weight: bold;
+}
+
+.row-arrow {
+  margin: 0 8rpx;
+  color: #999;
+}
+
+.change-reason {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid rgba(0,0,0,0.1);
+}
+
+.reason-label {
+  font-size: 26rpx;
+  color: #4A90E2;
+  font-weight: bold;
+}
+
+.reason-text {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60rpx 0;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 20rpx;
+  background-color: white;
+  box-shadow: 0 -2rpx 10rpx rgba(0,0,0,0.1);
+  display: flex;
+  gap: 20rpx;
+}
+
+.action-buttons button {
+  flex: 1;
+}
+
+.btn-secondary {
+  background-color: #999;
+}
+
+.btn-primary[disabled] {
+  background-color: #CCC;
+}

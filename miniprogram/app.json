@@ -10,6 +10,7 @@
     "pages/conversation/conversation",
     "pages/conversation-history/conversation-history",
     "pages/integration/integration",
+    "pages/integration-result/integration-result",
     "pages/settings/settings",
     "pages/complete-profile/complete-profile"
   ],

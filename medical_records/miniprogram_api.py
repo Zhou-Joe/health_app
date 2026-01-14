@@ -1127,6 +1127,26 @@ def miniprogram_integrate_data(request):
             'message': f'数据整合失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# ==================== 应用数据整合结果 ====================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_apply_integration(request):
+    """应用数据整合结果到数据库（小程序专用）"""
+    try:
+        from .api_views import apply_integration
+
+        # 复用现有的应用逻辑
+        result = apply_integration(request)
+
+        return result
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'应用更新失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # ==================== 常用医院列表 ====================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
