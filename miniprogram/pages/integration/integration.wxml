@@ -8,8 +8,8 @@
     <view class="section-title">选择要整合的报告（至少2份）</view>
     <view class="checkup-item" wx:for="{{checkups}}" wx:key="id">
       <view class="checkbox" bindtap="toggleSelection" data-id="{{item.id}}">
-        <view class="checkbox-icon {{selectedIds.includes(item.id) ? 'checked' : ''}}">
-          {{selectedIds.includes(item.id) ? '✓' : ''}}
+        <view class="checkbox-icon {{selectedIdSet[item.id] ? 'checked' : ''}}">
+          {{selectedIdSet[item.id] ? '✓' : ''}}
         </view>
       </view>
       <view class="checkup-info" bindtap="toggleSelection" data-id="{{item.id}}">

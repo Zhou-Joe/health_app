@@ -2176,7 +2176,7 @@ def call_llm_for_integration(system_prompt, user_prompt, timeout=120):
             api_url = base_url
 
         print(f"[数据整合 LLM调用] 完整API地址: {api_url}")
-        print(f"[数据整合 LLM调用] Prompt长度: {len(prompt)} 字符")
+        print(f"[数据整合 LLM调用] User Prompt长度: {len(user_prompt)} 字符")
         print(f"[数据整合 LLM调用] 请求体大小: {len(json.dumps(llm_data))} 字符")
         print(f"[数据整合 LLM调用] 正在发送请求...")
 

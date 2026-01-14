@@ -47,8 +47,9 @@
         <view class="abnormal-name">{{item.indicator_name}}</view>
         <view class="abnormal-info">
           <text class="abnormal-value">{{item.value_display || item.value}} {{item.unit}}</text>
-          <text class="abnormal-date">{{item.checkup_date}}</text>
+          <text class="abnormal-range" wx:if="{{item.reference_range}}">参考: {{item.reference_range}}</text>
         </view>
+        <text class="abnormal-date">{{item.checkup_date}}</text>
       </view>
     </scroll-view>
     <view class="alert-footer">

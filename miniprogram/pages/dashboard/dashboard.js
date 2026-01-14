@@ -62,7 +62,11 @@ Page({
    * 检查登录状态
    */
   checkLogin() {
-    if (!app.globalData.isLogin) {
+    const config = require('../../config.js')
+    const token = wx.getStorageSync(config.storageKeys.TOKEN)
+
+    // 优先检查本地存储的token，而不是依赖全局状态
+    if (!token && !app.globalData.isLogin) {
       wx.reLaunch({ url: '/pages/login/login' })
     }
   },
@@ -120,10 +124,17 @@ Page({
     try {
       const res = await api.getIndicators({
         status: 'abnormal',
-        page_size: 5
+        page_size: 20
       })
 
-      const indicators = res.data || res.results || []
+      let indicators = res.data || res.results || []
+
+      // 客户端二次验证，确保只显示异常指标
+      indicators = indicators.filter(item => {
+        // 必须明确标记为 abnormal
+        return item.status === 'abnormal'
+      }).slice(0, 5) // 只取前5个
+
       this.setData({
         abnormalIndicators: indicators.map(item => ({
           ...item,
