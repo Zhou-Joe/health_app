@@ -206,7 +206,7 @@ Page({
       const res = await api.completeProfile(data)
       console.log('[保存] API响应:', res)
 
-      util.showToast('保存成功'))
+      util.showToast('保存成功')
 
       // 关闭弹窗并重新加载数据
       this.closeModal()
@@ -248,7 +248,7 @@ Page({
     if (!confirm) return
 
     app.clearLoginInfo()
-    util.showToast('已退出登录'))
+    util.showToast('已退出登录')
     setTimeout(() => {
       wx.reLaunch({ url: '/pages/login/login' })
     }, 500)

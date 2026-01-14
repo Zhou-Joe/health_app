@@ -175,7 +175,7 @@ Page({
         return
       }
 
-      util.showToast('上传成功，后台处理中...'))
+      util.showToast('上传成功，后台处理中...')
       this.pollProgress()
 
       // 显示loading提示后台处理中
@@ -272,7 +272,7 @@ Page({
           })
         }
         wx.hideLoading()
-        util.showToast('❌ 处理失败：' + (res.error_message || '未知错误'))
+        util.showToast('❌ 处理失败：' + (res.error_message || '未知错误')
       }
     } catch (err) {
       console.error('获取状态失败:', err)

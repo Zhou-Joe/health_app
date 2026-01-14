@@ -41,7 +41,7 @@ Page({
     util.showLoading('删除中...')
     try {
       await api.deleteCheckup(id)
-      util.showToast('删除成功'))
+      util.showToast('删除成功')
 
       // 从列表中移除
       const checkups = this.data.checkups.filter(c => c.id !== id)

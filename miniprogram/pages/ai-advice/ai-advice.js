@@ -100,7 +100,7 @@ Page({
     util.showLoading('删除中...')
     try {
       await api.deleteConversation(id)
-      util.showToast('删除成功'))
+      util.showToast('删除成功')
 
       // 从列表中移除
       const conversations = this.data.conversations.filter(c => c.id !== id)
@@ -236,7 +236,7 @@ Page({
       const adviceId = res.advice_id || res.data?.advice_id
 
       if (conversationId) {
-        util.showToast('已创建对话，AI正在思考中...'))
+        util.showToast('已创建对话，AI正在思考中...')
         setTimeout(() => {
           const params = `id=${conversationId}&generating=true`
           if (adviceId) {
@@ -250,7 +250,7 @@ Page({
           }
         }, 300)
       } else {
-        util.showToast('创建对话失败'))
+        util.showToast('创建对话失败')
       }
 
     } catch (err) {

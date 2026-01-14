@@ -131,7 +131,7 @@ Page({
             })
 
             this.setData({ messages })
-            util.showToast('AI回复已生成'))
+            util.showToast('AI回复已生成')
           } else if (pollCount >= maxPolls) {
             // 超过最大轮询次数
             clearInterval(this.data.streamTimer)
@@ -167,7 +167,7 @@ Page({
 
           // 重新加载对话
           this.loadConversation(this.data.conversationId)
-          util.showToast('AI回复已生成'))
+          util.showToast('AI回复已生成')
         } else if (pollCount >= maxPolls) {
           // 超过最大轮询次数
           clearInterval(this.data.pollTimer)
@@ -604,7 +604,7 @@ Page({
     wx.setClipboardData({
       data: content,
       success: () => {
-        util.showToast('已复制'))
+        util.showToast('已复制')
       }
     })
   },
@@ -666,7 +666,7 @@ Page({
         showMenu: true,
         success: () => {
           console.log('[导出] 文档打开成功')
-          util.showToast('导出成功'))
+          util.showToast('导出成功')
         },
         fail: (err) => {
           console.error('[导出] 打开文档失败:', err)
@@ -703,7 +703,7 @@ Page({
     util.showLoading('删除中...')
     try {
       await api.deleteConversation(this.data.conversationId)
-      util.showToast('删除成功'))
+      util.showToast('删除成功')
 
       // 返回上一页
       setTimeout(() => {
