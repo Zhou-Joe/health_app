@@ -412,7 +412,7 @@
 }
 
 .message-input {
-  flex: 2;
+  flex: 5;
   min-height: 80rpx;
   max-height: 300rpx;
   padding: 20rpx 24rpx;
@@ -427,6 +427,7 @@
   display: flex;
   flex-direction: column;
   gap: 12rpx;
+  max-width: 140rpx;
 }
 
 .send-btn, .export-btn {
