@@ -79,7 +79,7 @@ Page({
       } else {
         await api.createIndicator({ ...formData, checkup_id: checkupId })
       }
-      util.showToast('保存成功', 'success')
+      util.showToast('保存成功'))
       setTimeout(() => wx.navigateBack(), 1000)
     } catch (err) {
       util.showToast(err.message || '保存失败')

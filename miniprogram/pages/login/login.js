@@ -35,7 +35,7 @@ Page({
       })
 
       app.setLoginInfo(res.token, res.user)
-      util.showToast('登录成功', 'success')
+      util.showToast('登录成功'))
 
       setTimeout(() => {
         wx.reLaunch({
@@ -96,7 +96,7 @@ Page({
           })
         }, 1500)
       } else {
-        util.showToast('登录成功', 'success')
+        util.showToast('登录成功'))
         setTimeout(() => {
           wx.reLaunch({
             url: '/pages/dashboard/dashboard'

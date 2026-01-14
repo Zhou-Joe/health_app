@@ -107,7 +107,7 @@ Page({
     util.showLoading('删除中...')
     try {
       await api.deleteConversation(id)
-      util.showToast('删除成功', 'success')
+      util.showToast('删除成功'))
 
       // 从列表中移除
       const conversations = this.data.conversations.filter(c => c.id !== id)
@@ -191,7 +191,7 @@ Page({
         showMenu: true,
         success: () => {
           console.log('[导出] 文档打开成功')
-          util.showToast('导出成功', 'success')
+          util.showToast('导出成功'))
         },
         fail: (err) => {
           console.error('[导出] 打开文档失败:', err)

@@ -55,7 +55,7 @@ Page({
     util.showLoading('删除中...')
     try {
       await api.deleteCheckup(this.data.checkup.id)
-      util.showToast('删除成功', 'success')
+      util.showToast('删除成功'))
 
       // 返回上一页
       setTimeout(() => {

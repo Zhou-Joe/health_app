@@ -175,7 +175,7 @@ Page({
         return
       }
 
-      util.showToast('上传成功，后台处理中...', 'success')
+      util.showToast('上传成功，后台处理中...'))
       this.pollProgress()
 
       // 显示loading提示后台处理中
@@ -232,7 +232,7 @@ Page({
 
       // 状态变化时显示对应的toast
       if (oldStatus !== statusText && statusText !== '处理完成' && statusText !== '处理失败') {
-        util.showToast(statusText + '...', 'loading', 1500)
+        util.showToast(statusText + '...')
       }
 
       if (res.status === 'completed') {
