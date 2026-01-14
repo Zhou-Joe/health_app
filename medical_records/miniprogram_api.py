@@ -192,14 +192,46 @@ def miniprogram_upload_report(request):
                     tmp.write(chunk)
                 full_file_path = tmp.name
 
-        # 创建体检记录
-        health_checkup = HealthCheckup.objects.create(
+        # 创建体检记录（如果已存在相同日期和机构的报告，则合并）
+        from django.db.models import Q
+
+        # 检查是否存在相同日期和机构的报告
+        existing_checkup = HealthCheckup.objects.filter(
             user=request.user,
             checkup_date=checkup_date,
-            hospital=hospital,
-            notes=notes,
-            report_file=file_path
-        )
+            hospital=hospital
+        ).first()
+
+        if existing_checkup:
+            # 存在相同报告，合并到现有报告中
+            health_checkup = existing_checkup
+
+            # 如果新上传的文件不为空，更新文件（保留原文件或追加）
+            if file and not health_checkup.report_file:
+                health_checkup.report_file = file_path
+                health_checkup.save()
+
+            # 如果有新的备注，追加到原备注
+            if notes and notes.strip():
+                if health_checkup.notes:
+                    health_checkup.notes = f"{health_checkup.notes}\n{notes}"
+                else:
+                    health_checkup.notes = notes
+                health_checkup.save()
+
+            is_merged = True
+            merge_message = f'已合并到已有的 {checkup_date} {hospital} 报告'
+        else:
+            # 创建新报告
+            health_checkup = HealthCheckup.objects.create(
+                user=request.user,
+                checkup_date=checkup_date,
+                hospital=hospital,
+                notes=notes,
+                report_file=file_path
+            )
+            is_merged = False
+            merge_message = ''
 
         # 创建文档处理记录
         document_processing = DocumentProcessing.objects.create(
@@ -222,9 +254,11 @@ def miniprogram_upload_report(request):
 
         return Response({
             'success': True,
-            'message': '上传成功，正在处理...',
+            'message': merge_message if is_merged else '上传成功，正在处理...',
             'processing_id': document_processing.id,
-            'checkup_id': health_checkup.id
+            'checkup_id': health_checkup.id,
+            'is_merged': is_merged,
+            'merged_into_existing': is_merged
         })
 
     except Exception as e:

@@ -158,6 +158,23 @@ Page({
         checkupId: res.checkup_id
       })
 
+      // 检查是否合并到现有报告
+      if (res.is_merged || res.merged_into_existing) {
+        wx.showModal({
+          title: '报告合并',
+          content: res.message || '已合并到现有报告中',
+          showCancel: false,
+          confirmText: '查看报告',
+          success: () => {
+            // 跳转到报告详情页
+            wx.redirectTo({
+              url: `/pages/checkup-detail/checkup-detail?id=${this.data.checkupId}`
+            })
+          }
+        })
+        return
+      }
+
       util.showToast('上传成功，后台处理中...', 'success')
       this.pollProgress()
 
