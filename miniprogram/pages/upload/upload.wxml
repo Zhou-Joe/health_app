@@ -11,6 +11,9 @@
             <text class="btn-icon">📄</text>
             <text class="btn-text">选择体检、诊断报告</text>
           </button>
+          <view class="upload-hint">
+            <text class="hint-text">💡 提示：请先将PDF报告发送至微信文件传输助手</text>
+          </view>
           <button class="upload-btn" bindtap="chooseImage">
             <text class="btn-icon">📷</text>
             <text class="btn-text">选择病症照片</text>
