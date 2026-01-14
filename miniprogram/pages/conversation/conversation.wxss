@@ -425,7 +425,7 @@
 
 .action-buttons {
   flex-shrink: 0;
-  width: 150rpx;
+  width: 120rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
