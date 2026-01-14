@@ -151,6 +151,9 @@ module.exports = {
   getCommonHospitals: () =>
     request.get(config.api.commonHospitals),
 
+  getIndicatorTypes: () =>
+    request.get(config.api.indicatorTypes),
+
   // ==================== 导出功能 ====================
   exportHealthTrendsPDF: () =>
     request.downloadFile(config.api.exportHealthTrendsPDF),

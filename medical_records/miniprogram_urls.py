@@ -44,4 +44,5 @@ urlpatterns = [
     path('services-status/', miniprogram_api.miniprogram_services_status, name='services_status'),
     path('system-settings/', miniprogram_api.miniprogram_system_settings, name='system_settings'),
     path('hospitals/common/', miniprogram_api.miniprogram_common_hospitals, name='common_hospitals'),
+    path('indicator-types/', miniprogram_api.miniprogram_indicator_types, name='indicator_types'),
 ]

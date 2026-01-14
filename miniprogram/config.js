@@ -63,6 +63,7 @@ module.exports = {
     servicesStatus: '/api/miniprogram/services-status/', // 小程序专用接口
     systemSettings: '/api/miniprogram/system-settings/', // 小程序专用接口
     commonHospitals: '/api/miniprogram/hospitals/common/',
+    indicatorTypes: '/api/miniprogram/indicator-types/', // 获取指标类型统计
 
     // 导出功能（使用网页端接口）
     exportHealthTrendsPDF: '/dashboard/export/pdf/',

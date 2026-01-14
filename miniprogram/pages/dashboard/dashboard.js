@@ -24,14 +24,10 @@ Page({
     // 健康趋势数据
     trendData: [],
     // 当前显示的趋势类型
-    currentTrendType: 'blood_routine',
-    // 趋势类型列表
-    trendTypes: [
-      { type: 'blood_routine', name: '血液常规', icon: '🩸' },
-      { type: 'biochemistry', name: '生化检验', icon: '🧪' },
-      { type: 'liver_function', name: '肝功能', icon: '🫀' },
-      { type: 'kidney_function', name: '肾功能', icon: '⚕️' }
-    ],
+    currentTrendType: '',
+    currentTrendTypeName: '',
+    // 趋势类型列表（动态加载）
+    trendTypes: [],
     // 加载状态
     loading: false,
     refreshing: false
@@ -83,22 +79,24 @@ Page({
       this.setData({ userInfo: app.globalData.userInfo })
 
       // 并发请求多个接口
-      const [checkupsRes, abnormalRes, conversationsRes] = await Promise.all([
+      const [checkupsRes, abnormalRes, conversationsRes, indicatorTypesRes] = await Promise.all([
         api.getCheckups({ page: 1, page_size: 5 }),
         this.loadAbnormalIndicators(),
-        api.getConversations()
+        api.getConversations(),
+        this.loadIndicatorTypes()
       ])
 
       const checkups = checkupsRes.data || checkupsRes.results || []
       let indicatorCount = 0
-      let abnormalCount = 0
 
       checkups.forEach(c => {
         indicatorCount += c.indicators_count || 0
       })
 
-      // 加载趋势数据
-      await this.loadTrendData()
+      // 设置趋势类型和默认选中第一个
+      const trendTypes = indicatorTypesRes.data || []
+      const currentTrendType = trendTypes.length > 0 ? trendTypes[0].type : ''
+      const currentTypeName = trendTypes.length > 0 ? trendTypes[0].name : ''
 
       this.setData({
         recentCheckups: checkups,
@@ -107,8 +105,16 @@ Page({
           indicatorCount: indicatorCount,
           conversationCount: conversationsRes.total || conversationsRes.count || 0,
           abnormalCount: this.data.abnormalIndicators.length
-        }
+        },
+        trendTypes: trendTypes,
+        currentTrendType: currentTrendType,
+        currentTrendTypeName: currentTypeName
       })
+
+      // 加载第一个趋势类型的数据
+      if (currentTrendType) {
+        await this.loadTrendData()
+      }
     } catch (err) {
       console.error('加载数据失败:', err)
       util.showToast(err.message || '加载失败')
@@ -144,6 +150,21 @@ Page({
     } catch (err) {
       console.error('加载异常指标失败:', err)
       this.setData({ abnormalIndicators: [] })
+    }
+  },
+
+  /**
+   * 加载指标类型列表
+   */
+  async loadIndicatorTypes() {
+    try {
+      const res = await api.getIndicatorTypes()
+      console.log('加载指标类型:', res.data)
+      return { data: res.data || [] }
+    } catch (err) {
+      console.error('加载指标类型失败:', err)
+      // 如果加载失败，返回空数组
+      return { data: [] }
     }
   },
 
@@ -194,7 +215,13 @@ Page({
    */
   switchTrendType(e) {
     const type = e.currentTarget.dataset.type
-    this.setData({ currentTrendType: type })
+    const currentType = this.data.trendTypes.find(t => t.type === type)
+    const currentTypeName = currentType ? currentType.name : ''
+
+    this.setData({
+      currentTrendType: type,
+      currentTrendTypeName: currentTypeName
+    })
     this.loadTrendData()
   },
 
