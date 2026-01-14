@@ -136,11 +136,6 @@
           <text class="btn-text" wx:if="{{!sending}}">发送</text>
           <text class="btn-text" wx:if="{{sending}}">...</text>
         </button>
-        <button
-          class="export-btn"
-          bindtap="handleExport">
-          <text class="btn-text">导出</text>
-        </button>
       </view>
     </view>
 
