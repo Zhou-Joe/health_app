@@ -1236,29 +1236,8 @@ def miniprogram_indicator_types(request):
             count=Count('id')
         ).order_by('-count')
 
-        # 指标类型名称映射（与后端数据整合提示词一致）
-        type_names = {
-            'general_exam': '一般检查',
-            'blood_routine': '血液常规',
-            'biochemistry': '生化检验',
-            'liver_function': '肝功能',
-            'kidney_function': '肾功能',
-            'thyroid': '甲状腺',
-            'cardiac': '心脏标志物',
-            'tumor_markers': '肿瘤标志物',
-            'infection': '感染炎症',
-            'blood_rheology': '血液流变',
-            'coagulation': '凝血功能',
-            'urine': '尿液检查',
-            'stool': '粪便检查',
-            'pathology': '病理检查',
-            'ultrasound': '超声检查',
-            'X_ray': 'X线检查',
-            'CT_MRI': 'CT和MRI',
-            'endoscopy': '内镜检查',
-            'special_organs': '专科检查',
-            'other': '其他检查'
-        }
+        # 直接使用模型中的choices映射，确保中文名称一致
+        type_names = dict(HealthIndicator.INDICATOR_TYPES)
 
         # 指标类型图标映射
         type_icons = {
