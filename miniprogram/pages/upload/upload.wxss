@@ -78,6 +78,9 @@
   margin-top: 24rpx;
   text-align: center;
   padding: 0 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
 .tip-text {
@@ -86,21 +89,9 @@
   line-height: 1.6;
 }
 
-.upload-hint {
-  width: 100%;
-  margin-top: 16rpx;
-  padding: 16rpx 20rpx;
-  background: linear-gradient(135deg, #FFF9E6 0%, #FFF4E6 100%);
-  border-radius: 12rpx;
-  border-left: 4rpx solid #FFB84D;
-}
-
-.hint-text {
-  font-size: 24rpx;
+.tip-text.tip-highlight {
   color: #FF9A3D;
-  line-height: 1.5;
-  display: block;
-  text-align: left;
+  font-weight: 500;
 }
 
 .upload-icon {
