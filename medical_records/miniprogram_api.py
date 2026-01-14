@@ -1259,47 +1259,12 @@ def miniprogram_indicator_types(request):
             **{k: type_names.get(v, '其他检查') for k, v in legacy_type_mapping.items()}
         }
 
-        # 指标类型图标映射
-        type_icons = {
-            'general_exam': '👤',
-            'blood_routine': '🩸',
-            'biochemistry': '🧪',
-            'liver_function': '🫀',
-            'kidney_function': '⚕️',
-            'thyroid': '🦋',
-            'cardiac': '💓',
-            'tumor_markers': '🎗️',
-            'infection': '🦠',
-            'blood_rheology': '💧',
-            'coagulation': '🩹',
-            'urine': '💧',
-            'stool': '💩',
-            'pathology': '🔬',
-            'ultrasound': '📊',
-            'X_ray': '📷',
-            'CT_MRI': '🔍',
-            'endoscopy': '🔬',
-            'special_organs': '👁️',
-            'other': '📋',
-            # 旧类型代码的图标
-            'physical_exam': '👤',
-            'ultrasound_exam': '📊',
-            'urine_exam': '💧',
-            'eye_exam': '👁️',
-            'imaging_exam': '📷',
-            'thyroid_function': '🦋',
-            'diagnosis': '🔬',
-            'symptoms': '📋',
-            'other_exam': '📋',
-        }
-
         types_data = []
         for item in type_stats:
             type_key = item['indicator_type']
             types_data.append({
                 'type': type_key,
                 'name': all_type_names.get(type_key, type_key),
-                'icon': type_icons.get(type_key, '📊'),
                 'count': item['count']
             })
 
