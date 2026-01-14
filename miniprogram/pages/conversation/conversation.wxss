@@ -424,7 +424,7 @@
 
 .action-buttons {
   flex-shrink: 0;
-  width: 110rpx;
+  width: 150rpx;
   display: flex;
   flex-direction: column;
   gap: 12rpx;
@@ -439,10 +439,13 @@
   align-items: center;
   justify-content: center;
   margin: 0;
-  padding: 0;
+  padding: 0 8rpx;
   font-size: 26rpx;
   transition: all 0.3s ease;
   box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .send-btn {
