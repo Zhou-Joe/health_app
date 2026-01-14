@@ -113,6 +113,27 @@
         </div>
     </div>
 
+    <!-- 重复报告检测 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-files"></i> 重复报告检测
+                    </h5>
+                    <button class="btn btn-sm btn-dark" onclick="detectDuplicates()">
+                        <i class="bi bi-search"></i> 检测重复
+                    </button>
+                </div>
+                <div class="card-body" id="duplicateCheckupsContainer">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-info-circle"></i> 点击"检测重复"按钮查找相同日期和机构的报告
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 步骤指示器 -->
     <div class="row mb-4">
         <div class="col-12">
@@ -1198,6 +1219,172 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==================== 重复报告检测和合并 ====================
+
+let duplicateCheckupsData = null;
+
+// 检测重复报告
+async function detectDuplicates() {
+    try {
+        const response = await fetch('/api/miniprogram/detect-duplicates/', {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.has_duplicates) {
+            duplicateCheckupsData = result.data;
+            renderDuplicateCheckups(result.data);
+        } else if (result.success && !result.has_duplicates) {
+            document.getElementById('duplicateCheckupsContainer').innerHTML = `
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle"></i> 未发现重复报告
+                </div>
+            `;
+        } else {
+            alert('检测失败：' + (result.message || '未知错误'));
+        }
+    } catch (error) {
+        console.error('检测重复报告失败:', error);
+        alert('检测失败，请稍后重试');
+    }
+}
+
+// 渲染重复报告列表
+function renderDuplicateCheckups(groups) {
+    let html = '';
+
+    groups.forEach((group, groupIndex) => {
+        html += `
+            <div class="card mb-3 border-warning" id="duplicate-group-${groupIndex}">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            ${group.date} · ${group.hospital}
+                        </h6>
+                        <span class="badge bg-danger">${group.count}份重复</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-check mb-3">
+                        <label class="form-label fw-bold">选择主报告（保留的报告）：</label>
+                        ${group.checkups.map((checkup, idx) => `
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio"
+                                       name="target-checkup-${groupIndex}"
+                                       id="checkup-${groupIndex}-${idx}"
+                                       value="${checkup.id}"
+                                       ${idx === 0 ? 'checked' : ''}
+                                       onchange="updateMergeButton(${groupIndex})">
+                                <label class="form-check-label" for="checkup-${groupIndex}-${idx}">
+                                    <strong>ID: ${checkup.id}</strong> -
+                                    ${checkup.indicators_count}项指标 -
+                                    ${checkup.created_at}
+                                    ${checkup.notes ? `<br><small class="text-muted">备注: ${escapeHtml(checkup.notes)}</small>` : ''}
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn btn-danger btn-sm"
+                            onclick="mergeDuplicates(${groupIndex})"
+                            id="merge-btn-${groupIndex}">
+                        <i class="bi bi-merge"></i> 合并这组重复报告
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById('duplicateCheckupsContainer').innerHTML = html;
+}
+
+// 更新合并按钮状态
+function updateMergeButton(groupIndex) {
+    const group = duplicateCheckupsData[groupIndex];
+    const selectedTarget = document.querySelector(`input[name="target-checkup-${groupIndex}"]:checked`);
+    const mergeBtn = document.getElementById(`merge-btn-${groupIndex}`);
+
+    if (selectedTarget && selectedTarget.value) {
+        group.targetCheckupId = parseInt(selectedTarget.value);
+        mergeBtn.disabled = false;
+    } else {
+        mergeBtn.disabled = true;
+    }
+}
+
+// 合并重复报告
+async function mergeDuplicates(groupIndex) {
+    const group = duplicateCheckupsData[groupIndex];
+    const targetCheckupId = group.targetCheckupId;
+
+    if (!targetCheckupId) {
+        alert('请先选择主报告');
+        return;
+    }
+
+    const sourceCheckupIds = group.checkups
+        .filter(c => c.id !== targetCheckupId)
+        .map(c => c.id);
+
+    if (sourceCheckupIds.length === 0) {
+        alert('没有要合并的报告');
+        return;
+    }
+
+    const confirmMsg = `确定将 ${sourceCheckupIds.length} 份报告合并到 ID ${targetCheckupId} 中吗？此操作不可撤销。`;
+
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/miniprogram/merge-duplicates/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                target_checkup_id: targetCheckupId,
+                source_checkup_ids: sourceCheckupIds
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(result.message || '合并成功');
+
+            // 移除已合并的组
+            duplicateCheckupsData.splice(groupIndex, 1);
+
+            if (duplicateCheckupsData.length === 0) {
+                document.getElementById('duplicateCheckupsContainer').innerHTML = `
+                    <div class="alert alert-success mb-0">
+                        <i class="bi bi-check-circle"></i> 所有重复报告已合并完成
+                    </div>
+                `;
+            } else {
+                renderDuplicateCheckups(duplicateCheckupsData);
+            }
+
+            // 刷新页面以更新报告列表
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            alert('合并失败：' + (result.message || '未知错误'));
+        }
+    } catch (error) {
+        console.error('合并失败:', error);
+        alert('合并失败，请稍后重试');
+    }
 }
 
 // 获取CSRF token
