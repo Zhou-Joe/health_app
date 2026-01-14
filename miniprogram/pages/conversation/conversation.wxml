@@ -60,10 +60,10 @@
   </view>
 
   <!-- 消息列表 -->
-  <scroll-view class="message-list" scroll-y scroll-into-view="msg-{{messages.length - 1}}" scroll-with-animation>
+  <scroll-view class="message-list" scroll-y scroll-into-view="msg-{{lastMessageId}}" scroll-with-animation="{{true}}" scroll-into-view-align="bottom">
     <block wx:for="{{messages}}" wx:key="id">
       <!-- 用户消息 -->
-      <view class="message-row user" wx:if="{{item.role === 'user'}}">
+      <view class="message-row user" wx:if="{{item.role === 'user'}}" id="msg-{{item.id}}">
         <view class="message-bubble user-bubble">
           <text class="message-text">{{item.content}}</text>
           <view class="message-meta">
@@ -75,7 +75,7 @@
       </view>
 
       <!-- AI消息 -->
-      <view class="message-row ai" wx:else>
+      <view class="message-row ai" wx:else id="msg-{{item.id}}">
         <view class="avatar ai-avatar">🤖</view>
         <view class="message-bubble ai-bubble">
           <!-- 如果是思考状态，显示加载动画 -->

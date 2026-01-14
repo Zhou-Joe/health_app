@@ -12,6 +12,7 @@ Page({
   data: {
     conversationId: null,
     messages: [],
+    lastMessageId: null,
     inputText: '',
     sending: false,
     // 报告选择
@@ -53,7 +54,8 @@ Page({
             role: 'ai',
             content: 'AI正在思考中...',
             isStreaming: true
-          }]
+          }],
+          lastMessageId: adviceId
         })
         this.startStreamingPoll()
       } else if (isGenerating) {
@@ -64,7 +66,8 @@ Page({
             role: 'ai',
             content: 'AI正在思考中，请稍候...',
             isThinking: true
-          }]
+          }],
+          lastMessageId: 'thinking'
         })
         this.startPolling()
       } else {
@@ -78,7 +81,8 @@ Page({
           id: 0,
           role: 'ai',
           content: '您好！我是AI健康助手。请问有什么可以帮您？\n\n您可以：\n• 直接向我咨询健康问题\n• 选择体检报告让我分析\n• 我会基于您的数据提供专业建议'
-        }]
+        }],
+        lastMessageId: 0
       })
       this.loadReports()
     }
@@ -130,7 +134,10 @@ Page({
               return msg
             })
 
-            this.setData({ messages })
+            this.setData({
+              messages,
+              lastMessageId: messages.length > 0 ? messages[messages.length - 1].id : null
+            })
             util.showToast('AI回复已生成')
           } else if (pollCount >= maxPolls) {
             // 超过最大轮询次数
@@ -237,7 +244,8 @@ Page({
 
       this.setData({
         messages,
-        selectedReportIds: lastSelectedReports
+        selectedReportIds: lastSelectedReports,
+        lastMessageId: messages.length > 0 ? messages[messages.length - 1].id : null
       })
 
       console.log('[对话] 已加载上一轮对话的报告设置:', lastSelectedReports)
@@ -432,7 +440,8 @@ Page({
       inputText: '',
       sending: true,
       isStreaming: true,
-      streamingContent: ''
+      streamingContent: '',
+      lastMessageId: userMsg.id
     })
 
     // 滚动到底部
@@ -465,7 +474,8 @@ Page({
       }
 
       this.setData({
-        messages: [...messages, aiMsg]
+        messages: [...messages, aiMsg],
+        lastMessageId: aiMsg.id
       })
 
       this.scrollToBottom()
@@ -495,7 +505,8 @@ Page({
         sending: false,
         isStreaming: false,
         conversationId: conversationId || null,
-        conversationMode: conversationId ? 'continue' : 'new'
+        conversationMode: conversationId ? 'continue' : 'new',
+        lastMessageId: aiMsg.id
       })
 
       this.scrollToBottom()
@@ -531,7 +542,8 @@ Page({
     this.setData({
       messages,
       sending: true,
-      isStreaming: true
+      isStreaming: true,
+      lastMessageId: userMsg.id
     })
 
     try {
@@ -556,7 +568,8 @@ Page({
       this.setData({
         messages: [...messages, aiMsg],
         sending: false,
-        isStreaming: false
+        isStreaming: false,
+        lastMessageId: aiMsg.id
       })
 
       this.scrollToBottom()
