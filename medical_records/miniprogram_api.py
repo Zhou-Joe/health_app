@@ -1239,6 +1239,26 @@ def miniprogram_indicator_types(request):
         # 直接使用模型中的choices映射，确保中文名称一致
         type_names = dict(HealthIndicator.INDICATOR_TYPES)
 
+        # 添加旧类型代码的支持（兼容历史数据）
+        # 参考 migration 0003 的映射关系
+        legacy_type_mapping = {
+            'physical_exam': 'general_exam',      # 体格检查 → 一般检查
+            'ultrasound_exam': 'ultrasound',      # 超声检查 → 超声检查
+            'urine_exam': 'urine',                # 尿液检查 → 尿液检查
+            'eye_exam': 'special_organs',         # 眼科检查 → 专科检查
+            'imaging_exam': 'other',              # 影像学检查 → 其他检查
+            'thyroid_function': 'thyroid',        # 甲状腺功能 → 甲状腺
+            'diagnosis': 'pathology',             # 病症诊断 → 病理检查
+            'symptoms': 'other',                  # 症状描述 → 其他检查
+            'other_exam': 'other',                # 其他检查 → 其他检查
+        }
+
+        # 合并映射：优先使用新定义，然后查找旧代码映射
+        all_type_names = {
+            **type_names,
+            **{k: type_names.get(v, '其他检查') for k, v in legacy_type_mapping.items()}
+        }
+
         # 指标类型图标映射
         type_icons = {
             'general_exam': '👤',
@@ -1260,7 +1280,17 @@ def miniprogram_indicator_types(request):
             'CT_MRI': '🔍',
             'endoscopy': '🔬',
             'special_organs': '👁️',
-            'other': '📋'
+            'other': '📋',
+            # 旧类型代码的图标
+            'physical_exam': '👤',
+            'ultrasound_exam': '📊',
+            'urine_exam': '💧',
+            'eye_exam': '👁️',
+            'imaging_exam': '📷',
+            'thyroid_function': '🦋',
+            'diagnosis': '🔬',
+            'symptoms': '📋',
+            'other_exam': '📋',
         }
 
         types_data = []
@@ -1268,7 +1298,7 @@ def miniprogram_indicator_types(request):
             type_key = item['indicator_type']
             types_data.append({
                 'type': type_key,
-                'name': type_names.get(type_key, type_key),
+                'name': all_type_names.get(type_key, type_key),
                 'icon': type_icons.get(type_key, '📊'),
                 'count': item['count']
             })
