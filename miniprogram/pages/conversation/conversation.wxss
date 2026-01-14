@@ -413,7 +413,7 @@
 
 .message-input {
   flex: 1;
-  max-width: 480rpx;
+  max-width: 400rpx;
   min-height: 80rpx;
   max-height: 300rpx;
   padding: 20rpx 24rpx;
