@@ -221,8 +221,10 @@ Page({
     this.setData({
       currentTrendType: type,
       currentTrendTypeName: currentTypeName
+    }, () => {
+      // 在 setData 完成后再加载趋势数据
+      this.loadTrendData()
     })
-    this.loadTrendData()
   },
 
   /**

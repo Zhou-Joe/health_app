@@ -407,6 +407,7 @@ def miniprogram_indicators(request, checkup_id=None):
     try:
         # 从查询参数获取checkup_id（如果URL路径参数没有提供的话）
         query_checkup_id = request.GET.get('checkup_id', None)
+        indicator_type = request.GET.get('type', None)  # 获取指标类型参数
 
         if query_checkup_id:
             checkup_id = int(query_checkup_id)
@@ -419,12 +420,20 @@ def miniprogram_indicators(request, checkup_id=None):
             )
             indicators = HealthIndicator.objects.filter(
                 checkup=checkup
-            ).order_by('-id')
+            )
         else:
             # 获取用户所有指标
             indicators = HealthIndicator.objects.filter(
                 checkup__user=request.user
-            ).order_by('-id')
+            )
+
+        # 根据指标类型过滤
+        if indicator_type:
+            indicators = indicators.filter(indicator_type=indicator_type)
+
+        # 处理排序参数
+        ordering = request.GET.get('ordering', '-checkup__checkup_date')
+        indicators = indicators.order_by(ordering)
 
         # 分页
         page = int(request.GET.get('page', 1))
