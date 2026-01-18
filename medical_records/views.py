@@ -940,20 +940,34 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
         if not api_url or not model_name:
             return None, "AI医生API未配置"
 
-        # 构建AI医生prompt
-        prompt_parts = [
-            "你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。",
-            f"\n当前问题：{question}"
-        ]
+        # 判断是否为百川API（支持system角色）
+        is_baichuan = (
+            provider == 'baichuan' or
+            'baichuan' in api_url.lower() or
+            'Baichuan' in model_name
+        )
+
+        # 构建系统提示词
+        system_prompt = """你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。
+
+注意事项：
+1. 你的建议仅供参考，不能替代专业医生的诊断
+2. 对于异常指标，请给出可能的原因和建议
+3. 建议用户定期体检，遵医嘱进行复查
+4. 强调本建议仅供参考，具体诊疗请咨询专业医生
+5. 回答要专业但平易近人，建议要具体可行"""
+
+        # 构建用户消息
+        user_message_parts = [f"当前问题：{question}"]
 
         # 添加个人信息
         try:
             user_profile = user.userprofile
             if user_profile.birth_date or user_profile.gender:
-                prompt_parts.append("\n个人信息：")
-                prompt_parts.append(f"性别：{user_profile.get_gender_display()}")
+                user_message_parts.append("\n个人信息：")
+                user_message_parts.append(f"性别：{user_profile.get_gender_display()}")
                 if user_profile.age:
-                    prompt_parts.append(f"年龄：{user_profile.age}岁")
+                    user_message_parts.append(f"年龄：{user_profile.age}岁")
         except UserProfile.DoesNotExist:
             # 用户没有个人信息记录，跳过
             pass
@@ -964,27 +978,26 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
 
         # 添加对话上下文（简化格式以节省token）
         if conversation_context:
-            prompt_parts.append("\n对话历史：")
+            user_message_parts.append("\n对话历史：")
             for i, ctx in enumerate(conversation_context, 1):
-                prompt_parts.append(f"{ctx['time']} 问：{ctx['question']}")
-                prompt_parts.append(f"答：{ctx['answer']}")
+                user_message_parts.append(f"{ctx['time']} 问：{ctx['question']}")
+                user_message_parts.append(f"答：{ctx['answer']}")
 
         if health_data is None:
             # 用户选择不使用任何健康数据
-            prompt_parts.extend([
+            user_message_parts.extend([
                 "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。",
                 "\n请基于以上问题：",
                 "1. 结合对话历史，理解用户的关注点",
                 "2. 提供一般性的健康建议和知识",
                 "3. 针对用户的具体问题给出专业建议",
                 "4. 建议何时需要就医或专业咨询",
-                "5. 给出实用的生活方式和预防措施",
-                "\n请用中文回答，语气专业但平易近人，建议要具体可行。注意这仅供参考，不能替代面诊。"
+                "5. 给出实用的生活方式和预防措施"
             ])
         else:
             # 有健康数据时，使用简化格式
             health_data_text = format_health_data_for_prompt(health_data)
-            prompt_parts.extend([
+            user_message_parts.extend([
                 f"\n用户健康数据：\n{health_data_text}",
                 "\n请基于以上信息：",
                 "1. 结合对话历史，理解用户的连续关注点",
@@ -992,11 +1005,10 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
                 "3. 针对用户的具体问题提供专业建议",
                 "4. 注意观察指标的历史变化趋势",
                 "5. 给出实用的生活方式和医疗建议",
-                "6. 如有异常指标，请特别说明并建议应对措施",
-                "\n请用中文回答，语气专业但平易近人，建议要具体可行。注意这仅供参考，不能替代面诊。"
+                "6. 如有异常指标，请特别说明并建议应对措施"
             ])
 
-        prompt = "".join(prompt_parts)
+        user_message = "\n".join(user_message_parts)
 
         # 调用AI医生API
         headers = {
@@ -1006,11 +1018,20 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
         if api_key:
             headers['Authorization'] = f'Bearer {api_key}'
 
+        # 构建消息列表
+        messages = []
+
+        # 如果是百川API，添加system角色消息
+        if is_baichuan:
+            messages.append({'role': 'system', 'content': system_prompt})
+            print(f"[AI医生] 使用百川API模式，已添加system角色")
+
+        # 添加用户消息
+        messages.append({'role': 'user', 'content': user_message})
+
         data = {
             'model': model_name,
-            'messages': [
-                {'role': 'user', 'content': prompt}
-            ],
+            'messages': messages,
             'max_tokens': max_tokens,  # 使用系统配置的max_tokens
             'temperature': 0.3
         }

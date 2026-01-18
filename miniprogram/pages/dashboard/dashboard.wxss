@@ -109,12 +109,12 @@
 }
 
 .alert-icon {
-  font-size: 36rpx;
+  font-size: 32rpx;
   margin-right: 10rpx;
 }
 
 .alert-title {
-  font-size: 32rpx;
+  font-size: 26rpx;
   font-weight: 500;
   color: #FF8A8A;
 }
@@ -133,7 +133,7 @@
 }
 
 .abnormal-name {
-  font-size: 30rpx;
+  font-size: 24rpx;
   font-weight: 500;
   color: #333333;
   margin-bottom: 10rpx;
@@ -146,13 +146,18 @@
 }
 
 .abnormal-value {
-  font-size: 28rpx;
+  font-size: 22rpx;
   color: #FF8A8A;
   font-weight: 500;
 }
 
+.abnormal-range {
+  font-size: 20rpx;
+  color: #AAAAAA;
+}
+
 .abnormal-date {
-  font-size: 24rpx;
+  font-size: 20rpx;
   color: #AAAAAA;
 }
 
@@ -162,7 +167,7 @@
 }
 
 .alert-action {
-  font-size: 28rpx;
+  font-size: 22rpx;
   color: #FF9A9E;
   font-weight: 500;
 }
@@ -193,6 +198,10 @@
   gap: 20rpx;
 }
 
+.action-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .action-item {
   display: flex;
   flex-direction: column;
@@ -206,13 +215,13 @@
 }
 
 .action-icon {
-  width: 88rpx;
-  height: 88rpx;
+  width: 96rpx;
+  height: 96rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
+  font-size: 48rpx;
   font-weight: 500;
   color: #FFFFFF;
   margin-bottom: 12rpx;
@@ -220,25 +229,29 @@
 }
 
 .upload-icon {
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
 }
 
 .integrate-icon {
-  background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
+  background: linear-gradient(135deg, #4ECDC4 0%, #7ED7D0 100%);
 }
 
 .ai-icon {
-  background: linear-gradient(135deg, #FFDAB9 0%, #FFE5E5 100%);
-}
-
-.manual-icon {
-  background: linear-gradient(135deg, #E8F5FF 0%, #D4F5F8 100%);
+  background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
 }
 
 .action-text {
-  font-size: 24rpx;
-  color: #666666;
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+  margin-bottom: 4rpx;
+}
+
+.action-desc {
+  font-size: 20rpx;
+  color: #999999;
   font-weight: 400;
+  margin-top: 2rpx;
 }
 
 /* ==================== 健康趋势 ==================== */
@@ -279,13 +292,13 @@
   margin-bottom: 8rpx;
 }
 
-.trend-name {
-  font-size: 24rpx;
-  font-weight: 400;
+.trend-type-item .trend-name {
+  font-size: 26rpx;
+  font-weight: 500;
 }
 
 .trend-count {
-  font-size: 20rpx;
+  font-size: 22rpx;
   color: #999;
   margin-top: 4rpx;
 }
@@ -309,8 +322,8 @@
   margin-bottom: 16rpx;
 }
 
-.trend-name {
-  font-size: 28rpx;
+.trend-header .trend-name {
+  font-size: 26rpx;
   font-weight: 500;
   color: #333333;
 }
@@ -329,8 +342,8 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 12rpx 20rpx;
-  margin-right: 16rpx;
+  padding: 10rpx 16rpx;
+  margin-right: 12rpx;
   background-color: #FFFFFF;
   border-radius: 12rpx;
   border: 2rpx solid transparent;
@@ -351,11 +364,11 @@
 .trend-value-date {
   font-size: 22rpx;
   color: #AAAAAA;
-  margin-bottom: 6rpx;
+  margin-bottom: 4rpx;
 }
 
 .trend-value-num {
-  font-size: 28rpx;
+  font-size: 24rpx;
   font-weight: 500;
   color: #333333;
 }

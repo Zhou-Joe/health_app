@@ -196,12 +196,17 @@ Page({
         })
       })
 
-      // 转换为数组格式
-      const trendData = Object.keys(grouped).map(name => ({
-        name,
-        values: grouped[name],
-        unit: grouped[name][0].unit
-      }))
+      // 转换为数组格式，并确保每个指标的 values 按日期降序排序（新的在前）
+      const trendData = Object.keys(grouped).map(name => {
+        const values = grouped[name]
+        // 按日期降序排序
+        values.sort((a, b) => new Date(b.date) - new Date(a.date))
+        return {
+          name,
+          values,
+          unit: values[0].unit
+        }
+      })
 
       this.setData({ trendData })
     } catch (err) {
@@ -257,10 +262,6 @@ Page({
 
   goToAIAdvice() {
     wx.switchTab({ url: '/pages/ai-advice/ai-advice' })
-  },
-
-  goToManualInput() {
-    wx.navigateTo({ url: '/pages/indicator-edit/indicator-edit' })
   },
 
   goToCheckupDetail(e) {

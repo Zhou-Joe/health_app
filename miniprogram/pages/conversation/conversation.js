@@ -48,24 +48,32 @@ Page({
 
       if (isGenerating && adviceId) {
         // 如果是正在生成状态且有adviceId，显示思考提示并开始流式轮询
+        const thinkingMsg = 'AI正在思考中...'
         this.setData({
           messages: [{
             id: adviceId,
             role: 'ai',
-            content: 'AI正在思考中...',
-            isStreaming: true
+            content: thinkingMsg,
+            previewText: thinkingMsg,
+            previewShort: thinkingMsg,
+            isStreaming: true,
+            expanded: false
           }],
           lastMessageId: adviceId
         })
         this.startStreamingPoll()
       } else if (isGenerating) {
         // 没有adviceId，使用普通轮询
+        const thinkingMsg = 'AI正在思考中，请稍候...'
         this.setData({
           messages: [{
             id: 'thinking',
             role: 'ai',
-            content: 'AI正在思考中，请稍候...',
-            isThinking: true
+            content: thinkingMsg,
+            previewText: thinkingMsg,
+            previewShort: thinkingMsg,
+            isThinking: true,
+            expanded: false
           }],
           lastMessageId: 'thinking'
         })
@@ -75,12 +83,16 @@ Page({
       }
     } else {
       // 新对话
+      const welcomeMessage = '您好！我是AI健康助手。请问有什么可以帮您？\n\n您可以：\n• 直接向我咨询健康问题\n• 选择体检报告让我分析\n• 我会基于您的数据提供专业建议'
       this.setData({
         conversationMode: 'new',
         messages: [{
           id: 0,
           role: 'ai',
-          content: '您好！我是AI健康助手。请问有什么可以帮您？\n\n您可以：\n• 直接向我咨询健康问题\n• 选择体检报告让我分析\n• 我会基于您的数据提供专业建议'
+          content: welcomeMessage,
+          previewText: this.stripMarkdown(welcomeMessage),
+          previewShort: this.generatePreviewText(welcomeMessage),
+          expanded: false
         }],
         lastMessageId: 0
       })
@@ -127,6 +139,8 @@ Page({
                 return {
                   ...msg,
                   content: currentAnswer,
+                  previewText: this.stripMarkdown(currentAnswer),
+                  previewShort: this.generatePreviewText(currentAnswer),
                   markdownData: this.convertMarkdown(currentAnswer),
                   isStreaming: false
                 }
@@ -233,9 +247,12 @@ Page({
           id: msg.id + 1000,
           role: 'ai',
           content: aiContent,
+          previewText: this.stripMarkdown(aiContent),
+          previewShort: this.generatePreviewText(aiContent),
           markdownData: this.convertMarkdown(aiContent),
           created_at: formattedTime,
-          prompt_sent: msg.prompt_sent
+          prompt_sent: msg.prompt_sent,
+          expanded: false
         })
       })
 
@@ -300,6 +317,52 @@ Page({
       console.error('Markdown转换失败:', e)
       return null
     }
+  },
+
+  /**
+   * 去除Markdown格式，用于折叠状态预览
+   */
+  stripMarkdown(content) {
+    if (!content) {
+      return ''
+    }
+
+    return content
+      // 去除代码块（保留内容）
+      .replace(/```[\s\S]*?```/g, (match) => {
+        const code = match.replace(/```\w*\n?/g, '').replace(/```/g, '')
+        return code.trim() || '代码'
+      })
+      // 去除行内代码（保留内容）
+      .replace(/`([^`]+)`/g, '$1')
+      // 去除粗体和斜体标记（保留内容）
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      // 去除标题标记（保留内容）
+      .replace(/^#{1,3}\s+/gm, '')
+      // 去除列表标记（保留内容）
+      .replace(/^\s*[-*+]\s+/gm, '')
+      // 去除引用标记（保留内容）
+      .replace(/^>\s+/gm, '')
+      // 去除链接格式 [text](url) -> text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // 将多个换行替换为空格
+      .replace(/\n+/g, ' ')
+      // 去除多余空格
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  },
+
+  /**
+   * 生成预览文本（前100字）
+   */
+  generatePreviewText(content) {
+    if (!content) {
+      return ''
+    }
+
+    const plainText = this.stripMarkdown(content)
+    return plainText.length > 100 ? plainText.substring(0, 100) : plainText
   },
 
   /**
@@ -466,11 +529,15 @@ Page({
 
       // 由于小程序不支持SSE，使用普通请求
       // 添加AI占位消息
+      const analyzingMsg = '正在分析您的健康数据，请稍候...'
       const aiMsg = {
         id: Date.now() + 1,
         role: 'ai',
-        content: '正在分析您的健康数据，请稍候...',
-        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
+        content: analyzingMsg,
+        previewText: analyzingMsg,
+        previewShort: analyzingMsg,
+        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss'),
+        expanded: false
       }
 
       this.setData({
@@ -490,6 +557,8 @@ Page({
           return {
             ...msg,
             content: aiAnswer,
+            previewText: this.stripMarkdown(aiAnswer),
+            previewShort: this.generatePreviewText(aiAnswer),
             markdownData: this.convertMarkdown(aiAnswer),
             prompt_sent: res.prompt || res.data?.prompt
           }
@@ -558,11 +627,15 @@ Page({
 
       const res = await api.getAdvice(requestData)
 
+      const aiAnswer = res.answer || res.data?.answer || '抱歉，AI医生暂时无法回复。'
       const aiMsg = {
         id: Date.now(),
         role: 'ai',
-        content: res.answer || res.data?.answer || '抱歉，AI医生暂时无法回复。',
-        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
+        content: aiAnswer,
+        previewText: this.stripMarkdown(aiAnswer),
+        previewShort: this.generatePreviewText(aiAnswer),
+        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss'),
+        expanded: false
       }
 
       this.setData({
@@ -627,6 +700,44 @@ Page({
         util.showToast('已复制')
       }
     })
+  },
+
+  /**
+   * 切换AI消息展开/折叠状态
+   */
+  toggleExpand(e) {
+    const index = e.currentTarget.dataset.index
+    const msg = this.data.messages[index]
+
+    if (msg) {
+      const newExpanded = !msg.expanded
+      console.log('切换展开状态:', {
+        index,
+        oldExpanded: msg.expanded,
+        newExpanded,
+        contentLength: msg.content ? msg.content.length : 0,
+        contentPreview: msg.content ? msg.content.substring(0, 50) : 'NO CONTENT',
+        contentSub100: msg.content ? msg.content.substring(0, 100) : 'NO CONTENT'
+      })
+
+      // 创建全新的消息数组
+      const newMessages = this.data.messages.map((m, i) => {
+        if (i === index) {
+          return { ...m, expanded: newExpanded }
+        }
+        return m
+      })
+
+      this.setData({
+        messages: newMessages
+      }, () => {
+        // setData 回调中验证数据
+        console.log('setData后的数据:', {
+          expanded: this.data.messages[index].expanded,
+          content: this.data.messages[index].content ? this.data.messages[index].content.substring(0, 50) : 'EMPTY'
+        })
+      })
+    }
   },
 
   /**

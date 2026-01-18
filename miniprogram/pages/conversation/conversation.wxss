@@ -35,13 +35,13 @@
 }
 
 .back-btn {
-  font-size: 32rpx;
+  font-size: 28rpx;
   color: #5A4A4A;
   font-weight: 500;
 }
 
 .header-title {
-  font-size: 32rpx;
+  font-size: 28rpx;
   font-weight: 500;
   color: #5A4A4A;
 }
@@ -61,7 +61,7 @@
 }
 
 .icon {
-  font-size: 32rpx;
+  font-size: 28rpx;
 }
 
 /* ==================== 报告选择器 ==================== */
@@ -88,13 +88,13 @@
 }
 
 .title-text {
-  font-size: 30rpx;
+  font-size: 26rpx;
   font-weight: 500;
   color: #333333;
 }
 
 .selected-count {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #FF9A9E;
 }
 
@@ -107,7 +107,7 @@
   background-color: transparent;
   border: none;
   color: #FF9A9E;
-  font-size: 28rpx;
+  font-size: 26rpx;
   padding: 0;
   margin: 0;
   line-height: 1;
@@ -172,7 +172,7 @@
 }
 
 .check-icon {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #5A4A4A;
   font-weight: bold;
 }
@@ -185,18 +185,18 @@
 }
 
 .report-hospital {
-  font-size: 28rpx;
+  font-size: 24rpx;
   color: #333333;
   font-weight: 500;
 }
 
 .report-date {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AAAAAA;
 }
 
 .report-desc {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #28A745;
   margin-top: 4rpx;
 }
@@ -257,6 +257,10 @@
   border-bottom-right-radius: 4rpx;
 }
 
+.user-bubble .message-text {
+  font-size: 26rpx;
+}
+
 .ai-bubble {
   background-color: #FFFFFF;
   color: #333333;
@@ -268,7 +272,7 @@
 }
 
 .message-text {
-  font-size: 30rpx;
+  font-size: 26rpx;
   line-height: 1.8;
   word-wrap: break-word;
   white-space: pre-wrap;
@@ -280,9 +284,19 @@
   color: #333333;
 }
 
+/* 展开/收起按钮 */
+.expand-btn {
+  display: inline-block;
+  font-size: 26rpx;
+  color: #FF9A9E;
+  font-weight: 500;
+  margin-top: 12rpx;
+  padding: 4rpx 0;
+}
+
 /* rich-text内容样式 */
 .message-bubble rich-text {
-  font-size: 30rpx;
+  font-size: 26rpx;
   line-height: 1.8;
   color: #333333;
   word-wrap: break-word;
@@ -295,7 +309,7 @@
   margin-top: 16rpx;
   padding-top: 12rpx;
   border-top: 1rpx solid rgba(255, 255, 255, 0.2);
-  font-size: 24rpx;
+  font-size: 26rpx;
 }
 
 .ai-bubble .message-meta {
@@ -304,19 +318,23 @@
 
 .message-time {
   color: rgba(255, 255, 255, 0.8);
+  font-size: 20rpx;
 }
 
 .ai-bubble .message-time {
   color: #AAAAAA;
+  font-size: 20rpx;
 }
 
 .meta-action {
   color: rgba(255, 255, 255, 0.8);
   cursor: pointer;
+  font-size: 20rpx;
 }
 
 .ai-bubble .meta-action {
   color: #FF9A9E;
+  font-size: 20rpx;
 }
 
 /* AI输入状态 */
@@ -360,7 +378,7 @@
 }
 
 .typing-text {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AAAAAA;
 }
 
@@ -419,7 +437,7 @@
   padding: 20rpx 24rpx;
   background-color: #F8F9FA;
   border-radius: 24rpx;
-  font-size: 30rpx;
+  font-size: 26rpx;
   line-height: 1.6;
 }
 
@@ -443,7 +461,7 @@
   justify-content: center;
   margin: 0;
   padding: 0 8rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   color: #5A4A4A;
   opacity: 0.5;
@@ -481,7 +499,7 @@
 }
 
 .send-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: #5A4A4A;
 }
 

@@ -76,7 +76,7 @@
 
       <!-- AI消息 -->
       <view class="message-row ai" wx:else id="msg-{{item.id}}">
-        <view class="avatar ai-avatar">🤖</view>
+        <view class="avatar ai-avatar">💬</view>
         <view class="message-bubble ai-bubble">
           <!-- 如果是思考状态，显示加载动画 -->
           <view class="ai-typing" wx:if="{{item.isThinking}}">
@@ -89,10 +89,17 @@
           </view>
           <!-- 否则显示内容 -->
           <block wx:else>
-            <!-- 如果有Markdown数据，使用rich-text渲染 -->
-            <rich-text wx:if="{{item.markdownData}}" nodes="{{item.markdownData}}" />
-            <!-- 否则显示纯文本 -->
-            <text class="message-text ai-text" wx:else>{{item.content}}</text>
+            <!-- 折叠状态：只显示前100字 -->
+            <view wx:if="{{!item.expanded && item.previewText && item.previewText.length > 100}}">
+              <text class="message-text ai-text">{{item.previewShort}}...</text>
+              <text class="expand-btn" bindtap="toggleExpand" data-index="{{index}}">展开全文</text>
+            </view>
+            <!-- 展开状态或短消息：显示全部 -->
+            <view wx:else>
+              <rich-text wx:if="{{item.markdownData}}" nodes="{{item.markdownData}}" />
+              <text class="message-text ai-text" wx:else>{{item.content}}</text>
+              <text class="expand-btn" wx:if="{{item.previewText && item.previewText.length > 100}}" bindtap="toggleExpand" data-index="{{index}}">收起</text>
+            </view>
             <view class="message-meta" wx:if="{{item.created_at}}">
               <text class="message-time">{{item.created_at}}</text>
               <text class="meta-action" bindtap="copyContent" data-content="{{item.content}}">复制</text>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="200" height="200">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="48" fill="#FF9A9E"/>
+
+  <!-- Doctor's face -->
+  <circle cx="50" cy="48" r="32" fill="#FFE4C4"/>
+
+  <!-- Hair -->
+  <ellipse cx="50" cy="28" rx="28" ry="15" fill="#4A4A4A"/>
+  <ellipse cx="30" cy="32" rx="8" ry="10" fill="#4A4A4A"/>
+  <ellipse cx="70" cy="32" rx="8" ry="10" fill="#4A4A4A"/>
+
+  <!-- Eyes -->
+  <ellipse cx="40" cy="46" rx="5" ry="6" fill="#333"/>
+  <ellipse cx="60" cy="46" rx="5" ry="6" fill="#333"/>
+  <circle cx="41" cy="44" r="2" fill="#FFF"/>
+  <circle cx="61" cy="44" r="2" fill="#FFF"/>
+
+  <!-- Eyebrows -->
+  <path d="M34 38 Q40 36 46 38" stroke="#4A4A4A" stroke-width="2" fill="none"/>
+  <path d="M54 38 Q60 36 66 38" stroke="#4A4A4A" stroke-width="2" fill="none"/>
+
+  <!-- Smile -->
+  <path d="M38 58 Q50 68 62 58" stroke="#E57373" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- Cheeks -->
+  <circle cx="32" cy="54" r="4" fill="#FFB6C1" opacity="0.6"/>
+  <circle cx="68" cy="54" r="4" fill="#FFB6C1" opacity="0.6"/>
+
+  <!-- Doctor's cap -->
+  <rect x="30" y="18" width="40" height="3" rx="1" fill="#FFF"/>
+  <rect x="38" y="12" width="24" height="8" rx="2" fill="#FFF"/>
+  <rect x="46" y="14" width="8" height="4" rx="1" fill="#FF6B6B"/>
+
+  <!-- Stethoscope -->
+  <path d="M38 76 Q38 82 44 82 Q50 82 50 76" stroke="#667EEA" stroke-width="3" fill="none"/>
+  <circle cx="44" cy="84" r="4" fill="#667EEA"/>
+  <path d="M62 76 Q62 82 56 82 Q50 82 50 76" stroke="#667EEA" stroke-width="3" fill="none"/>
+  <circle cx="56" cy="84" r="4" fill="#667EEA"/>
+
+  <!-- White coat collar -->
+  <path d="M30 70 L50 85 L70 70" fill="#FFF" opacity="0.9"/>
+</svg>
