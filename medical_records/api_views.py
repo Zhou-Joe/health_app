@@ -1367,43 +1367,85 @@ def stream_ai_advice(request):
         from .views import get_conversation_context, format_health_data_for_prompt
         conversation_context = get_conversation_context(request.user, conversation)
 
-        # 构建prompt（使用统一的提示词配置）
-        # 构建个人信息
-        personal_info = ""
+        # 判断是否为百川API（支持system角色）
+        is_baichuan = (
+            provider == 'baichuan' or
+            (api_url and 'baichuan' in api_url.lower()) or
+            (model_name and 'Baichuan' in model_name)
+        )
+
+        # 构建系统提示词（和call_ai_doctor_api保持一致）
+        system_prompt = """你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。
+
+注意事项：
+1. 你的建议仅供参考，不能替代专业医生的诊断
+2. 对于异常指标，请给出可能的原因和建议
+3. 建议用户定期体检，遵医嘱进行复查
+4. 强调本建议仅供参考，具体诊疗请咨询专业医生
+5. 回答要专业但平易近人，建议要具体可行"""
+
+        # 构建用户消息
+        user_message_parts = [f"当前问题：{question}"]
+
+        # 添加个人信息
         try:
             user_profile = request.user.userprofile
             if user_profile.birth_date or user_profile.gender:
-                personal_info = f"性别：{user_profile.get_gender_display()}"
+                user_message_parts.append("\n个人信息：")
+                user_message_parts.append(f"性别：{user_profile.get_gender_display()}")
                 if user_profile.age:
-                    personal_info += f"\n年龄：{user_profile.age}岁"
+                    user_message_parts.append(f"年龄：{user_profile.age}岁")
         except:
             pass
 
-        # 构建对话历史
-        conversation_history = ""
+        # 添加对话历史
         if conversation_context:
+            user_message_parts.append("\n对话历史：")
             for ctx in conversation_context:
-                conversation_history += f"{ctx['time']} 问：{ctx['question']}\n"
-                conversation_history += f"答：{ctx['answer']}\n"
+                user_message_parts.append(f"{ctx['time']} 问：{ctx['question']}")
+                user_message_parts.append(f"答：{ctx['answer']}")
 
-        # 构建prompt（使用统一的提示词配置）
-        # 检查是否真的有健康数据：不仅要有selected_reports，还要有实际的checkups数据
+        # 检查是否真的有健康数据
         has_health_data = False
-        health_data_text = ""
-
         if selected_reports is not None and selected_reports.exists():
             from .views import get_selected_reports_health_data
             health_data = get_selected_reports_health_data(request.user, selected_reports)
 
-            # 检查health_data是否真的包含有效数据（有checkups）
             if health_data and health_data.get('checkups') and len(health_data['checkups']) > 0:
                 has_health_data = True
                 health_data_text = format_health_data_for_prompt(health_data) if health_data else ""
 
         if has_health_data:
-            prompt = build_ai_doctor_prompt(question, personal_info, conversation_history, health_data_text, has_health_data=True)
+            user_message_parts.extend([
+                f"\n用户健康数据：\n{health_data_text}",
+                "\n请基于以上信息：",
+                "1. 结合对话历史，理解用户的连续关注点",
+                "2. 分析用户的健康状况和趋势",
+                "3. 针对用户的具体问题提供专业建议",
+                "4. 注意观察指标的历史变化趋势",
+                "5. 给出实用的生活方式和医疗建议",
+                "6. 如有异常指标，请特别说明并建议应对措施"
+            ])
         else:
-            prompt = build_ai_doctor_prompt(question, personal_info, conversation_history, has_health_data=False)
+            user_message_parts.extend([
+                "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。",
+                "\n请基于以上问题：",
+                "1. 结合对话历史，理解用户的关注点",
+                "2. 提供一般性的健康建议和知识",
+                "3. 针对用户的具体问题给出专业建议",
+                "4. 建议何时需要就医或专业咨询",
+                "5. 给出实用的生活方式和预防措施"
+            ])
+
+        user_message = "\n".join(user_message_parts)
+
+        # 如果不支持system角色，合并为单一prompt
+        if not is_baichuan:
+            prompt = f"{system_prompt}\n\n{user_message}"
+        else:
+            # 支持system角色时，保留分离的消息格式
+            # 用于保存到数据库
+            prompt = f"[系统提示]\n{system_prompt}\n\n[用户消息]\n{user_message}"
 
         # 生成流式响应
         def generate():
@@ -1417,7 +1459,7 @@ def stream_ai_advice(request):
                 if provider == 'gemini':
                     # 使用 LangChain 的 ChatGoogleGenerativeAI
                     from langchain_google_genai import ChatGoogleGenerativeAI
-                    from langchain_core.messages import HumanMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage
 
                     llm = ChatGoogleGenerativeAI(
                         model=model_name,
@@ -1427,8 +1469,16 @@ def stream_ai_advice(request):
                         streaming=True
                     )
 
-                    # 发送消息
-                    messages = [HumanMessage(content=prompt)]
+                    # 构建消息列表（支持system角色）
+                    messages = []
+                    if is_baichuan:
+                        # 百川API：使用system和user分离
+                        messages.append(SystemMessage(content=system_prompt))
+                        messages.append(HumanMessage(content=user_message))
+                        print(f"[AI医生-流式-Gemini] 使用system角色模式")
+                    else:
+                        # 其他API：合并为单一消息
+                        messages.append(HumanMessage(content=prompt))
 
                     # 流式输出
                     for chunk in llm.stream(messages):
@@ -1462,7 +1512,7 @@ def stream_ai_advice(request):
                 else:
                     # 使用 OpenAI 兼容格式（LangChain）
                     from langchain_openai import ChatOpenAI
-                    from langchain_core.messages import HumanMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage
 
                     # 处理 API URL，避免重复路径
                     # LangChain 会自动添加 /chat/completions，所以如果 URL 中已包含，需要移除
@@ -1485,8 +1535,16 @@ def stream_ai_advice(request):
                         streaming=True
                     )
 
-                    # 发送消息
-                    messages = [HumanMessage(content=prompt)]
+                    # 构建消息列表（支持system角色）
+                    messages = []
+                    if is_baichuan:
+                        # 百川API：使用system和user分离
+                        messages.append(SystemMessage(content=system_prompt))
+                        messages.append(HumanMessage(content=user_message))
+                        print(f"[AI医生-流式-OpenAI兼容] 使用system角色模式，模型：{model_name}")
+                    else:
+                        # 其他API：合并为单一消息
+                        messages.append(HumanMessage(content=prompt))
 
                     # 流式输出
                     for chunk in llm.stream(messages):
