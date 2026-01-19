@@ -201,6 +201,94 @@
   margin-top: 4rpx;
 }
 
+/* ==================== 药单选择器 ==================== */
+.medication-selector {
+  background-color: #FFFFFF;
+  border-bottom: 2rpx solid #F0F0F0;
+  max-height: 500rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.medication-list {
+  flex: 1;
+  padding: 0 30rpx;
+}
+
+.medication-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #FAFAFA;
+  transition: background-color 0.3s ease;
+}
+
+.medication-item:active {
+  background-color: #F8F9FA;
+}
+
+.medication-item.selected {
+  background-color: #FFF0F5;
+}
+
+.medication-check {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 22rpx;
+  border: 3rpx solid #E0E0E0;
+  margin-right: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.medication-item.selected .medication-check {
+  background-color: #FF9A9E;
+  border-color: #FF9A9E;
+}
+
+.medication-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.medication-name {
+  font-size: 26rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
+.medication-dosage {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.medication-date {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+
+.empty-medications {
+  padding: 80rpx 40rpx;
+  text-align: center;
+}
+
+.empty-medications .empty-text {
+  display: block;
+  font-size: 28rpx;
+  color: #999999;
+  margin-bottom: 12rpx;
+}
+
+.empty-medications .empty-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #CCCCCC;
+}
+
 /* ==================== 消息列表 ==================== */
 .message-list {
   flex: 1;
@@ -419,6 +507,21 @@
   font-size: 26rpx;
   color: #FF9A9E;
   font-weight: 500;
+  white-space: nowrap;
+}
+
+.selected-medications-tip {
+  margin-bottom: 16rpx;
+  padding: 16rpx 20rpx;
+  background: linear-gradient(135deg, #FFF0F5 0%, #FFE4E1 100%);
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.medications-scroll {
+  flex: 1;
   white-space: nowrap;
 }
 

@@ -9,6 +9,9 @@
       <text class="header-title">AI健康助手</text>
     </view>
     <view class="header-right">
+      <button class="icon-btn" bindtap="toggleMedicationSelector" wx:if="{{conversationMode === 'new'}}">
+        <text class="icon">💊</text>
+      </button>
       <button class="icon-btn" bindtap="toggleReportSelector" wx:if="{{conversationMode === 'new'}}">
         <text class="icon">📋</text>
       </button>
@@ -55,6 +58,44 @@
           <text class="report-hospital">{{item.hospital}}</text>
           <text class="report-date">{{item.checkup_date}}</text>
         </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 药单选择器 -->
+  <view class="medication-selector" wx:if="{{showMedicationSelector}}">
+    <view class="selector-header">
+      <view class="selector-title">
+        <text class="title-text">选择药单</text>
+        <text class="selected-count">已选{{selectedMedicationIds.length}}份</text>
+      </view>
+      <view class="selector-actions">
+        <button class="text-btn" bindtap="toggleSelectAllMedications">
+          {{selectedMedicationIds.length === medications.length ? '取消全选' : '全选'}}
+        </button>
+        <button class="text-btn" bindtap="toggleMedicationSelector">完成</button>
+      </view>
+    </view>
+    <scroll-view class="medication-list" scroll-y>
+      <!-- 药单列表 -->
+      <view class="medication-item {{item.selected ? 'selected' : ''}}"
+            wx:for="{{medications}}"
+            wx:key="id"
+            bindtap="toggleMedication"
+            data-id="{{item.id}}">
+        <view class="medication-check">
+          <text class="check-icon">{{item.selected ? '✓' : ''}}</text>
+        </view>
+        <view class="medication-info">
+          <text class="medication-name">{{item.medicine_name}}</text>
+          <text class="medication-dosage">{{item.dosage}}</text>
+          <text class="medication-date">{{item.start_date}} 至 {{item.end_date}}</text>
+        </view>
+      </view>
+      <!-- 空状态 -->
+      <view class="empty-medications" wx:if="{{medications.length === 0}}">
+        <text class="empty-text">暂无药单</text>
+        <text class="empty-desc">您还没有添加任何药单</text>
       </view>
     </scroll-view>
   </view>
@@ -121,6 +162,14 @@
       <scroll-view class="reports-scroll" scroll-x>
         <text class="tip-text">已选择 {{selectedReportIds.length}} 份报告</text>
         <text class="tip-action" bindtap="toggleReportSelector">修改</text>
+      </scroll-view>
+    </view>
+
+    <!-- 已选药单提示 -->
+    <view class="selected-medications-tip" wx:if="{{selectedMedicationIds.length > 0 && !showMedicationSelector}}">
+      <scroll-view class="medications-scroll" scroll-x>
+        <text class="tip-text">已选择 {{selectedMedicationIds.length}} 份药单</text>
+        <text class="tip-action" bindtap="toggleMedicationSelector">修改</text>
       </scroll-view>
     </view>
 

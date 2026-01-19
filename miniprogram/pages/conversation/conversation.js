@@ -20,6 +20,11 @@ Page({
     selectedReportIds: [],
     showReportSelector: false,
     reportsNoSelection: false, // 标记是否选择了"不使用报告"
+    // 药单选择
+    medications: [],
+    selectedMedicationIds: [],
+    showMedicationSelector: false,
+    includeMedications: false, // 是否包含药单信息
     // 对话模式
     conversationMode: 'new', // 'new' 或 'continue'
     // AI响应流式内容
@@ -97,6 +102,7 @@ Page({
         lastMessageId: 0
       })
       this.loadReports()
+      this.loadMedications()
     }
   },
 
@@ -383,6 +389,22 @@ Page({
   },
 
   /**
+   * 加载药单列表
+   */
+  async loadMedications() {
+    try {
+      const res = await api.getMedications()
+      const medications = (res.medications || []).map(m => ({
+        ...m,
+        selected: false
+      }))
+      this.setData({ medications })
+    } catch (err) {
+      console.error('加载药单列表失败:', err)
+    }
+  },
+
+  /**
    * 切换报告选择器
    */
   toggleReportSelector() {
@@ -439,6 +461,60 @@ Page({
     const selectedReportIds = !allSelected ? reports.map(r => r.id) : []
 
     this.setData({ reports, selectedReportIds })
+  },
+
+  /**
+   * 切换药单选择器
+   */
+  toggleMedicationSelector() {
+    this.setData({
+      showMedicationSelector: !this.data.showMedicationSelector
+    })
+  },
+
+  /**
+   * 切换是否包含药单
+   */
+  toggleIncludeMedications() {
+    this.setData({
+      includeMedications: !this.data.includeMedications
+    })
+  },
+
+  /**
+   * 切换药单选择
+   */
+  toggleMedication(e) {
+    const id = e.currentTarget.dataset.id
+    const medications = this.data.medications.map(m => {
+      if (m.id === id) {
+        return { ...m, selected: !m.selected }
+      }
+      return m
+    })
+
+    const selectedMedicationIds = medications
+      .filter(m => m.selected)
+      .map(m => m.id)
+
+    this.setData({
+      medications,
+      selectedMedicationIds
+    })
+  },
+
+  /**
+   * 全选/取消全选药单
+   */
+  toggleSelectAllMedications() {
+    const allSelected = this.data.selectedMedicationIds.length === this.data.medications.length
+    const medications = this.data.medications.map(m => ({
+      ...m,
+      selected: !allSelected
+    }))
+    const selectedMedicationIds = !allSelected ? medications.map(m => m.id) : []
+
+    this.setData({ medications, selectedMedicationIds })
   },
 
   /**
@@ -515,6 +591,11 @@ Page({
       const requestData = {
         question: inputText,
         selected_reports: this.data.selectedReportIds
+      }
+
+      // 如果选择包含药单，添加药单信息
+      if (this.data.includeMedications && this.data.selectedMedicationIds.length > 0) {
+        requestData.selected_medications = this.data.selectedMedicationIds
       }
 
       if (this.data.conversationMode === 'continue' && this.data.conversationId) {

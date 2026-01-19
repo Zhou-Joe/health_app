@@ -866,7 +866,7 @@ def format_conversation_history(conversation_context):
     return "\n".join(formatted_lines)
 
 
-def call_ai_doctor_api(question, health_data, user, conversation_context=None):
+def call_ai_doctor_api(question, health_data, user, conversation_context=None, medications=None):
     """调用AI医生API"""
     try:
         # 获取AI医生设置
@@ -986,7 +986,28 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
         if health_data is None:
             # 用户选择不使用任何健康数据
             user_message_parts.extend([
-                "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。",
+                "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。"
+            ])
+
+        # 添加药单数据
+        if medications and len(medications) > 0:
+            user_message_parts.append("\n用户正在服用的药物：")
+            for med in medications:
+                user_message_parts.append(f"- {med.medicine_name}")
+                user_message_parts.append(f"  服药方式：{med.dosage}")
+                user_message_parts.append(f"  服用周期：{med.start_date} 至 {med.end_date}")
+                if med.notes:
+                    user_message_parts.append(f"  备注：{med.notes}")
+                # 获取服药记录
+                records = med.medicationrecord_set.all().order_by('-record_date')[:7]  # 最近7次
+                if records:
+                    user_message_parts.append(f"  最近服药记录：")
+                    for record in records:
+                        user_message_parts.append(f"    {record.record_date} (已服用)")
+
+        if health_data is None:
+            # 用户选择不使用任何健康数据，继续提供一般性建议
+            user_message_parts.extend([
                 "\n请基于以上问题：",
                 "1. 结合对话历史，理解用户的关注点",
                 "2. 提供一般性的健康建议和知识",
@@ -1082,7 +1103,7 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None):
         return None, f"AI医生处理错误: {str(e)}"
 
 
-def generate_ai_advice(question, user, selected_reports=None, conversation=None):
+def generate_ai_advice(question, user, selected_reports=None, conversation=None, selected_medications=None):
     """生成AI健康建议，返回answer、prompt和conversation_context"""
     # 检查是否配置了AI医生API
     api_url = SystemSettings.get_setting('ai_doctor_api_url')
@@ -1109,7 +1130,7 @@ def generate_ai_advice(question, user, selected_reports=None, conversation=None)
         if selected_reports is None:
             # 用户选择不使用任何报告，仅基于问题提供一般性建议
             conversation_context = get_conversation_context(user, conversation)
-            answer, error = call_ai_doctor_api(question, None, user, conversation_context)
+            answer, error = call_ai_doctor_api(question, None, user, conversation_context, selected_medications)
 
             # 构建用于显示的prompt
             conversation_history_text = format_conversation_history(conversation_context)
@@ -1145,7 +1166,7 @@ def generate_ai_advice(question, user, selected_reports=None, conversation=None)
             conversation_context = get_conversation_context(user, conversation)
 
             # 调用AI医生API
-            answer, error = call_ai_doctor_api(question, health_data, user, conversation_context)
+            answer, error = call_ai_doctor_api(question, health_data, user, conversation_context, selected_medications)
 
             # 构建用于显示的prompt（使用简化格式）
             health_data_display = format_health_data_for_prompt(health_data)

@@ -890,6 +890,7 @@ def miniprogram_create_conversation(request):
         data = json.loads(request.body)
         question = data.get('question', '').strip()
         selected_reports_ids = data.get('selected_reports', [])
+        selected_medications_ids = data.get('selected_medications', [])
         conversation_id = data.get('conversation_id')
 
         # 验证问题
@@ -975,12 +976,23 @@ def miniprogram_create_conversation(request):
 
                 print(f"[后台线程] 报告模式: {report_mode}, 报告数量: {len(selected_reports) if selected_reports else 0}")
 
+                # 处理药单选择
+                selected_medications = None
+                if selected_medications_ids:
+                    from .models import Medication
+                    selected_medications = Medication.objects.filter(
+                        id__in=selected_medications_ids,
+                        user=request.user
+                    )
+                    print(f"[后台线程] 药单数量: {len(selected_medications)}")
+
                 # 生成AI响应
                 answer, prompt_sent, conversation_context = generate_ai_advice(
                     question,
                     request.user,
                     selected_reports,
-                    conversation
+                    conversation,
+                    selected_medications
                 )
 
                 print(f"[后台线程] AI响应生成成功，长度: {len(answer)} 字符")
