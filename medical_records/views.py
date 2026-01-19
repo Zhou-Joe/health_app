@@ -425,9 +425,24 @@ def ai_health_advice(request):
                         messages.error(request, error_msg)
                         return redirect('medical_records:ai_health_advice')
 
-                # 生成AI响应，传入选择的报告和对话上下文
+                # 获取药单模式
+                medication_mode = request.POST.get('medication_mode', 'no_medications')
+
+                # 获取用户选择的药单
+                selected_medications = None
+                if medication_mode == 'select_medications':
+                    medication_ids = request.POST.getlist('selected_medications')
+                    if medication_ids:
+                        from .models import Medication
+                        selected_medications = Medication.objects.filter(
+                            id__in=medication_ids,
+                            user=request.user,
+                            is_active=True
+                        )
+
+                # 生成AI响应，传入选择的报告、药单和对话上下文
                 question = advice.question
-                answer, prompt_sent, conversation_context = generate_ai_advice(question, request.user, selected_reports, conversation)
+                answer, prompt_sent, conversation_context = generate_ai_advice(question, request.user, selected_reports, conversation, selected_medications)
 
                 # 如果AI生成失败，返回错误信息
                 if not answer:
@@ -544,10 +559,15 @@ def ai_health_advice(request):
             'has_attention': HealthIndicator.objects.filter(checkup=report, status='attention').exists(),
         })
 
+    # 获取用户的药单
+    from .models import Medication
+    medications = Medication.objects.filter(user=request.user, is_active=True).order_by('-created_at')
+
     context = {
         'form': form,
         'user_advices': user_advices,
         'reports_with_info': reports_with_info,
+        'medications': medications,
     }
 
     return render(request, 'medical_records/ai_advice.html', context)

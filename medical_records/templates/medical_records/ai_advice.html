@@ -303,6 +303,100 @@
                         </div>
                     </div>
 
+                    <!-- 药单选择区域 -->
+                    <div class="mb-4">
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-capsule"></i>
+                                选择相关药单（可选）
+                            </label>
+                            <small class="text-muted d-block mb-2">如果您正在服用药物，可以选择相关药单，AI医生会结合您的服药情况提供建议</small>
+                        </div>
+
+                        <div id="medicationSelectionArea" class="border rounded p-3" style="background-color: #f8f9fa; max-height: 300px; overflow-y: auto;">
+                            {% if medications %}
+                                <!-- 选项：不使用任何药单 -->
+                                <div class="form-check mb-3 p-3 border rounded" style="background-color: #e8f5e8; border: 1px solid #28a745 !important;">
+                                    <input type="radio" name="medication_mode" value="no_medications" class="form-check-input" id="noMedicationsMode" checked onchange="handleMedicationModeChange()">
+                                    <label class="form-check-label w-100" for="noMedicationsMode">
+                                        <div>
+                                            <strong class="text-success">
+                                                <i class="bi bi-chat-text"></i> 不使用药单
+                                            </strong>
+                                            <div class="text-muted small">
+                                                不包含药单信息进行咨询
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 选项：选择特定药单 -->
+                                <div class="form-check mb-3 p-3 border rounded" style="background-color: #f8f9fa; border: 1px solid #6c757d !important;">
+                                    <input type="radio" name="medication_mode" value="select_medications" class="form-check-input" id="selectMedicationsMode" onchange="handleMedicationModeChange()">
+                                    <label class="form-check-label w-100" for="selectMedicationsMode">
+                                        <div>
+                                            <strong class="text-dark">
+                                                <i class="bi bi-capsule"></i> 选择药单
+                                            </strong>
+                                            <div class="text-muted small">
+                                                AI医生将结合我的药单提供建议
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- 药单列表 -->
+                                <div id="medicationListContainer" style="display: none;">
+                                    <div class="mb-3">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-2" onclick="selectAllMedications()">全选</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearMedications()">清空</button>
+                                    </div>
+
+                                    <div class="list-group">
+                                        {% for med in medications %}
+                                        <div class="list-group-item">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input medication-checkbox"
+                                                       name="selected_medications" value="{{ med.id }}"
+                                                       id="med_{{ med.id }}" onchange="updateSelectedMedicationsCount()">
+                                                <label class="form-check-label w-100" for="med_{{ med.id }}">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <strong class="text-primary">{{ med.medicine_name }}</strong>
+                                                            <div class="text-muted small">
+                                                                {{ med.dosage }}
+                                                            </div>
+                                                            <div class="text-muted small">
+                                                                {{ med.start_date }} 至 {{ med.end_date }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <i class="bi bi-capsule" style="font-size: 2rem;"></i>
+                                    <p class="mt-2">暂无药单</p>
+                                    <small class="text-muted">
+                                        您还没有添加任何药单
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- 选中的药单提示 -->
+                        <div id="selectedMedicationsInfo" class="mt-2" style="display: none;">
+                            <small class="text-warning">
+                                <i class="bi bi-check-circle"></i>
+                                已选择 <span id="selectedMedicationsCount">0</span> 份药单
+                            </small>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between">
                         <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
                             <i class="bi bi-arrow-left"></i> 返回首页
@@ -411,6 +505,8 @@
 let lastConsultationSettings = {
     reportMode: null,
     selectedReports: [],
+    medicationMode: null,
+    selectedMedications: [],
     conversationMode: null
 };
 
@@ -500,6 +596,55 @@ function selectAbnormalReports() {
         }
     });
     updateSelectedCount();
+}
+
+// 处理药单模式切换
+function handleMedicationModeChange() {
+    const noMedicationsMode = document.getElementById('noMedicationsMode');
+    const selectMedicationsMode = document.getElementById('selectMedicationsMode');
+    const medicationListContainer = document.getElementById('medicationListContainer');
+
+    if (noMedicationsMode && noMedicationsMode.checked) {
+        // 选择"不使用药单"时，隐藏药单列表
+        if (medicationListContainer) {
+            medicationListContainer.style.display = 'none';
+        }
+        // 清空所有药单选择
+        const checkboxes = document.querySelectorAll('input[name="selected_medications"]');
+        checkboxes.forEach(checkbox => checkbox.checked = false);
+        updateSelectedMedicationsCount();
+    } else {
+        // 选择"选择药单"时，显示药单列表
+        if (medicationListContainer) {
+            medicationListContainer.style.display = 'block';
+        }
+    }
+}
+
+function updateSelectedMedicationsCount() {
+    const checkboxes = document.querySelectorAll('input[name="selected_medications"]:checked');
+    const count = checkboxes.length;
+    const selectedInfo = document.getElementById('selectedMedicationsInfo');
+    const countSpan = document.getElementById('selectedMedicationsCount');
+
+    if (count > 0) {
+        selectedInfo.style.display = 'block';
+        countSpan.textContent = count;
+    } else {
+        selectedInfo.style.display = 'none';
+    }
+}
+
+function selectAllMedications() {
+    const checkboxes = document.querySelectorAll('input[name="selected_medications"]');
+    checkboxes.forEach(checkbox => checkbox.checked = true);
+    updateSelectedMedicationsCount();
+}
+
+function clearMedications() {
+    const checkboxes = document.querySelectorAll('input[name="selected_medications"]');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+    updateSelectedMedicationsCount();
 }
 
 // 处理对话模式切换
@@ -994,15 +1139,25 @@ function saveConsultationSettings() {
     const reportMode = document.querySelector('input[name="report_mode"]:checked');
     const conversationMode = document.querySelector('input[name="conversation_mode"]:checked');
     const selectedReports = [];
+    const selectedMedications = [];
 
     // 保存报告选择
     document.querySelectorAll('input[name="selected_reports"]:checked').forEach(checkbox => {
         selectedReports.push(checkbox.value);
     });
 
+    // 保存药单选择
+    document.querySelectorAll('input[name="selected_medications"]:checked').forEach(checkbox => {
+        selectedMedications.push(checkbox.value);
+    });
+
+    const medicationMode = document.querySelector('input[name="medication_mode"]:checked');
+
     lastConsultationSettings = {
         reportMode: reportMode ? reportMode.value : 'select_reports',
         selectedReports: selectedReports,
+        medicationMode: medicationMode ? medicationMode.value : 'no_medications',
+        selectedMedications: selectedMedications,
         conversationMode: conversationMode ? conversationMode.value : 'new_conversation'
     };
 
@@ -1046,6 +1201,37 @@ function continueConsultation() {
 
         // 更新选择计数
         updateSelectedCount();
+    }
+
+    // 恢复药单模式
+    if (lastConsultationSettings.medicationMode === 'select_medications') {
+        document.getElementById('selectMedicationsMode').checked = true;
+    } else {
+        document.getElementById('noMedicationsMode').checked = true;
+    }
+
+    // 触发药单模式变化处理
+    handleMedicationModeChange();
+
+    // 恢复药单选择
+    if (lastConsultationSettings.medicationMode === 'select_medications') {
+        // 先清空所有选择
+        document.querySelectorAll('input[name="selected_medications"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+
+        // 恢复之前的选择
+        if (lastConsultationSettings.selectedMedications) {
+            lastConsultationSettings.selectedMedications.forEach(medicationId => {
+                const checkbox = document.querySelector(`input[name="selected_medications"][value="${medicationId}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            });
+        }
+
+        // 更新选择计数
+        updateSelectedMedicationsCount();
     }
 
     // 聚焦到问题输入框
