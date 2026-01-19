@@ -20,11 +20,33 @@
         <text class="selector-title">选择体检报告</text>
         <view class="selector-actions">
           <text class="selected-hint" wx:if="{{selectedReportIds.length > 0}}">已选{{selectedReportIds.length}}份</text>
-          <text class="action-btn" bindtap="toggleSelectAll">{{selectedReportIds.length === reports.length ? '取消全选' : '全选'}}</text>
+          <text class="action-btn" bindtap="toggleSelectAll" wx:if="{{reports.length > 0}}">{{selectedReportIds.length === reports.length ? '取消全选' : '全选'}}</text>
           <text class="action-btn primary" bindtap="toggleReportSelector">完成</text>
         </view>
       </view>
-      <scroll-view class="report-list" scroll-y>
+
+      <!-- 加载状态 -->
+      <view class="loading-state" wx:if="{{reportsLoading}}">
+        <text class="loading-spinner"></text>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <!-- 错误状态 -->
+      <view class="error-state" wx:elif="{{reportsError}}">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">{{reportsError}}</text>
+        <text class="error-action" bindtap="loadReports">重新加载</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:elif="{{reports.length === 0}}">
+        <text class="empty-icon">📋</text>
+        <text class="empty-text">暂无体检报告</text>
+        <text class="empty-desc">请先上传体检报告后再进行咨询</text>
+      </view>
+
+      <!-- 报告列表 -->
+      <scroll-view class="report-list" scroll-y wx:else>
         <!-- 不使用任何报告选项 -->
         <view class="list-item special-option {{selectedReportIds.length === 0 && reportsNoSelection ? 'selected' : ''}}"
               bindtap="selectNoReports">
@@ -67,11 +89,33 @@
         <text class="selector-title">选择药单</text>
         <view class="selector-actions">
           <text class="selected-hint" wx:if="{{selectedMedicationIds.length > 0}}">已选{{selectedMedicationIds.length}}份</text>
-          <text class="action-btn" bindtap="toggleSelectAllMedications">{{selectedMedicationIds.length === medications.length ? '取消全选' : '全选'}}</text>
+          <text class="action-btn" bindtap="toggleSelectAllMedications" wx:if="{{medications.length > 0}}">{{selectedMedicationIds.length === medications.length ? '取消全选' : '全选'}}</text>
           <text class="action-btn primary" bindtap="toggleMedicationSelector">完成</text>
         </view>
       </view>
-      <scroll-view class="medication-list" scroll-y>
+
+      <!-- 加载状态 -->
+      <view class="loading-state" wx:if="{{medicationsLoading}}">
+        <text class="loading-spinner"></text>
+        <text class="loading-text">加载中...</text>
+      </view>
+
+      <!-- 错误状态 -->
+      <view class="error-state" wx:elif="{{medicationsError}}">
+        <text class="error-icon">⚠️</text>
+        <text class="error-text">{{medicationsError}}</text>
+        <text class="error-action" bindtap="loadMedications">重新加载</text>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:elif="{{medications.length === 0}}">
+        <text class="empty-icon">💊</text>
+        <text class="empty-text">暂无药单</text>
+        <text class="empty-desc">您还没有添加任何药单</text>
+      </view>
+
+      <!-- 药单列表 -->
+      <scroll-view class="medication-list" scroll-y wx:else>
         <!-- 不使用任何药单选项 -->
         <view class="list-item special-option {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'selected' : ''}}"
               bindtap="selectNoMedications">
@@ -104,12 +148,6 @@
               <text class="meta-text">已服药{{item.days_taken || 0}}/{{item.total_days || 0}}天</text>
             </view>
           </view>
-        </view>
-
-        <!-- 空状态 -->
-        <view class="empty-state" wx:if="{{medications.length === 0}}">
-          <text class="empty-text">暂无药单</text>
-          <text class="empty-desc">您还没有添加任何药单</text>
         </view>
       </scroll-view>
     </view>

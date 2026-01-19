@@ -267,6 +267,12 @@
   text-align: center;
 }
 
+.empty-state .empty-icon {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
 .empty-state .empty-text {
   font-size: 28rpx;
   color: #999999;
@@ -278,6 +284,70 @@
   font-size: 24rpx;
   color: #CCCCCC;
   display: block;
+}
+
+/* 加载状态 */
+.loading-state {
+  padding: 80rpx 40rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #F0F0F0;
+  border-top-color: #FF9A9E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state .loading-text {
+  font-size: 26rpx;
+  color: #999999;
+}
+
+/* 错误状态 */
+.error-state {
+  padding: 80rpx 40rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-state .error-icon {
+  font-size: 80rpx;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.error-state .error-text {
+  font-size: 26rpx;
+  color: #FF6B6B;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+.error-state .error-action {
+  font-size: 28rpx;
+  color: #FF9A9E;
+  padding: 16rpx 32rpx;
+  border: 2rpx solid #FF9A9E;
+  border-radius: 50rpx;
+  display: inline-block;
 }
 
 /* ==================== 消息列表 ==================== */

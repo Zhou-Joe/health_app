@@ -479,17 +479,18 @@ def miniprogram_get_advice(request):
 
         # 支持两种模式：
         # 1. 旧模式：checkup_id（单份报告分析）
-        # 2. 新模式：question + selected_reports + conversation_id（对话模式）
+        # 2. 新模式：question + selected_reports + conversation_id + selected_medications（对话模式）
 
         checkup_id = data.get('checkup_id')
         question = data.get('question')
         selected_reports_ids = data.get('selected_reports', [])
+        selected_medications_ids = data.get('selected_medications', [])
         conversation_id = data.get('conversation_id')
 
         # 对话模式（新）
         if question:
             from .views import generate_ai_advice
-            from .models import Conversation
+            from .models import Conversation, Medication
 
             # 处理对话
             if conversation_id:
@@ -522,16 +523,27 @@ def miniprogram_get_advice(request):
                     user=request.user
                 )
 
-            # 生成AI响应
+            # 处理药单选择
+            selected_medications = None
+            if selected_medications_ids and len(selected_medications_ids) > 0:
+                selected_medications = Medication.objects.filter(
+                    id__in=selected_medications_ids,
+                    user=request.user
+                )
+                print(f"[小程序AI] 本次对话将引用 {len(selected_medications)} 份药单")
+
+            # 生成AI响应（传递药单信息）
             answer, prompt_sent, conversation_context = generate_ai_advice(
                 question,
                 request.user,
                 selected_reports,
-                conversation
+                conversation,
+                selected_medications
             )
 
             # 保存对话记录
             selected_reports_json = json.dumps(selected_reports_ids) if selected_reports_ids else None
+            selected_medications_json = json.dumps(selected_medications_ids) if selected_medications_ids else None
             health_advice = HealthAdvice.objects.create(
                 user=request.user,
                 question=question,

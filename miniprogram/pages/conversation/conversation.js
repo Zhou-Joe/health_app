@@ -20,12 +20,18 @@ Page({
     selectedReportIds: [],
     showReportSelector: false,
     reportsNoSelection: false, // 标记是否选择了"不使用报告"
+    reportsLoading: false, // 报告加载状态（改为false）
+    reportsError: null, // 报告加载错误
+    reportsLoaded: false, // 是否已加载过报告
     // 药单选择
     medications: [],
     selectedMedicationIds: [],
     showMedicationSelector: false,
     includeMedications: false, // 是否包含药单信息
     medicationsNoSelection: false, // 标记是否选择了"不使用药单"
+    medicationsLoading: false, // 药单加载状态（改为false）
+    medicationsError: null, // 药单加载错误
+    medicationsLoaded: false, // 是否已加载过药单
     // 对话模式
     conversationMode: 'new', // 'new' 或 'continue'
     // AI响应流式内容
@@ -380,15 +386,53 @@ Page({
    */
   async loadReports() {
     try {
-      const res = await api.getCheckups({ page_size: 50 })
-      const reports = (res.data || res.results || []).map(r => ({
-        ...r,
-        checkup_date: util.formatDate(r.checkup_date, 'YYYY-MM-DD'),
-        selected: false
-      }))
-      this.setData({ reports })
+      this.setData({ reportsLoading: true, reportsError: null })
+      console.log('[对话] 开始加载报告列表...')
+
+      const res = await api.getCheckups({ page_size: 100 })
+      console.log('[对话] API响应:', res)
+
+      // 后端返回格式: { success: true, checkups: [...], count: ... }
+      const checkupsData = res.checkups || res.data || res.results || []
+      console.log('[对话] 解析后的报告数据:', checkupsData)
+
+      const reports = checkupsData.map(r => {
+        // 安全地格式化日期
+        let formattedDate = ''
+        try {
+          formattedDate = util.formatDate(r.checkup_date, 'YYYY-MM-DD')
+        } catch (e) {
+          console.error('[对话] 日期格式化失败:', r.checkup_date, e)
+          formattedDate = r.checkup_date || ''
+        }
+
+        return {
+          id: r.id,
+          hospital: r.hospital || '未知机构',
+          checkup_date: formattedDate,
+          indicators_count: r.indicator_count || r.indicators_count || 0,
+          selected: false
+        }
+      })
+
+      console.log(`[对话] 成功加载 ${reports.length} 份报告:`, reports)
+
+      this.setData({
+        reports,
+        reportsLoading: false,
+        reportsLoaded: true
+      })
+
+      // 恢复上次的选择
+      this.restoreReportSelection()
+
     } catch (err) {
-      console.error('加载报告列表失败:', err)
+      console.error('[对话] 加载报告列表失败:', err)
+      this.setData({
+        reportsLoading: false,
+        reportsError: err.message || '加载报告失败',
+        reportsLoaded: true
+      })
     }
   },
 
@@ -397,17 +441,38 @@ Page({
    */
   async loadMedications() {
     try {
+      this.setData({ medicationsLoading: true, medicationsError: null })
       const res = await api.getMedications()
+
+      // 后端返回格式: { success: true, medications: [...] }
       const medications = (res.medications || []).map(m => ({
         ...m,
+        medicine_name: m.medicine_name,
+        dosage: m.dosage,
+        start_date: util.formatDate(m.start_date, 'YYYY-MM-DD'),
+        end_date: util.formatDate(m.end_date, 'YYYY-MM-DD'),
+        days_taken: m.days_taken || 0,
+        total_days: m.total_days || 0,
         selected: false
       }))
-      this.setData({ medications })
+
+      this.setData({
+        medications,
+        medicationsLoading: false,
+        medicationsLoaded: true
+      })
 
       // 恢复上次的选择
       this.restoreMedicationSelection()
+
+      console.log(`[对话] 成功加载 ${medications.length} 份药单`)
     } catch (err) {
       console.error('加载药单列表失败:', err)
+      this.setData({
+        medicationsLoading: false,
+        medicationsError: err.message || '加载药单失败',
+        medicationsLoaded: true
+      })
     }
   },
 
@@ -504,8 +569,15 @@ Page({
    * 切换报告选择器
    */
   toggleReportSelector() {
+    const willShow = !this.data.showReportSelector
+
+    // 如果打开选择器且还没有加载过数据，则加载数据
+    if (willShow && !this.data.reportsLoaded) {
+      this.loadReports()
+    }
+
     this.setData({
-      showReportSelector: !this.data.showReportSelector
+      showReportSelector: willShow
     })
   },
 
@@ -572,8 +644,15 @@ Page({
    * 切换药单选择器
    */
   toggleMedicationSelector() {
+    const willShow = !this.data.showMedicationSelector
+
+    // 如果打开选择器且还没有加载过数据，则加载数据
+    if (willShow && !this.data.medicationsLoaded) {
+      this.loadMedications()
+    }
+
     this.setData({
-      showMedicationSelector: !this.data.showMedicationSelector
+      showMedicationSelector: willShow
     })
   },
 
