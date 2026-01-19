@@ -160,6 +160,28 @@ module.exports = {
   mergeDuplicates: (data) =>
     request.post(config.api.mergeDuplicates, data),
 
+  // ==================== 药单管理 ====================
+  getMedications: () =>
+    request.get(config.api.medications),
+
+  createMedication: (data) =>
+    request.post(config.api.medications, data),
+
+  getMedicationDetail: (medicationId) =>
+    request.get(config.api.medicationDetail(medicationId)),
+
+  updateMedication: (medicationId, data) =>
+    request.put(config.api.medicationDetail(medicationId), data),
+
+  deleteMedication: (medicationId) =>
+    request.delete(config.api.medicationDetail(medicationId)),
+
+  medicationCheckin: (data) =>
+    request.post(config.api.medicationCheckin, data),
+
+  getMedicationRecords: (medicationId) =>
+    request.get(config.api.medicationRecords(medicationId)),
+
   // ==================== 导出功能 ====================
   exportHealthTrendsPDF: () =>
     request.downloadFile(config.api.exportHealthTrendsPDF),

@@ -236,6 +236,10 @@
   background: linear-gradient(135deg, #4ECDC4 0%, #7ED7D0 100%);
 }
 
+.medication-icon {
+  background: linear-gradient(135deg, #FFA07A 0%, #FFB380 100%);
+}
+
 .ai-icon {
   background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
 }

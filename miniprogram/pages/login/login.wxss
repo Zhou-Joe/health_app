@@ -145,3 +145,79 @@
   font-size: 24rpx;
   color: #CCCCCC;
 }
+
+.link-text {
+  font-size: 24rpx;
+  color: #5A8EEF;
+  text-decoration: underline;
+}
+
+/* 自定义弹窗样式 */
+.custom-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content {
+  width: 640rpx;
+  max-height: 80vh;
+  background-color: #FFFFFF;
+  border-radius: 24rpx;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 32rpx;
+  border-bottom: 2rpx solid #F0F0F0;
+  text-align: center;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333333;
+}
+
+.modal-body {
+  flex: 1;
+  padding: 32rpx;
+  max-height: 60vh;
+}
+
+.modal-text {
+  font-size: 22rpx;
+  line-height: 40rpx;
+  color: #666666;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.modal-footer {
+  padding: 24rpx 32rpx;
+  border-top: 2rpx solid #F0F0F0;
+  display: flex;
+  justify-content: center;
+}
+
+.modal-btn {
+  width: 200rpx;
+  height: 72rpx;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
+  color: #5A4A4A;
+  font-size: 28rpx;
+  border-radius: 36rpx;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

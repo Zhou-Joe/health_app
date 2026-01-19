@@ -12,7 +12,8 @@
     "pages/integration/integration",
     "pages/integration-result/integration-result",
     "pages/settings/settings",
-    "pages/complete-profile/complete-profile"
+    "pages/complete-profile/complete-profile",
+    "pages/medications/medications"
   ],
   "window": {
     "backgroundTextStyle": "light",

@@ -60,7 +60,7 @@
   <!-- 快捷操作 -->
   <view class="quick-actions card">
     <view class="card-title">快捷操作</view>
-    <view class="action-grid action-grid-3">
+    <view class="action-grid action-grid-4">
       <view class="action-item" bindtap="goToUpload">
         <view class="action-icon upload-icon">📄</view>
         <text class="action-text">上传报告</text>
@@ -70,6 +70,11 @@
         <view class="action-icon integrate-icon">🔄</view>
         <text class="action-text">数据整合</text>
         <text class="action-desc">智能整合，横向对比</text>
+      </view>
+      <view class="action-item" bindtap="goToMedications">
+        <view class="action-icon medication-icon">💊</view>
+        <text class="action-text">我的药单</text>
+        <text class="action-desc">服药管理，健康跟踪</text>
       </view>
       <view class="action-item" bindtap="goToAIAdvice">
         <view class="action-icon ai-icon">💬</view>

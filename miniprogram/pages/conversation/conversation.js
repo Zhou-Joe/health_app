@@ -64,7 +64,7 @@ Page({
         this.startStreamingPoll()
       } else if (isGenerating) {
         // 没有adviceId，使用普通轮询
-        const thinkingMsg = 'AI正在思考中，请稍候...'
+        const thinkingMsg = 'AI医生诊断中...'
         this.setData({
           messages: [{
             id: 'thinking',

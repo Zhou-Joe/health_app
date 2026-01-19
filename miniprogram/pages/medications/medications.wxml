@@ -1,0 +1,166 @@
+<!--pages/medications/medications.wxml-->
+<view class="container">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="page-title">我的药单</text>
+    <button class="add-btn" bindtap="showAddModal">
+      <text class="icon">+</text>
+      <text>添加药单</text>
+    </button>
+  </view>
+
+  <!-- 药单列表 -->
+  <view class="medication-list" wx:if="{{medications.length > 0}}">
+    <view class="medication-card"
+          wx:for="{{medications}}"
+          wx:key="id">
+      <!-- 药单头部 -->
+      <view class="card-header">
+        <view class="medicine-info">
+          <text class="medicine-name">{{item.medicine_name}}</text>
+          <text class="dosage">{{item.dosage}}</text>
+        </view>
+        <view class="actions">
+          <text class="delete-btn" bindtap="deleteMedication" data-id="{{item.id}}">删除</text>
+        </view>
+      </view>
+
+      <!-- 进度信息 -->
+      <view class="progress-section">
+        <view class="progress-info">
+          <text class="progress-text">服药进度：{{item.days_taken}}/{{item.total_days}}天</text>
+          <text class="progress-percent">{{item.progress_percentage}}%</text>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{item.progress_percentage}}%"></view>
+        </view>
+      </view>
+
+      <!-- 日期信息 -->
+      <view class="date-section">
+        <view class="date-item">
+          <text class="date-label">开始日期</text>
+          <text class="date-value">{{item.start_date}}</text>
+        </view>
+        <view class="date-item">
+          <text class="date-label">结束日期</text>
+          <text class="date-value">{{item.end_date}}</text>
+        </view>
+      </view>
+
+      <!-- 备注 -->
+      <view class="notes-section" wx:if="{{item.notes}}">
+        <text class="notes-label">备注：</text>
+        <text class="notes-text">{{item.notes}}</text>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="card-actions">
+        <button class="checkin-btn primary-btn" bindtap="checkin" data-id="{{item.id}}">
+          <text class="icon">✓</text>
+          <text>今日签到</text>
+        </button>
+        <button class="records-btn secondary-btn" bindtap="viewRecords" data-id="{{item.id}}">
+          <text class="icon">📋</text>
+          <text>服药记录</text>
+        </button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">💊</text>
+    <text class="empty-text">还没有药单</text>
+    <text class="empty-desc">点击"添加药单"开始记录您的服药情况</text>
+    <button class="empty-add-btn" bindtap="showAddModal">
+      <text>添加第一个药单</text>
+    </button>
+  </view>
+</view>
+
+<!-- 添加药单弹窗 -->
+<view class="modal" wx:if="{{showAddModal}}">
+  <view class="modal-mask" bindtap="hideAddModal"></view>
+  <view class="modal-content">
+    <view class="modal-header">
+      <text class="modal-title">添加药单</text>
+      <text class="modal-close" bindtap="hideAddModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">药名 *</text>
+        <input class="form-input"
+               placeholder="请输入药名"
+               value="{{formData.medicine_name}}"
+               bindinput="onMedicineNameInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">服药方式 *</text>
+        <input class="form-input"
+               placeholder="例如：每日1次，每次1片，饭后服用"
+               value="{{formData.dosage}}"
+               bindinput="onDosageInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">开始日期 *</text>
+        <picker mode="date"
+                value="{{formData.start_date}}"
+                bindchange="onStartDateChange">
+          <view class="picker-input">
+            {{formData.start_date || '请选择开始日期'}}
+          </view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">结束日期 *</text>
+        <picker mode="date"
+                value="{{formData.end_date}}"
+                bindchange="onEndDateChange">
+          <view class="picker-input">
+            {{formData.end_date || '请选择结束日期'}}
+          </view>
+        </picker>
+      </view>
+      <view class="form-item">
+        <text class="form-label">备注</text>
+        <textarea class="form-textarea"
+                  placeholder="例如：医生建议、注意事项等"
+                  value="{{formData.notes}}"
+                  bindinput="onNotesInput" />
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel-btn" bindtap="hideAddModal">取消</button>
+      <button class="modal-btn confirm-btn" bindtap="saveMedication">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 服药记录弹窗 -->
+<view class="modal" wx:if="{{showRecordsModal}}">
+  <view class="modal-mask" bindtap="hideRecordsModal"></view>
+  <view class="modal-content records-modal">
+    <view class="modal-header">
+      <text class="modal-title">服药记录</text>
+      <text class="modal-close" bindtap="hideRecordsModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <scroll-view class="records-list" scroll-y wx:if="{{records.length > 0}}">
+        <view class="record-item" wx:for="{{records}}" wx:key="id">
+          <view class="record-header">
+            <text class="record-date">{{item.record_date}}</text>
+            <text class="record-time">{{item.taken_at}}</text>
+          </view>
+          <view class="record-frequency">
+            <text class="frequency-badge">{{item.frequency_display}}</text>
+          </view>
+          <text class="record-notes" wx:if="{{item.notes}}">{{item.notes}}</text>
+        </view>
+      </scroll-view>
+      <view class="empty-records" wx:else>
+        <text class="empty-text">暂无服药记录</text>
+      </view>
+    </view>
+  </view>
+</view>

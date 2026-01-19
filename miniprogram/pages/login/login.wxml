@@ -43,6 +43,24 @@
   </view>
 
   <view class="login-footer">
-    <text class="footer-text">登录即表示同意《用户协议》和《隐私政策》</text>
+    <text class="footer-text">登录即表示同意</text>
+    <text class="link-text" bindtap="showUserAgreement">《用户协议》</text>
+    <text class="footer-text">和</text>
+    <text class="link-text" bindtap="showPrivacyPolicy">《隐私政策》</text>
+  </view>
+
+  <!-- 自定义弹窗 -->
+  <view class="custom-modal" wx:if="{{showModal}}" bindtap="hideModal">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">{{modalTitle}}</text>
+      </view>
+      <scroll-view class="modal-body" scroll-y>
+        <text class="modal-text">{{modalContent}}</text>
+      </scroll-view>
+      <view class="modal-footer">
+        <button class="modal-btn" bindtap="hideModal">我知道了</button>
+      </view>
+    </view>
   </view>
 </view>

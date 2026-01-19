@@ -54,4 +54,13 @@ urlpatterns = [
     # 批量导出体检报告
     path('export/checkups/pdf/', views.export_checkups_pdf, name='export_checkups_pdf'),
     path('export/checkups/word/', views.export_checkups_word, name='export_checkups_word'),
+
+    # 药单管理API
+    path('api/medications/', api_views.api_medications, name='api_medications'),
+    path('api/medications/<int:medication_id>/', api_views.api_medication_detail, name='api_medication_detail'),
+    path('api/medications/checkin/', api_views.api_medication_checkin, name='api_medication_checkin'),
+    path('api/medications/<int:medication_id>/records/', api_views.api_medication_records, name='api_medication_records'),
+
+    # 药单管理页面
+    path('medications/', views.medication_list, name='medication_list'),
 ]

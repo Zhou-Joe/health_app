@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+
+{% block title %}我的药单 - 个人健康管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+.medication-card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+.medication-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transform: translateY(-2px);
+}
+.medication-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 1.25rem;
+}
+.medication-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+.progress-container {
+    background-color: rgba(255,255,255,0.3);
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-top: 1rem;
+}
+.progress {
+    height: 8px;
+    border-radius: 4px;
+}
+.dosage-info {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+.date-info {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+.record-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f3f5;
+}
+.record-item:last-child {
+    border-bottom: none;
+}
+.checkin-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+.checkin-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    color: white;
+}
+.checkin-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+.add-medication-btn {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    border: none;
+    color: white;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+.add-medication-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(56, 239, 125, 0.4);
+    color: white;
+}
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+}
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h1 class="mb-0">
+                <i class="bi bi-capsule text-primary"></i> 我的药单
+            </h1>
+            <button class="btn add-medication-btn" onclick="showAddMedicationModal()">
+                <i class="bi bi-plus-circle"></i> 添加药单
+            </button>
+        </div>
+    </div>
+
+    <!-- 药单列表 -->
+    <div class="row">
+        {% if medications %}
+            {% for medication in medications %}
+            <div class="col-lg-6 col-xl-4">
+                <div class="card medication-card">
+                    <div class="medication-header">
+                        <h5 class="medication-title">{{ medication.medicine_name }}</h5>
+                        <div class="progress-container">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small>服药进度</small>
+                                <small>{{ medication.days_taken }}/{{ medication.total_days }} 天</small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-light" role="progressbar" style="width: {{ medication.progress_percentage }}%"></div>
+                            </div>
+                            <div class="text-end mt-1">
+                                <small>{{ medication.progress_percentage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="dosage-info mb-3">
+                            <strong><i class="bi bi-prescription2"></i> 服药方式：</strong>
+                            {{ medication.dosage }}
+                        </div>
+
+                        <div class="date-info mb-3">
+                            <div><i class="bi bi-calendar3"></i> 开始日期：{{ medication.start_date|date:"Y年m月d日" }}</div>
+                            <div><i class="bi bi-calendar-check"></i> 结束日期：{{ medication.end_date|date:"Y年m月d日" }}</div>
+                        </div>
+
+                        {% if medication.notes %}
+                        <div class="mb-3">
+                            <strong><i class="bi bi-sticky"></i> 备注：</strong>
+                            <p class="mb-0 text-muted">{{ medication.notes }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-primary flex-grow-1 checkin-btn" onclick="checkin({{ medication.id }})">
+                                <i class="bi bi-check2-circle"></i> 今日签到
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="viewRecords({{ medication.id }})">
+                                <i class="bi bi-list-ul"></i> 记录
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteMedication({{ medication.id }})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="bi bi-capsule"></i>
+                <h3>还没有药单</h3>
+                <p>点击"添加药单"按钮开始记录您的服药情况</p>
+                <button class="btn add-medication-btn" onclick="showAddMedicationModal()">
+                    <i class="bi bi-plus-circle"></i> 添加第一个药单
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 添加药单模态框 -->
+<div class="modal fade" id="addMedicationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加药单</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMedicationForm">
+                    <div class="mb-3">
+                        <label for="medicineName" class="form-label">药名 *</label>
+                        <input type="text" class="form-control" id="medicineName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dosage" class="form-label">服药方式 *</label>
+                        <input type="text" class="form-control" id="dosage" placeholder="例如：每日1次，每次1片，饭后服用" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startDate" class="form-label">开始日期 *</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endDate" class="form-label">结束日期 *</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">备注</label>
+                        <textarea class="form-control" id="notes" rows="3" placeholder="例如：医生建议、注意事项等"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveMedication()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 服药记录模态框 -->
+<div class="modal fade" id="recordsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">服药记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="recordsList">
+                    <!-- 动态加载服药记录 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 显示添加药单模态框
+function showAddMedicationModal() {
+    $('#addMedicationModal').modal('show');
+}
+
+// 保存药单
+async function saveMedication() {
+    const medicineName = document.getElementById('medicineName').value;
+    const dosage = document.getElementById('dosage').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const notes = document.getElementById('notes').value;
+
+    if (!medicineName || !dosage || !startDate || !endDate) {
+        alert('请填写所有必填项');
+        return;
+    }
+
+    try {
+        const response = await fetch('{% url "medical_records:api_medications" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                medicine_name: medicineName,
+                dosage: dosage,
+                start_date: startDate,
+                end_date: endDate,
+                notes: notes
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('药单添加成功！');
+            location.reload();
+        } else {
+            alert('添加失败：' + data.error);
+        }
+    } catch (error) {
+        alert('添加失败：' + error);
+    }
+}
+
+// 服药签到
+async function checkin(medicationId) {
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+        const response = await fetch('{% url "medical_records:api_medication_checkin" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                medication_id: medicationId,
+                record_date: today,
+                frequency: 'daily'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('签到成功！已服药 ' + data.medication_progress.days_taken + '/' + data.medication_progress.total_days + ' 天');
+            location.reload();
+        } else {
+            alert('签到失败：' + data.error);
+        }
+    } catch (error) {
+        alert('签到失败：' + error);
+    }
+}
+
+// 查看服药记录
+async function viewRecords(medicationId) {
+    try {
+        const response = await fetch(`{% url "medical_records:api_medication_records" 0 %}`.replace('0', medicationId));
+        const data = await response.json();
+
+        if (data.success) {
+            const recordsList = document.getElementById('recordsList');
+            if (data.records.length > 0) {
+                recordsList.innerHTML = data.records.map(record => `
+                    <div class="record-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>${record.record_date}</strong>
+                                <span class="badge bg-info ms-2">${record.frequency_display}</span>
+                            </div>
+                            <small class="text-muted">${record.taken_at}</small>
+                        </div>
+                        ${record.notes ? `<small class="text-muted">${record.notes}</small>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                recordsList.innerHTML = '<p class="text-center text-muted">暂无服药记录</p>';
+            }
+
+            $('#recordsModal').modal('show');
+        }
+    } catch (error) {
+        alert('获取记录失败：' + error);
+    }
+}
+
+// 删除药单
+async function deleteMedication(medicationId) {
+    if (!confirm('确定要删除这个药单吗？')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_medication_detail" 0 %}`.replace('0', medicationId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('删除成功');
+            location.reload();
+        } else {
+            alert('删除失败：' + data.error);
+        }
+    } catch (error) {
+        alert('删除失败：' + error);
+    }
+}
+
+// 获取CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

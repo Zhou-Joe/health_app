@@ -350,3 +350,74 @@ def create_user_profile(sender, instance, created, **kwargs):
     """当用户创建时自动创建UserProfile"""
     if created:
         UserProfile.objects.create(user=instance)
+
+
+class Medication(models.Model):
+    """药单模型"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    medicine_name = models.CharField(max_length=200, verbose_name='药名')
+    dosage = models.CharField(max_length=100, verbose_name='服药方式')
+    start_date = models.DateField(verbose_name='开始日期')
+    end_date = models.DateField(verbose_name='结束日期')
+    notes = models.TextField(blank=True, null=True, verbose_name='备注')
+    is_active = models.BooleanField(default=True, verbose_name='是否有效')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '药单'
+        verbose_name_plural = '药单'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.medicine_name}"
+
+    @property
+    def total_days(self):
+        """计算总天数"""
+        return (self.end_date - self.start_date).days + 1
+
+    @property
+    def days_taken(self):
+        """已服药天数"""
+        return self.medicationrecord_set.count()
+
+    @property
+    def progress_percentage(self):
+        """完成百分比"""
+        if self.total_days > 0:
+            return int((self.days_taken / self.total_days) * 100)
+        return 0
+
+
+class MedicationRecord(models.Model):
+    """服药记录模型"""
+    FREQUENCY_CHOICES = [
+        ('once', '一次'),
+        ('daily', '每日一次'),
+        ('twice_daily', '每日两次'),
+        ('three_times_daily', '每日三次'),
+        ('four_times_daily', '每日四次'),
+        ('weekly', '每周一次'),
+        ('as_needed', '按需服用'),
+    ]
+
+    medication = models.ForeignKey(Medication, on_delete=models.CASCADE, verbose_name='药单')
+    record_date = models.DateField(verbose_name='服药日期')
+    taken_at = models.DateTimeField(auto_now_add=True, verbose_name='服药时间')
+    notes = models.TextField(blank=True, null=True, verbose_name='备注')
+    frequency = models.CharField(
+        max_length=20,
+        choices=FREQUENCY_CHOICES,
+        default='daily',
+        verbose_name='服药频率'
+    )
+
+    class Meta:
+        verbose_name = '服药记录'
+        verbose_name_plural = '服药记录'
+        ordering = ['-record_date']
+        unique_together = ['medication', 'record_date']  # 同一天只能有一条记录
+
+    def __str__(self):
+        return f"{self.medication.medicine_name} - {self.record_date}"

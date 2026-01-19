@@ -260,6 +260,10 @@ Page({
     wx.navigateTo({ url: '/pages/integration/integration' })
   },
 
+  goToMedications() {
+    wx.navigateTo({ url: '/pages/medications/medications' })
+  },
+
   goToAIAdvice() {
     wx.switchTab({ url: '/pages/ai-advice/ai-advice' })
   },

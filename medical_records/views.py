@@ -1810,3 +1810,18 @@ def export_checkups_word(request):
     except Exception as e:
         messages.error(request, f'导出Word失败: {str(e)}')
         return redirect('medical_records:data_integration')
+
+
+# ==================== 药单管理 ====================
+
+@login_required
+def medication_list(request):
+    """药单列表页面"""
+    from .models import Medication
+    medications = Medication.objects.filter(user=request.user).order_by('-created_at')
+
+    context = {
+        'medications': medications,
+        'page_title': '我的药单'
+    }
+    return render(request, 'medical_records/medication_list.html', context)

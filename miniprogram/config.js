@@ -67,6 +67,12 @@ module.exports = {
     detectDuplicates: '/api/miniprogram/detect-duplicates/', // 检测重复报告
     mergeDuplicates: '/api/miniprogram/merge-duplicates/', // 合并重复报告
 
+    // 药单管理（使用网页端接口）
+    medications: '/api/medications/',
+    medicationDetail: (id) => `/api/medications/${id}/`,
+    medicationCheckin: '/api/medications/checkin/',
+    medicationRecords: (id) => `/api/medications/${id}/records/`,
+
     // 导出功能（使用网页端接口）
     exportHealthTrendsPDF: '/dashboard/export/pdf/',
     exportHealthTrendsWord: '/dashboard/export/word/',
