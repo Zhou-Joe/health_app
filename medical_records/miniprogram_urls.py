@@ -47,4 +47,10 @@ urlpatterns = [
     path('indicator-types/', miniprogram_api.miniprogram_indicator_types, name='indicator_types'),
     path('detect-duplicates/', miniprogram_api.miniprogram_detect_duplicate_checkups, name='detect_duplicate_checkups'),
     path('merge-duplicates/', miniprogram_api.miniprogram_merge_duplicate_checkups, name='merge_duplicate_checkups'),
+
+    # 药单管理
+    path('medications/', miniprogram_api.miniprogram_medications, name='medications'),
+    path('medications/<int:medication_id>/', miniprogram_api.miniprogram_medication_detail, name='medication_detail'),
+    path('medications/checkin/', miniprogram_api.miniprogram_medication_checkin, name='medication_checkin'),
+    path('medications/<int:medication_id>/records/', miniprogram_api.miniprogram_medication_records, name='medication_records'),
 ]

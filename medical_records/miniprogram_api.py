@@ -1629,3 +1629,295 @@ def miniprogram_complete_profile(request):
             'success': False,
             'message': f'保存失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== 药单管理API ====================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_medications(request):
+    """获取或创建药单"""
+    from .models import Medication, MedicationRecord
+
+    if request.method == 'GET':
+        # 获取用户的所有药单
+        medications = Medication.objects.filter(user=request.user).order_by('-created_at')
+
+        medication_list = []
+        for med in medications:
+            medication_list.append({
+                'id': med.id,
+                'medicine_name': med.medicine_name,
+                'dosage': med.dosage,
+                'start_date': med.start_date.strftime('%Y-%m-%d'),
+                'end_date': med.end_date.strftime('%Y-%m-%d'),
+                'notes': med.notes,
+                'is_active': med.is_active,
+                'total_days': med.total_days,
+                'days_taken': med.days_taken,
+                'progress_percentage': med.progress_percentage,
+                'created_at': med.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return Response({
+            'success': True,
+            'medications': medication_list
+        })
+
+    elif request.method == 'POST':
+        # 创建新药单
+        try:
+            data = json.loads(request.body)
+
+            # 验证必填字段
+            if not data.get('medicine_name') or not data.get('dosage'):
+                return Response({
+                    'success': False,
+                    'message': '药名和服药方式为必填项'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not data.get('start_date') or not data.get('end_date'):
+                return Response({
+                    'success': False,
+                    'message': '开始日期和结束日期为必填项'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 创建药单
+            medication = Medication.objects.create(
+                user=request.user,
+                medicine_name=data['medicine_name'],
+                dosage=data['dosage'],
+                start_date=datetime.strptime(data['start_date'], '%Y-%m-%d').date(),
+                end_date=datetime.strptime(data['end_date'], '%Y-%m-%d').date(),
+                notes=data.get('notes', '')
+            )
+
+            return Response({
+                'success': True,
+                'medication': {
+                    'id': medication.id,
+                    'medicine_name': medication.medicine_name,
+                    'dosage': medication.dosage,
+                    'start_date': medication.start_date.strftime('%Y-%m-%d'),
+                    'end_date': medication.end_date.strftime('%Y-%m-%d'),
+                    'notes': medication.notes,
+                    'is_active': medication.is_active,
+                    'total_days': medication.total_days,
+                    'days_taken': medication.days_taken,
+                    'progress_percentage': medication.progress_percentage,
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'创建药单失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def miniprogram_medication_detail(request, medication_id):
+    """获取、更新或删除单个药单"""
+    from .models import Medication, MedicationRecord
+
+    try:
+        medication = Medication.objects.get(id=medication_id, user=request.user)
+    except Medication.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '药单不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        # 获取药单详情及服药记录
+        records = MedicationRecord.objects.filter(medication=medication).order_by('-record_date')
+
+        record_list = []
+        for record in records:
+            record_list.append({
+                'id': record.id,
+                'record_date': record.record_date.strftime('%Y-%m-%d'),
+                'taken_at': record.taken_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'notes': record.notes,
+                'frequency': record.frequency,
+                'frequency_display': record.get_frequency_display(),
+            })
+
+        return Response({
+            'success': True,
+            'medication': {
+                'id': medication.id,
+                'medicine_name': medication.medicine_name,
+                'dosage': medication.dosage,
+                'start_date': medication.start_date.strftime('%Y-%m-%d'),
+                'end_date': medication.end_date.strftime('%Y-%m-%d'),
+                'notes': medication.notes,
+                'is_active': medication.is_active,
+                'total_days': medication.total_days,
+                'days_taken': medication.days_taken,
+                'progress_percentage': medication.progress_percentage,
+            },
+            'records': record_list
+        })
+
+    elif request.method == 'PUT':
+        # 更新药单
+        try:
+            data = json.loads(request.body)
+
+            medication.medicine_name = data.get('medicine_name', medication.medicine_name)
+            medication.dosage = data.get('dosage', medication.dosage)
+            medication.notes = data.get('notes', medication.notes)
+            medication.is_active = data.get('is_active', medication.is_active)
+
+            if data.get('start_date'):
+                medication.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+            if data.get('end_date'):
+                medication.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+
+            medication.save()
+
+            return Response({
+                'success': True,
+                'medication': {
+                    'id': medication.id,
+                    'medicine_name': medication.medicine_name,
+                    'dosage': medication.dosage,
+                    'start_date': medication.start_date.strftime('%Y-%m-%d'),
+                    'end_date': medication.end_date.strftime('%Y-%m-%d'),
+                    'notes': medication.notes,
+                    'is_active': medication.is_active,
+                    'total_days': medication.total_days,
+                    'days_taken': medication.days_taken,
+                    'progress_percentage': medication.progress_percentage,
+                }
+            })
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'更新药单失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'DELETE':
+        # 删除药单
+        medication.delete()
+        return Response({
+            'success': True,
+            'message': '药单已删除'
+        })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_medication_checkin(request):
+    """服药签到"""
+    from .models import Medication, MedicationRecord
+
+    try:
+        data = json.loads(request.body)
+
+        medication_id = data.get('medication_id')
+        record_date = data.get('record_date')
+        frequency = data.get('frequency', 'daily')
+        notes = data.get('notes', '')
+
+        if not medication_id or not record_date:
+            return Response({
+                'success': False,
+                'message': '缺少必要参数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取药单
+        try:
+            medication = Medication.objects.get(id=medication_id, user=request.user)
+        except Medication.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': '药单不存在或无权访问'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 解析日期
+        record_date_obj = datetime.strptime(record_date, '%Y-%m-%d').date()
+
+        # 检查是否已签到
+        existing_record = MedicationRecord.objects.filter(
+            medication=medication,
+            record_date=record_date_obj
+        ).first()
+
+        if existing_record:
+            return Response({
+                'success': False,
+                'message': '今日已签到',
+                'existing_record': {
+                    'id': existing_record.id,
+                    'record_date': existing_record.record_date.strftime('%Y-%m-%d'),
+                    'taken_at': existing_record.taken_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 创建服药记录
+        record = MedicationRecord.objects.create(
+            medication=medication,
+            record_date=record_date_obj,
+            frequency=frequency,
+            notes=notes
+        )
+
+        return Response({
+            'success': True,
+            'record': {
+                'id': record.id,
+                'record_date': record.record_date.strftime('%Y-%m-%d'),
+                'taken_at': record.taken_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'frequency': record.frequency,
+                'frequency_display': record.get_frequency_display(),
+            },
+            'medication_progress': {
+                'total_days': medication.total_days,
+                'days_taken': medication.days_taken,
+                'progress_percentage': medication.progress_percentage,
+            }
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'签到失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_medication_records(request, medication_id):
+    """获取药单的服药记录"""
+    from .models import Medication, MedicationRecord
+
+    try:
+        medication = Medication.objects.get(id=medication_id, user=request.user)
+    except Medication.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '药单不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    records = MedicationRecord.objects.filter(medication=medication).order_by('-record_date')
+
+    record_list = []
+    for record in records:
+        record_list.append({
+            'id': record.id,
+            'record_date': record.record_date.strftime('%Y-%m-%d'),
+            'taken_at': record.taken_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'notes': record.notes,
+            'frequency': record.frequency,
+            'frequency_display': record.get_frequency_display(),
+        })
+
+    return Response({
+        'success': True,
+        'records': record_list
+    })
+
