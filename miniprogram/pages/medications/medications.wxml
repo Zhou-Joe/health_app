@@ -66,10 +66,10 @@
           <text class="icon">📋</text>
           <text>服药记录</text>
         </button>
-        <button class="makeup-btn secondary-btn" bindtap="showMakeupModal" data-id="{{item.id}}">
+        <picker class="makeup-btn secondary-btn" mode="date" end="{{today}}" bindchange="onMakeupDateChange" data-id="{{item.id}}">
           <text class="icon">📅</text>
           <text>补签</text>
-        </button>
+        </picker>
       </view>
     </view>
   </view>
@@ -171,21 +171,3 @@
   </view>
 </view>
 
-<!-- 补签弹窗 -->
-<view class="modal" wx:if="{{showMakeupModal}}">
-  <view class="modal-mask" bindtap="hideMakeupModal"></view>
-  <view class="modal-content">
-    <view class="modal-header">
-      <text class="modal-title">补签</text>
-      <text class="modal-close" bindtap="hideMakeupModal">✕</text>
-    </view>
-    <view class="modal-body">
-      <picker mode="date" value="{{makeupDate}}" end="{{today}}" bindchange="onMakeupDateChange">
-        <view class="date-picker-btn">
-          <text class="date-picker-icon">📅</text>
-          <text class="date-picker-text">{{makeupDate || '选择补签日期'}}</text>
-        </view>
-      </picker>
-    </view>
-  </view>
-</view>

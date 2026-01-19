@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, DocumentProcessing, SystemSettings
+from .models import (
+    HealthCheckup, HealthIndicator, HealthAdvice,
+    DocumentProcessing, SystemSettings, Medication, MedicationRecord
+)
 
 
 @admin.register(HealthCheckup)
@@ -61,3 +64,27 @@ class SystemSettingsAdmin(admin.ModelAdmin):
             return obj.value[:50] + '...'
         return obj.value
     value_preview.short_description = '设置值'
+
+
+@admin.register(Medication)
+class MedicationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'medicine_name', 'dosage', 'start_date', 'end_date', 'progress_info', 'is_active', 'created_at']
+    list_filter = ['is_active', 'start_date', 'created_at']
+    search_fields = ['user__username', 'medicine_name', 'dosage', 'notes']
+    date_hierarchy = 'start_date'
+    ordering = ['-created_at']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def progress_info(self, obj):
+        return f"{obj.days_taken}/{obj.total_days}天 ({obj.progress_percentage}%)"
+    progress_info.short_description = '服药进度'
+
+
+@admin.register(MedicationRecord)
+class MedicationRecordAdmin(admin.ModelAdmin):
+    list_display = ['medication', 'record_date', 'frequency_display', 'taken_at', 'notes']
+    list_filter = ['frequency', 'record_date', 'taken_at']
+    search_fields = ['medication__medicine_name', 'medication__user__username', 'notes']
+    date_hierarchy = 'record_date'
+    ordering = ['-record_date', '-taken_at']
+    readonly_fields = ['taken_at']

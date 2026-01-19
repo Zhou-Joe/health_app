@@ -197,8 +197,7 @@
 }
 
 .checkin-btn,
-.records-btn,
-.makeup-btn {
+.records-btn {
   flex: 1;
   min-width: 140rpx;
   display: flex;
@@ -208,6 +207,21 @@
   padding: 24rpx 16rpx;
   border-radius: 50rpx;
   font-size: 24rpx;
+}
+
+/* 补签选择器样式 */
+.makeup-btn {
+  flex: 1;
+  min-width: 140rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #FF9A9E;
+  padding: 24rpx 16rpx;
+  border-radius: 50rpx;
+  font-size: 24rpx;
+  background: #ffffff;
+  color: #FF9A9E;
 }
 
 .checkin-btn .icon,
@@ -394,28 +408,6 @@
 
 .confirm-btn {
   background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #ffffff;
-}
-
-/* 补签日期选择器 */
-.date-picker-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40rpx;
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  border-radius: 16rpx;
-  margin: 30rpx 0;
-}
-
-.date-picker-icon {
-  font-size: 48rpx;
-  margin-right: 16rpx;
-}
-
-.date-picker-text {
-  font-size: 32rpx;
-  font-weight: 600;
   color: #ffffff;
 }
 

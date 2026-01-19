@@ -9,9 +9,7 @@ Page({
     records: [],
     showAddModal: false,
     showRecordsModal: false,
-    showMakeupModal: false,
     currentMedicationId: null,
-    makeupDate: '',
     today: '',
     formData: {
       medicine_name: '',
@@ -225,30 +223,13 @@ Page({
     })
   },
 
-  // 显示补签弹窗
-  showMakeupModal(e) {
-    const medicationId = e.currentTarget.dataset.id
-    this.setData({
-      currentMedicationId: medicationId,
-      showMakeupModal: true,
-      makeupDate: ''
-    })
-  },
-
-  // 隐藏补签弹窗
-  hideMakeupModal() {
-    this.setData({
-      showMakeupModal: false
-    })
-  },
-
   // 补签日期选择
   onMakeupDateChange(e) {
     const makeupDate = e.detail.value
-    const { currentMedicationId } = this.data
+    const medicationId = e.currentTarget.dataset.id
 
     // 直接补签
-    this.doMakeup(currentMedicationId, makeupDate)
+    this.doMakeup(medicationId, makeupDate)
   },
 
   // 执行补签
@@ -266,7 +247,6 @@ Page({
       if (res && res.success) {
         const progress = res.medication_progress
         util.showToast(`补签成功！已服药 ${progress.days_taken}/${progress.total_days} 天`)
-        this.hideMakeupModal()
         this.loadMedications()
       } else {
         util.showToast(res?.error || '补签失败')
