@@ -112,6 +112,64 @@
     </view>
   </view>
 
+  <!-- 药单选择 -->
+  <view class="section-card">
+    <view class="section-title">
+      <text class="title-icon">💊</text>
+      <text class="title-text">药单选择</text>
+    </view>
+
+    <view class="report-mode-selector">
+      <view class="report-mode-option {{medicationMode === 'none' ? 'active' : ''}}"
+            bindtap="selectMedicationMode"
+            data-mode="none">
+        <text class="report-mode-icon">💭</text>
+        <text class="report-mode-title">不使用药单</text>
+        <view class="report-mode-check" wx:if="{{medicationMode === 'none'}}">✓</view>
+      </view>
+
+      <view class="report-mode-option {{medicationMode === 'select' ? 'active' : ''}}"
+            bindtap="selectMedicationMode"
+            data-mode="select">
+        <text class="report-mode-icon">💊</text>
+        <text class="report-mode-title">选择药单</text>
+        <view class="report-mode-check" wx:if="{{medicationMode === 'select'}}">✓</view>
+      </view>
+    </view>
+
+    <!-- 药单列表 -->
+    <view class="report-list" wx:if="{{medicationMode === 'select' && medications.length > 0}}">
+      <view class="report-actions">
+        <button class="action-btn" bindtap="selectAllMedications">全选</button>
+        <button class="action-btn" bindtap="clearMedications">清空</button>
+      </view>
+
+      <view class="report-items">
+        <view class="report-item {{item.selected ? 'selected' : ''}}"
+              wx:for="{{medications}}"
+              wx:key="id"
+              bindtap="toggleMedication"
+              data-id="{{item.id}}">
+          <view class="report-check">{{item.selected ? '✓' : ''}}</view>
+          <view class="report-info">
+            <text class="report-hospital">{{item.medicine_name}}</text>
+            <text class="report-date">{{item.dosage}}</text>
+            <text class="report-count">{{item.start_date}} 至 {{item.end_date}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="selected-tip" wx:if="{{selectedMedicationIds.length > 0}}">
+        <text class="tip-text">已选择 {{selectedMedicationIds.length}} 份药单</text>
+      </view>
+    </view>
+
+    <view class="empty-reports" wx:if="{{medicationMode === 'select' && medications.length === 0}}">
+      <text class="empty-text">暂无药单</text>
+      <text class="empty-hint">您还没有添加任何药单</text>
+    </view>
+  </view>
+
   <!-- 问题输入 -->
   <view class="section-card">
     <view class="section-title">

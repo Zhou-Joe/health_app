@@ -19,6 +19,11 @@ Page({
     selectedReportIds: [],
     reports: [],
 
+    // 药单选择
+    medicationMode: 'none', // 'none' 或 'select'
+    selectedMedicationIds: [],
+    medications: [],
+
     // 输入
     question: '',
     submitting: false
@@ -47,17 +52,20 @@ Page({
   async loadData() {
     util.showLoading('加载中...')
     try {
-      const [conversationsRes, reportsRes] = await Promise.all([
+      const [conversationsRes, reportsRes, medicationsRes] = await Promise.all([
         api.getConversations(),
-        api.getCheckups({ page_size: 100 })
+        api.getCheckups({ page_size: 100 }),
+        api.getMedications()
       ])
 
       const conversations = conversationsRes.data || []
       const reports = reportsRes.data || reportsRes.results || []
+      const medications = medicationsRes.medications || []
 
       this.setData({
         conversations,
-        reports: reports.map(r => ({ ...r, selected: false }))
+        reports: reports.map(r => ({ ...r, selected: false })),
+        medications: medications.map(m => ({ ...m, selected: false }))
       })
     } catch (err) {
       console.error('加载数据失败:', err)
@@ -186,6 +194,60 @@ Page({
   },
 
   /**
+   * 选择药单模式
+   */
+  selectMedicationMode(e) {
+    const mode = e.currentTarget.dataset.mode
+    this.setData({
+      medicationMode: mode,
+      selectedMedicationIds: []
+    })
+
+    if (mode === 'select') {
+      const medications = this.data.medications.map(m => ({ ...m, selected: false }))
+      this.setData({ medications })
+    }
+  },
+
+  /**
+   * 切换药单选择
+   */
+  toggleMedication(e) {
+    const id = e.currentTarget.dataset.id
+    const medications = this.data.medications.map(m => {
+      if (m.id === id) {
+        return { ...m, selected: !m.selected }
+      }
+      return m
+    })
+
+    const selectedMedicationIds = medications
+      .filter(m => m.selected)
+      .map(m => m.id)
+
+    this.setData({ medications, selectedMedicationIds })
+  },
+
+  /**
+   * 全选药单
+   */
+  selectAllMedications() {
+    const medications = this.data.medications.map(m => ({ ...m, selected: true }))
+    const selectedMedicationIds = medications.map(m => m.id)
+    this.setData({ medications, selectedMedicationIds })
+    util.showToast('已全选')
+  },
+
+  /**
+   * 清空药单选择
+   */
+  clearMedications() {
+    const medications = this.data.medications.map(m => ({ ...m, selected: false }))
+    this.setData({ medications, selectedMedicationIds: [] })
+    util.showToast('已清空')
+  },
+
+  /**
    * 问题输入
    */
   onQuestionInput(e) {
@@ -196,7 +258,7 @@ Page({
    * 提交咨询
    */
   async handleSubmit() {
-    const { question, conversationMode, selectedConversationId, reportMode, selectedReportIds } = this.data
+    const { question, conversationMode, selectedConversationId, reportMode, selectedReportIds, medicationMode, selectedMedicationIds } = this.data
 
     if (!question.trim()) {
       return util.showToast('请输入问题')
@@ -215,6 +277,11 @@ Page({
     // 处理报告选择 - 如果选择了报告，添加到请求数据
     if (reportMode === 'select' && selectedReportIds.length > 0) {
       requestData.selected_reports = selectedReportIds
+    }
+
+    // 处理药单选择 - 如果选择了药单，添加到请求数据
+    if (medicationMode === 'select' && selectedMedicationIds.length > 0) {
+      requestData.selected_medications = selectedMedicationIds
     }
 
     // 处理对话模式 - 如果是继续对话，添加conversation_id
