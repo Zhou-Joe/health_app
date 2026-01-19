@@ -180,18 +180,17 @@
       <text class="modal-close" bindtap="hideMakeupModal">✕</text>
     </view>
     <view class="modal-body">
-      <view class="form-item">
-        <text class="form-label">选择补签日期</text>
-        <picker mode="date" value="{{makeupDate}}" end="{{today}}" bindchange="onMakeupDateChange">
-          <view class="picker-input">
-            {{makeupDate || '请选择日期'}}
-          </view>
-        </picker>
+      <text class="form-label">选择补签日期</text>
+      <view class="makeup-dates">
+        <view class="makeup-date-item"
+              wx:for="{{recentDates}}"
+              wx:key="date"
+              bindtap="selectMakeupDate"
+              data-date="{{item.date}}">
+          <text class="date-text">{{item.label}}</text>
+          <text class="date-value">{{item.date}}</text>
+        </view>
       </view>
-    </view>
-    <view class="modal-footer">
-      <button class="modal-btn cancel-btn" bindtap="hideMakeupModal">取消</button>
-      <button class="modal-btn confirm-btn" bindtap="confirmMakeup">确认补签</button>
     </view>
   </view>
 </view>

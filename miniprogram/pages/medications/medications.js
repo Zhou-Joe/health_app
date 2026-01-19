@@ -13,6 +13,7 @@ Page({
     currentMedicationId: null,
     makeupDate: '',
     today: '',
+    recentDates: [],
     formData: {
       medicine_name: '',
       dosage: '',
@@ -23,8 +24,12 @@ Page({
   },
 
   onLoad() {
+    const today = util.formatDate(new Date())
+    const recentDates = this.generateRecentDates(7) // 生成最近7天
+
     this.setData({
-      today: util.formatDate(new Date())
+      today,
+      recentDates
     })
     this.loadMedications()
   },
@@ -230,40 +235,52 @@ Page({
     const medicationId = e.currentTarget.dataset.id
     this.setData({
       currentMedicationId: medicationId,
-      showMakeupModal: true,
-      makeupDate: ''
+      showMakeupModal: true
     })
   },
 
   // 隐藏补签弹窗
   hideMakeupModal() {
     this.setData({
-      showMakeupModal: false,
-      makeupDate: ''
+      showMakeupModal: false
     })
   },
 
-  // 补签日期选择
-  onMakeupDateChange(e) {
-    this.setData({
-      makeupDate: e.detail.value
-    })
-  },
+  // 生成最近n天的日期列表
+  generateRecentDates(days) {
+    const dates = []
+    const today = new Date()
 
-  // 确认补签
-  async confirmMakeup() {
-    const { currentMedicationId, makeupDate } = this.data
+    for (let i = 0; i < days; i++) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
 
-    if (!makeupDate) {
-      util.showToast('请选择补签日期')
-      return
+      const dateStr = util.formatDate(date)
+      const weekday = date.getDay()
+      const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+      if (i === 0) {
+        dates.push({ label: '今天', date: dateStr })
+      } else if (i === 1) {
+        dates.push({ label: '昨天', date: dateStr })
+      } else {
+        dates.push({ label: weekdays[weekday], date: dateStr })
+      }
     }
+
+    return dates
+  },
+
+  // 选择补签日期
+  async selectMakeupDate(e) {
+    const { currentMedicationId } = this.data
+    const selectedDate = e.currentTarget.dataset.date
 
     try {
       util.showLoading('补签中...')
       const res = await api.medicationCheckin({
         medication_id: currentMedicationId,
-        record_date: makeupDate,
+        record_date: selectedDate,
         frequency: 'daily'
       })
 
