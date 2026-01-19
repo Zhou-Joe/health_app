@@ -9,12 +9,6 @@
       <text class="header-title">AI健康助手</text>
     </view>
     <view class="header-right">
-      <button class="icon-btn" bindtap="toggleMedicationSelector">
-        <text class="icon">💊</text>
-      </button>
-      <button class="icon-btn" bindtap="toggleReportSelector">
-        <text class="icon">📋</text>
-      </button>
     </view>
   </view>
 
@@ -186,6 +180,18 @@
     </view>
 
     <view class="input-wrapper">
+      <!-- 选择按钮组 -->
+      <view class="select-buttons">
+        <button class="select-btn report-btn" bindtap="toggleReportSelector">
+          <text class="select-icon">📋</text>
+          <text class="select-text">报告{{selectedReportIds.length > 0 ? '(' + selectedReportIds.length + ')' : ''}}</text>
+        </button>
+        <button class="select-btn medication-btn" bindtap="toggleMedicationSelector">
+          <text class="select-icon">💊</text>
+          <text class="select-text">药单{{selectedMedicationIds.length > 0 ? '(' + selectedMedicationIds.length + ')' : ''}}</text>
+        </button>
+      </view>
+
       <textarea
         class="message-input"
         value="{{inputText}}"

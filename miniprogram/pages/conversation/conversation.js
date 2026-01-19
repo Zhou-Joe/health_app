@@ -43,6 +43,9 @@ Page({
     const isGenerating = options.generating === 'true'
     const adviceId = options.adviceId ? parseInt(options.adviceId) : null
 
+    // 恢复上次的选择
+    this.restoreLastSelection()
+
     if (conversationId) {
       // 继续对话
       this.setData({
@@ -400,8 +403,100 @@ Page({
         selected: false
       }))
       this.setData({ medications })
+
+      // 恢复上次的选择
+      this.restoreMedicationSelection()
     } catch (err) {
       console.error('加载药单列表失败:', err)
+    }
+  },
+
+  /**
+   * 恢复上次的选择
+   */
+  restoreLastSelection() {
+    try {
+      const lastSelection = wx.getStorageSync('lastConsultationSelection')
+      if (lastSelection) {
+        console.log('[对话] 恢复上次选择:', lastSelection)
+        if (lastSelection.selectedReportIds && lastSelection.selectedReportIds.length > 0) {
+          this.setData({
+            selectedReportIds: lastSelection.selectedReportIds,
+            reportsNoSelection: lastSelection.reportsNoSelection || false
+          })
+        }
+        if (lastSelection.selectedMedicationIds && lastSelection.selectedMedicationIds.length > 0) {
+          this.setData({
+            selectedMedicationIds: lastSelection.selectedMedicationIds,
+            medicationsNoSelection: lastSelection.medicationsNoSelection || false
+          })
+        }
+      }
+    } catch (err) {
+      console.error('恢复选择失败:', err)
+    }
+  },
+
+  /**
+   * 恢复报告选择
+   */
+  restoreReportSelection() {
+    try {
+      const lastSelection = wx.getStorageSync('lastConsultationSelection')
+      if (lastSelection && lastSelection.selectedReportIds && lastSelection.selectedReportIds.length > 0) {
+        const reports = this.data.reports.map(r => ({
+          ...r,
+          selected: lastSelection.selectedReportIds.includes(r.id)
+        }))
+        this.setData({
+          reports,
+          selectedReportIds: lastSelection.selectedReportIds,
+          reportsNoSelection: lastSelection.reportsNoSelection || false
+        })
+      }
+    } catch (err) {
+      console.error('恢复报告选择失败:', err)
+    }
+  },
+
+  /**
+   * 恢复药单选择
+   */
+  restoreMedicationSelection() {
+    try {
+      const lastSelection = wx.getStorageSync('lastConsultationSelection')
+      if (lastSelection && lastSelection.selectedMedicationIds && lastSelection.selectedMedicationIds.length > 0) {
+        const medications = this.data.medications.map(m => ({
+          ...m,
+          selected: lastSelection.selectedMedicationIds.includes(m.id)
+        }))
+        this.setData({
+          medications,
+          selectedMedicationIds: lastSelection.selectedMedicationIds,
+          medicationsNoSelection: lastSelection.medicationsNoSelection || false
+        })
+      }
+    } catch (err) {
+      console.error('恢复药单选择失败:', err)
+    }
+  },
+
+  /**
+   * 保存当前选择
+   */
+  saveCurrentSelection() {
+    try {
+      const selection = {
+        selectedReportIds: this.data.selectedReportIds,
+        selectedMedicationIds: this.data.selectedMedicationIds,
+        reportsNoSelection: this.data.reportsNoSelection,
+        medicationsNoSelection: this.data.medicationsNoSelection,
+        timestamp: new Date().getTime()
+      }
+      wx.setStorageSync('lastConsultationSelection', selection)
+      console.log('[对话] 保存选择:', selection)
+    } catch (err) {
+      console.error('保存选择失败:', err)
     }
   },
 
@@ -435,6 +530,9 @@ Page({
       selectedReportIds,
       reportsNoSelection: false
     })
+
+    // 保存选择
+    this.saveCurrentSelection()
   },
 
   /**
@@ -448,6 +546,9 @@ Page({
       reportsNoSelection: true
     })
     util.showToast('已选择不使用任何报告')
+
+    // 保存选择
+    this.saveCurrentSelection()
   },
 
   /**
@@ -462,6 +563,9 @@ Page({
     const selectedReportIds = !allSelected ? reports.map(r => r.id) : []
 
     this.setData({ reports, selectedReportIds })
+
+    // 保存选择
+    this.saveCurrentSelection()
   },
 
   /**
@@ -493,6 +597,9 @@ Page({
       medicationsNoSelection: true
     })
     util.showToast('已选择不使用任何药单')
+
+    // 保存选择
+    this.saveCurrentSelection()
   },
 
   /**
@@ -516,6 +623,9 @@ Page({
       selectedMedicationIds,
       medicationsNoSelection: false
     })
+
+    // 保存选择
+    this.saveCurrentSelection()
   },
 
   /**
@@ -530,6 +640,9 @@ Page({
     const selectedMedicationIds = !allSelected ? medications.map(m => m.id) : []
 
     this.setData({ medications, selectedMedicationIds })
+
+    // 保存选择
+    this.saveCurrentSelection()
   },
 
   /**

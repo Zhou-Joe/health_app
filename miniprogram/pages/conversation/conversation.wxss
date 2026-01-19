@@ -552,6 +552,48 @@
   margin-bottom: 16rpx;
 }
 
+.select-buttons {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.select-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12rpx 16rpx;
+  background: #F8F9FA;
+  border: 2rpx solid #E0E0E0;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  line-height: 1;
+  min-width: 120rpx;
+  transition: all 0.3s ease;
+}
+
+.select-btn.report-btn {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #E8EEFF 0%, #F0F4FF 100%);
+}
+
+.select-btn.medication-btn {
+  border-color: #FF9A9E;
+  background: linear-gradient(135deg, #FFF0F5 0%, #FFE4E1 100%);
+}
+
+.select-icon {
+  font-size: 28rpx;
+  margin-right: 6rpx;
+}
+
+.select-text {
+  font-size: 24rpx;
+  color: #333333;
+  font-weight: 500;
+}
+
 .message-input {
   flex: 1;
   max-width: 400rpx;
