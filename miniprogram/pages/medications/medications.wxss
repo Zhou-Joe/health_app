@@ -319,6 +319,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 30rpx;
+  max-height: 60vh;
 }
 
 .modal-footer {
@@ -343,23 +344,34 @@
 .form-input,
 .form-textarea {
   width: 100%;
-  padding: 20rpx;
+  padding: 24rpx 20rpx;
+  min-height: 80rpx;
   background: #f9f9f9;
   border-radius: 12rpx;
   font-size: 28rpx;
   box-sizing: border-box;
+  line-height: 1.5;
+  color: #333333;
+}
+
+.form-input {
+  height: 80rpx;
 }
 
 .picker-input {
-  padding: 20rpx;
+  padding: 24rpx 20rpx;
+  min-height: 80rpx;
+  line-height: 80rpx;
   background: #f9f9f9;
   border-radius: 12rpx;
   font-size: 28rpx;
   color: #333333;
+  box-sizing: border-box;
 }
 
 .form-textarea {
   height: 150rpx;
+  line-height: 1.6;
 }
 
 .modal-btn {
