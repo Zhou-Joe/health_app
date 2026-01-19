@@ -25,6 +25,7 @@ Page({
     selectedMedicationIds: [],
     showMedicationSelector: false,
     includeMedications: false, // 是否包含药单信息
+    medicationsNoSelection: false, // 标记是否选择了"不使用药单"
     // 对话模式
     conversationMode: 'new', // 'new' 或 'continue'
     // AI响应流式内容
@@ -482,6 +483,19 @@ Page({
   },
 
   /**
+   * 选择"不使用任何药单"
+   */
+  selectNoMedications() {
+    const medications = this.data.medications.map(m => ({ ...m, selected: false }))
+    this.setData({
+      medications,
+      selectedMedicationIds: [],
+      medicationsNoSelection: true
+    })
+    util.showToast('已选择不使用任何药单')
+  },
+
+  /**
    * 切换药单选择
    */
   toggleMedication(e) {
@@ -499,7 +513,8 @@ Page({
 
     this.setData({
       medications,
-      selectedMedicationIds
+      selectedMedicationIds,
+      medicationsNoSelection: false
     })
   },
 
@@ -593,8 +608,8 @@ Page({
         selected_reports: this.data.selectedReportIds
       }
 
-      // 如果选择包含药单，添加药单信息
-      if (this.data.includeMedications && this.data.selectedMedicationIds.length > 0) {
+      // 如果选择了药单（且不是"不使用药单"），添加药单信息
+      if (this.data.selectedMedicationIds.length > 0 && !this.data.medicationsNoSelection) {
         requestData.selected_medications = this.data.selectedMedicationIds
       }
 

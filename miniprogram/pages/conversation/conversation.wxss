@@ -227,6 +227,26 @@
   background-color: #F8F9FA;
 }
 
+.medication-item.no-medication-option {
+  background: linear-gradient(135deg, #E8F5E8 0%, #F0FFF0 100%);
+  border: 2rpx solid #28A745;
+  border-radius: 20rpx;
+  padding: 24rpx 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.medication-item.no-medication-option.selected {
+  background: linear-gradient(135deg, #28A745 0%, #20C997 100%);
+}
+
+.medication-item.no-medication-option.selected .medication-name {
+  color: #5A4A4A;
+}
+
+.medication-item.no-medication-option.selected .medication-dosage {
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .medication-item.selected {
   background-color: #FFF0F5;
 }
