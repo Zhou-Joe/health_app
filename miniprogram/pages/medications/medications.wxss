@@ -193,23 +193,28 @@
 .card-actions {
   display: flex;
   gap: 20rpx;
+  flex-wrap: wrap;
 }
 
 .checkin-btn,
-.records-btn {
+.records-btn,
+.makeup-btn {
   flex: 1;
+  min-width: 140rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
-  padding: 24rpx;
+  padding: 24rpx 16rpx;
   border-radius: 50rpx;
-  font-size: 28rpx;
+  font-size: 24rpx;
 }
 
 .checkin-btn .icon,
-.records-btn .icon {
-  margin-right: 8rpx;
+.records-btn .icon,
+.makeup-btn .icon {
+  margin-right: 6rpx;
+  font-size: 24rpx;
 }
 
 .primary-btn {

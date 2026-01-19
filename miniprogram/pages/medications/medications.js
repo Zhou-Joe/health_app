@@ -9,7 +9,13 @@ Page({
     records: [],
     showAddModal: false,
     showRecordsModal: false,
+    showMakeupModal: false,
     currentMedicationId: null,
+    makeupDate: '',
+    makeupNotes: '',
+    frequencyIndex: 0,
+    frequencyOptions: ['每日一次', '每日两次', '每日三次', '每日四次', '每周一次', '按需服用'],
+    today: '',
     formData: {
       medicine_name: '',
       dosage: '',
@@ -20,6 +26,9 @@ Page({
   },
 
   onLoad() {
+    this.setData({
+      today: util.formatDate(new Date())
+    })
     this.loadMedications()
   },
 
@@ -217,5 +226,89 @@ Page({
         }
       }
     })
+  },
+
+  // 显示补签弹窗
+  showMakeupModal(e) {
+    const medicationId = e.currentTarget.dataset.id
+    this.setData({
+      currentMedicationId: medicationId,
+      showMakeupModal: true,
+      makeupDate: '',
+      makeupNotes: '',
+      frequencyIndex: 0
+    })
+  },
+
+  // 隐藏补签弹窗
+  hideMakeupModal() {
+    this.setData({
+      showMakeupModal: false,
+      makeupDate: '',
+      makeupNotes: '',
+      frequencyIndex: 0
+    })
+  },
+
+  // 补签日期选择
+  onMakeupDateChange(e) {
+    this.setData({
+      makeupDate: e.detail.value
+    })
+  },
+
+  // 服药频率选择
+  onFrequencyChange(e) {
+    this.setData({
+      frequencyIndex: e.detail.value
+    })
+  },
+
+  // 补签备注输入
+  onMakeupNotesInput(e) {
+    this.setData({
+      makeupNotes: e.detail.value
+    })
+  },
+
+  // 确认补签
+  async confirmMakeup() {
+    const { currentMedicationId, makeupDate, frequencyIndex, makeupNotes } = this.data
+
+    if (!makeupDate) {
+      util.showToast('请选择补签日期')
+      return
+    }
+
+    // 将频率选项转换为API需要的格式
+    const frequencyMap = ['daily', 'twice_daily', 'three_times_daily', 'four_times_daily', 'weekly', 'as_needed']
+    const frequency = frequencyMap[frequencyIndex]
+
+    try {
+      util.showLoading('补签中...')
+      const res = await api.medicationCheckin({
+        medication_id: currentMedicationId,
+        record_date: makeupDate,
+        frequency: frequency,
+        notes: makeupNotes
+      })
+
+      console.log('补签结果:', res)
+
+      if (res && res.success) {
+        const progress = res.medication_progress
+        util.showToast(`补签成功！已服药 ${progress.days_taken}/${progress.total_days} 天`)
+        this.hideMakeupModal()
+        this.loadMedications()
+      } else {
+        util.showToast(res?.error || '补签失败')
+      }
+    } catch (error) {
+      console.error('补签错误:', error)
+      const errorMsg = error?.message || error?.error || '补签失败'
+      util.showToast(errorMsg)
+    } finally {
+      wx.hideLoading()
+    }
   }
 })
