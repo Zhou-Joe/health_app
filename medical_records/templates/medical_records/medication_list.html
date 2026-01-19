@@ -240,9 +240,22 @@
 
 {% block extra_js %}
 <script>
+let addMedicationModal, recordsModal;
+
+// 页面加载完成后初始化模态框
+document.addEventListener('DOMContentLoaded', function() {
+    addMedicationModal = new bootstrap.Modal(document.getElementById('addMedicationModal'));
+    recordsModal = new bootstrap.Modal(document.getElementById('recordsModal'));
+});
+
 // 显示添加药单模态框
 function showAddMedicationModal() {
-    $('#addMedicationModal').modal('show');
+    addMedicationModal.show();
+}
+
+// 隐藏添加药单模态框
+function hideAddMedicationModalFunc() {
+    addMedicationModal.hide();
 }
 
 // 保存药单
@@ -343,11 +356,16 @@ async function viewRecords(medicationId) {
                 recordsList.innerHTML = '<p class="text-center text-muted">暂无服药记录</p>';
             }
 
-            $('#recordsModal').modal('show');
+            recordsModal.show();
         }
     } catch (error) {
         alert('获取记录失败：' + error);
     }
+}
+
+// 隐藏记录模态框
+function hideRecordsModalFunc() {
+    recordsModal.hide();
 }
 
 // 删除药单
