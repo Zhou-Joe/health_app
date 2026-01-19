@@ -96,18 +96,27 @@ Page({
 
     try {
       util.showLoading('保存中...')
-      await api.createMedication({
+      const result = await api.createMedication({
         medicine_name,
         dosage,
         start_date,
         end_date,
         notes
       })
-      util.showToast('添加成功')
-      this.hideAddModal()
-      this.loadMedications()
+
+      console.log('保存结果:', result)
+
+      if (result && result.success) {
+        util.showToast('添加成功')
+        this.hideAddModal()
+        this.loadMedications()
+      } else {
+        util.showToast('添加失败：' + (result?.error || '未知错误'))
+      }
     } catch (error) {
-      util.showToast('保存失败：' + (error.message || '未知错误'))
+      console.error('保存药单错误:', error)
+      const errorMsg = error?.message || error?.error || '保存失败'
+      util.showToast('保存失败：' + errorMsg)
     } finally {
       wx.hideLoading()
     }
@@ -125,10 +134,20 @@ Page({
         record_date: today,
         frequency: 'daily'
       })
-      util.showToast(`签到成功！已服药 ${res.medication_progress.days_taken}/${res.medication_progress.total_days} 天`)
-      this.loadMedications()
+
+      console.log('签到结果:', res)
+
+      if (res && res.success) {
+        const progress = res.medication_progress
+        util.showToast(`签到成功！已服药 ${progress.days_taken}/${progress.total_days} 天`)
+        this.loadMedications()
+      } else {
+        util.showToast(res?.error || '签到失败')
+      }
     } catch (error) {
-      util.showToast(error.message || '签到失败')
+      console.error('签到错误:', error)
+      const errorMsg = error?.message || error?.error || '签到失败'
+      util.showToast(errorMsg)
     } finally {
       wx.hideLoading()
     }
@@ -142,12 +161,21 @@ Page({
     try {
       util.showLoading('加载中...')
       const res = await api.getMedicationRecords(medicationId)
-      this.setData({
-        records: res.records || [],
-        showRecordsModal: true
-      })
+
+      console.log('服药记录:', res)
+
+      if (res && res.success) {
+        this.setData({
+          records: res.records || [],
+          showRecordsModal: true
+        })
+      } else {
+        util.showToast('加载失败：' + (res?.error || '未知错误'))
+      }
     } catch (error) {
-      util.showToast('加载失败：' + (error.message || '未知错误'))
+      console.error('加载记录错误:', error)
+      const errorMsg = error?.message || error?.error || '加载失败'
+      util.showToast('加载失败：' + errorMsg)
     } finally {
       wx.hideLoading()
     }
@@ -169,11 +197,20 @@ Page({
         if (res.confirm) {
           try {
             util.showLoading('删除中...')
-            await api.deleteMedication(medicationId)
-            util.showToast('删除成功')
-            this.loadMedications()
+            const result = await api.deleteMedication(medicationId)
+
+            console.log('删除结果:', result)
+
+            if (result && result.success) {
+              util.showToast('删除成功')
+              this.loadMedications()
+            } else {
+              util.showToast('删除失败：' + (result?.error || '未知错误'))
+            }
           } catch (error) {
-            util.showToast('删除失败：' + (error.message || '未知错误'))
+            console.error('删除错误:', error)
+            const errorMsg = error?.message || error?.error || '删除失败'
+            util.showToast('删除失败：' + errorMsg)
           } finally {
             wx.hideLoading()
           }
