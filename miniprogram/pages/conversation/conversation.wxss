@@ -119,88 +119,81 @@
 }
 
 .selector-header {
-  padding: 24rpx 30rpx;
+  padding: 30rpx;
   border-bottom: 1rpx solid #F0F0F0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #FFFFFF;
 }
 
 .selector-title {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.title-text {
-  font-size: 26rpx;
-  font-weight: 500;
+  font-size: 32rpx;
+  font-weight: 600;
   color: #333333;
-}
-
-.selected-count {
-  font-size: 26rpx;
-  color: #FF9A9E;
 }
 
 .selector-actions {
   display: flex;
-  gap: 16rpx;
+  align-items: center;
+  gap: 24rpx;
 }
 
-.text-btn {
-  background-color: transparent;
-  border: none;
-  color: #FF9A9E;
+.selected-hint {
   font-size: 26rpx;
-  padding: 0;
-  margin: 0;
-  line-height: 1;
+  color: #FF9A9E;
+}
+
+.action-btn {
+  font-size: 28rpx;
+  color: #666666;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  background: #F5F5F5;
+}
+
+.action-btn.primary {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
 }
 
 .report-list,
 .medication-list {
   flex: 1;
-  padding: 0 30rpx;
+  padding: 0 30rpx 30rpx;
 }
 
-.report-item {
+.list-item {
   display: flex;
   align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #FAFAFA;
-  transition: background-color 0.3s ease;
-}
-
-.report-item.no-reports-option {
-  background: linear-gradient(135deg, #E8F5E8 0%, #F0FFF0 100%);
-  border: 2rpx solid #28A745;
-  border-radius: 20rpx;
   padding: 24rpx 20rpx;
+  border-radius: 16rpx;
   margin-bottom: 16rpx;
+  background: #FFFFFF;
+  border: 2rpx solid #F0F0F0;
+  transition: all 0.3s ease;
 }
 
-.report-item.no-reports-option.selected {
+.list-item.special-option {
+  background: linear-gradient(135deg, #E8F5E8 0%, #F0FFF0 100%);
+  border-color: #28A745;
+}
+
+.list-item.special-option.selected {
   background: linear-gradient(135deg, #28A745 0%, #20C997 100%);
+  border-color: #28A745;
 }
 
-.report-item.no-reports-option.selected .report-hospital {
-  color: #5A4A4A;
+.list-item.selected {
+  background: #F0F4FF;
+  border-color: #667eea;
 }
 
-.report-item.no-reports-option.selected .report-desc {
-  color: rgba(255, 255, 255, 0.9);
+.list-item:active {
+  transform: scale(0.98);
 }
 
-.report-item:active {
-  background-color: #F8F9FA;
-}
-
-.report-item.selected {
-  background-color: #F0F4FF;
-}
-
-.report-check {
+.item-check {
   width: 44rpx;
   height: 44rpx;
   border-radius: 22rpx;
@@ -209,137 +202,82 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: all 0.3s ease;
 }
 
-.report-item.selected .report-check {
-  background-color: #FF9A9E;
+.item-check.checked {
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   border-color: #FF9A9E;
 }
 
-.check-icon {
-  font-size: 26rpx;
-  color: #5A4A4A;
+.item-check text {
+  font-size: 24rpx;
+  color: #FFFFFF;
   font-weight: bold;
 }
 
-.report-info {
+.item-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8rpx;
 }
 
-.report-hospital {
-  font-size: 24rpx;
-  color: #333333;
+.item-title {
+  font-size: 30rpx;
   font-weight: 500;
+  color: #333333;
+  line-height: 1.4;
 }
 
-.report-date {
-  font-size: 26rpx;
-  color: #AAAAAA;
+.list-item.special-option.selected .item-title,
+.list-item.selected .item-title {
+  color: #333333;
 }
 
-.report-desc {
-  font-size: 26rpx;
-  color: #28A745;
-  margin-top: 4rpx;
+.item-subtitle {
+  font-size: 24rpx;
+  color: #666666;
+  line-height: 1.4;
 }
 
-/* ==================== 药单选择器 ==================== */
-.medication-item {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #FAFAFA;
-  transition: background-color 0.3s ease;
-}
-
-.medication-item:active {
-  background-color: #F8F9FA;
-}
-
-.medication-item.no-medication-option {
-  background: linear-gradient(135deg, #E8F5E8 0%, #F0FFF0 100%);
-  border: 2rpx solid #28A745;
-  border-radius: 20rpx;
-  padding: 24rpx 20rpx;
-  margin-bottom: 16rpx;
-}
-
-.medication-item.no-medication-option.selected {
-  background: linear-gradient(135deg, #28A745 0%, #20C997 100%);
-}
-
-.medication-item.no-medication-option.selected .medication-name {
-  color: #5A4A4A;
-}
-
-.medication-item.no-medication-option.selected .medication-dosage {
+.list-item.special-option.selected .item-subtitle {
   color: rgba(255, 255, 255, 0.9);
 }
 
-.medication-item.selected {
-  background-color: #FFF0F5;
-}
-
-.medication-check {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 22rpx;
-  border: 3rpx solid #E0E0E0;
-  margin-right: 20rpx;
+.item-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
+  gap: 8rpx;
 }
 
-.medication-item.selected .medication-check {
-  background-color: #FF9A9E;
-  border-color: #FF9A9E;
-}
-
-.medication-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6rpx;
-}
-
-.medication-name {
-  font-size: 26rpx;
-  color: #333333;
-  font-weight: 500;
-}
-
-.medication-dosage {
+.meta-text {
   font-size: 24rpx;
-  color: #666666;
+  color: #999999;
 }
 
-.medication-date {
-  font-size: 22rpx;
-  color: #AAAAAA;
+.meta-dot {
+  font-size: 20rpx;
+  color: #CCCCCC;
 }
 
-.empty-medications {
+.empty-state {
   padding: 80rpx 40rpx;
   text-align: center;
 }
 
-.empty-medications .empty-text {
-  display: block;
+.empty-state .empty-text {
   font-size: 28rpx;
   color: #999999;
+  display: block;
   margin-bottom: 12rpx;
 }
 
-.empty-medications .empty-desc {
-  display: block;
+.empty-state .empty-desc {
   font-size: 24rpx;
   color: #CCCCCC;
+  display: block;
 }
 
 /* ==================== 消息列表 ==================== */
