@@ -65,12 +65,57 @@
 }
 
 /* ==================== 报告选择器 ==================== */
-.report-selector {
-  background-color: #FFFFFF;
-  border-bottom: 2rpx solid #F0F0F0;
-  max-height: 500rpx;
+.report-selector,
+.medication-selector {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  z-index: 1000;
   display: flex;
   flex-direction: column;
+}
+
+.report-selector,
+.medication-selector {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  z-index: 1000;
+}
+
+.selector-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.selector-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border-radius: 30rpx 30rpx 0 0;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 .selector-header {
@@ -113,7 +158,8 @@
   line-height: 1;
 }
 
-.report-list {
+.report-list,
+.medication-list {
   flex: 1;
   padding: 0 30rpx;
 }
@@ -202,19 +248,6 @@
 }
 
 /* ==================== 药单选择器 ==================== */
-.medication-selector {
-  background-color: #FFFFFF;
-  border-bottom: 2rpx solid #F0F0F0;
-  max-height: 500rpx;
-  display: flex;
-  flex-direction: column;
-}
-
-.medication-list {
-  flex: 1;
-  padding: 0 30rpx;
-}
-
 .medication-item {
   display: flex;
   align-items: center;

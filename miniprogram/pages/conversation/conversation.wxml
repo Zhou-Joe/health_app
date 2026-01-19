@@ -14,96 +14,102 @@
 
   <!-- 报告选择器 -->
   <view class="report-selector" wx:if="{{showReportSelector}}">
-    <view class="selector-header">
-      <view class="selector-title">
-        <text class="title-text">选择体检报告</text>
-        <text class="selected-count">已选{{selectedReportIds.length}}份</text>
-      </view>
-      <view class="selector-actions">
-        <button class="text-btn" bindtap="toggleSelectAll">
-          {{selectedReportIds.length === reports.length ? '取消全选' : '全选'}}
-        </button>
-        <button class="text-btn" bindtap="toggleReportSelector">完成</button>
-      </view>
-    </view>
-    <scroll-view class="report-list" scroll-y>
-      <!-- 不使用任何报告选项 -->
-      <view class="report-item no-reports-option {{selectedReportIds.length === 0 && reportsNoSelection ? 'selected' : ''}}"
-            bindtap="selectNoReports">
-        <view class="report-check">
-          <text class="check-icon">{{selectedReportIds.length === 0 && reportsNoSelection ? '✓' : ''}}</text>
+    <view class="selector-mask" bindtap="toggleReportSelector"></view>
+    <view class="selector-content">
+      <view class="selector-header">
+        <view class="selector-title">
+          <text class="title-text">选择体检报告</text>
+          <text class="selected-count">已选{{selectedReportIds.length}}份</text>
         </view>
-        <view class="report-info">
-          <text class="report-hospital">💬 不使用任何报告</text>
-          <text class="report-desc">仅基于问题提供一般性健康建议</text>
+        <view class="selector-actions">
+          <button class="text-btn" bindtap="toggleSelectAll">
+            {{selectedReportIds.length === reports.length ? '取消全选' : '全选'}}
+          </button>
+          <button class="text-btn" bindtap="toggleReportSelector">完成</button>
         </view>
       </view>
+      <scroll-view class="report-list" scroll-y>
+        <!-- 不使用任何报告选项 -->
+        <view class="report-item no-reports-option {{selectedReportIds.length === 0 && reportsNoSelection ? 'selected' : ''}}"
+              bindtap="selectNoReports">
+          <view class="report-check">
+            <text class="check-icon">{{selectedReportIds.length === 0 && reportsNoSelection ? '✓' : ''}}</text>
+          </view>
+          <view class="report-info">
+            <text class="report-hospital">💬 不使用任何报告</text>
+            <text class="report-desc">仅基于问题提供一般性健康建议</text>
+          </view>
+        </view>
 
-      <!-- 报告列表 -->
-      <view class="report-item {{item.selected ? 'selected' : ''}}"
-            wx:for="{{reports}}"
-            wx:key="id"
-            bindtap="toggleReport"
-            data-id="{{item.id}}">
-        <view class="report-check">
-          <text class="check-icon">{{item.selected ? '✓' : ''}}</text>
+        <!-- 报告列表 -->
+        <view class="report-item {{item.selected ? 'selected' : ''}}"
+              wx:for="{{reports}}"
+              wx:key="id"
+              bindtap="toggleReport"
+              data-id="{{item.id}}">
+          <view class="report-check">
+            <text class="check-icon">{{item.selected ? '✓' : ''}}</text>
+          </view>
+          <view class="report-info">
+            <text class="report-hospital">{{item.hospital}}</text>
+            <text class="report-date">{{item.checkup_date}}</text>
+          </view>
         </view>
-        <view class="report-info">
-          <text class="report-hospital">{{item.hospital}}</text>
-          <text class="report-date">{{item.checkup_date}}</text>
-        </view>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </view>
   </view>
 
   <!-- 药单选择器 -->
   <view class="medication-selector" wx:if="{{showMedicationSelector}}">
-    <view class="selector-header">
-      <view class="selector-title">
-        <text class="title-text">选择药单</text>
-        <text class="selected-count">已选{{selectedMedicationIds.length}}份</text>
-      </view>
-      <view class="selector-actions">
-        <button class="text-btn" bindtap="toggleSelectAllMedications">
-          {{selectedMedicationIds.length === medications.length ? '取消全选' : '全选'}}
-        </button>
-        <button class="text-btn" bindtap="toggleMedicationSelector">完成</button>
-      </view>
-    </view>
-    <scroll-view class="medication-list" scroll-y>
-      <!-- 不使用任何药单选项 -->
-      <view class="medication-item no-medication-option {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'selected' : ''}}"
-            bindtap="selectNoMedications">
-        <view class="medication-check">
-          <text class="check-icon">{{selectedMedicationIds.length === 0 && medicationsNoSelection ? '✓' : ''}}</text>
+    <view class="selector-mask" bindtap="toggleMedicationSelector"></view>
+    <view class="selector-content">
+      <view class="selector-header">
+        <view class="selector-title">
+          <text class="title-text">选择药单</text>
+          <text class="selected-count">已选{{selectedMedicationIds.length}}份</text>
         </view>
-        <view class="medication-info">
-          <text class="medication-name">💬 不使用任何药单</text>
-          <text class="medication-dosage">不包含药单信息进行咨询</text>
+        <view class="selector-actions">
+          <button class="text-btn" bindtap="toggleSelectAllMedications">
+            {{selectedMedicationIds.length === medications.length ? '取消全选' : '全选'}}
+          </button>
+          <button class="text-btn" bindtap="toggleMedicationSelector">完成</button>
         </view>
       </view>
+      <scroll-view class="medication-list" scroll-y>
+        <!-- 不使用任何药单选项 -->
+        <view class="medication-item no-medication-option {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'selected' : ''}}"
+              bindtap="selectNoMedications">
+          <view class="medication-check">
+            <text class="check-icon">{{selectedMedicationIds.length === 0 && medicationsNoSelection ? '✓' : ''}}</text>
+          </view>
+          <view class="medication-info">
+            <text class="medication-name">💬 不使用任何药单</text>
+            <text class="medication-dosage">不包含药单信息进行咨询</text>
+          </view>
+        </view>
 
-      <!-- 药单列表 -->
-      <view class="medication-item {{item.selected ? 'selected' : ''}}"
-            wx:for="{{medications}}"
-            wx:key="id"
-            bindtap="toggleMedication"
-            data-id="{{item.id}}">
-        <view class="medication-check">
-          <text class="check-icon">{{item.selected ? '✓' : ''}}</text>
+        <!-- 药单列表 -->
+        <view class="medication-item {{item.selected ? 'selected' : ''}}"
+              wx:for="{{medications}}"
+              wx:key="id"
+              bindtap="toggleMedication"
+              data-id="{{item.id}}">
+          <view class="medication-check">
+            <text class="check-icon">{{item.selected ? '✓' : ''}}</text>
+          </view>
+          <view class="medication-info">
+            <text class="medication-name">{{item.medicine_name}}</text>
+            <text class="medication-dosage">{{item.dosage}}</text>
+            <text class="medication-date">{{item.start_date}} 至 {{item.end_date}}</text>
+          </view>
         </view>
-        <view class="medication-info">
-          <text class="medication-name">{{item.medicine_name}}</text>
-          <text class="medication-dosage">{{item.dosage}}</text>
-          <text class="medication-date">{{item.start_date}} 至 {{item.end_date}}</text>
+        <!-- 空状态 -->
+        <view class="empty-medications" wx:if="{{medications.length === 0}}">
+          <text class="empty-text">暂无药单</text>
+          <text class="empty-desc">您还没有添加任何药单</text>
         </view>
-      </view>
-      <!-- 空状态 -->
-      <view class="empty-medications" wx:if="{{medications.length === 0}}">
-        <text class="empty-text">暂无药单</text>
-        <text class="empty-desc">您还没有添加任何药单</text>
-      </view>
-    </scroll-view>
+      </scroll-view>
+    </view>
   </view>
 
   <!-- 消息列表 -->
