@@ -82,7 +82,7 @@ class MedicationAdmin(admin.ModelAdmin):
 
 @admin.register(MedicationRecord)
 class MedicationRecordAdmin(admin.ModelAdmin):
-    list_display = ['medication', 'record_date', 'frequency_display', 'taken_at', 'notes']
+    list_display = ['medication', 'record_date', 'get_frequency_display', 'taken_at', 'notes']
     list_filter = ['frequency', 'record_date', 'taken_at']
     search_fields = ['medication__medicine_name', 'medication__user__username', 'notes']
     date_hierarchy = 'record_date'
