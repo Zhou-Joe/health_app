@@ -11,10 +11,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 30rpx 20rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   border-radius: 20rpx;
   margin-bottom: 30rpx;
-  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4rpx 12rpx rgba(255, 154, 158, 0.3);
 }
 
 .page-title {
@@ -111,7 +111,7 @@
 .progress-percent {
   font-size: 28rpx;
   font-weight: 600;
-  color: #667eea;
+  color: #FF9A9E;
 }
 
 .progress-bar {
@@ -123,7 +123,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   border-radius: 8rpx;
   transition: width 0.3s;
 }
@@ -202,14 +202,14 @@
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   color: #ffffff;
 }
 
 .secondary-btn {
   background: #ffffff;
-  color: #667eea;
-  border: 2rpx solid #667eea;
+  color: #FF9A9E;
+  border: 2rpx solid #FF9A9E;
 }
 
 /* 空状态 */
@@ -241,7 +241,7 @@
 }
 
 .empty-add-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   color: #ffffff;
   border: none;
   padding: 24rpx 60rpx;
@@ -365,7 +365,7 @@
 }
 
 .confirm-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
   color: #ffffff;
 }
 
