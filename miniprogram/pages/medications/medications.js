@@ -12,9 +12,6 @@ Page({
     showMakeupModal: false,
     currentMedicationId: null,
     makeupDate: '',
-    makeupNotes: '',
-    frequencyIndex: 0,
-    frequencyOptions: ['每日一次', '每日两次', '每日三次', '每日四次', '每周一次', '按需服用'],
     today: '',
     formData: {
       medicine_name: '',
@@ -234,9 +231,7 @@ Page({
     this.setData({
       currentMedicationId: medicationId,
       showMakeupModal: true,
-      makeupDate: '',
-      makeupNotes: '',
-      frequencyIndex: 0
+      makeupDate: ''
     })
   },
 
@@ -244,9 +239,7 @@ Page({
   hideMakeupModal() {
     this.setData({
       showMakeupModal: false,
-      makeupDate: '',
-      makeupNotes: '',
-      frequencyIndex: 0
+      makeupDate: ''
     })
   },
 
@@ -257,40 +250,21 @@ Page({
     })
   },
 
-  // 服药频率选择
-  onFrequencyChange(e) {
-    this.setData({
-      frequencyIndex: e.detail.value
-    })
-  },
-
-  // 补签备注输入
-  onMakeupNotesInput(e) {
-    this.setData({
-      makeupNotes: e.detail.value
-    })
-  },
-
   // 确认补签
   async confirmMakeup() {
-    const { currentMedicationId, makeupDate, frequencyIndex, makeupNotes } = this.data
+    const { currentMedicationId, makeupDate } = this.data
 
     if (!makeupDate) {
       util.showToast('请选择补签日期')
       return
     }
 
-    // 将频率选项转换为API需要的格式
-    const frequencyMap = ['daily', 'twice_daily', 'three_times_daily', 'four_times_daily', 'weekly', 'as_needed']
-    const frequency = frequencyMap[frequencyIndex]
-
     try {
       util.showLoading('补签中...')
       const res = await api.medicationCheckin({
         medication_id: currentMedicationId,
         record_date: makeupDate,
-        frequency: frequency,
-        notes: makeupNotes
+        frequency: 'daily'
       })
 
       console.log('补签结果:', res)

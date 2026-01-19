@@ -188,18 +188,6 @@
           </view>
         </picker>
       </view>
-      <view class="form-item">
-        <text class="form-label">服药频率</text>
-        <picker mode="selector" range="{{frequencyOptions}}" value="{{frequencyIndex}}" bindchange="onFrequencyChange">
-          <view class="picker-input">
-            {{frequencyOptions[frequencyIndex]}}
-          </view>
-        </picker>
-      </view>
-      <view class="form-item">
-        <text class="form-label">备注（可选）</text>
-        <input class="form-input" placeholder="填写备注信息" value="{{makeupNotes}}" bindinput="onMakeupNotesInput" />
-      </view>
     </view>
     <view class="modal-footer">
       <button class="modal-btn cancel-btn" bindtap="hideMakeupModal">取消</button>
