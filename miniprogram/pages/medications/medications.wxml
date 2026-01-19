@@ -4,8 +4,10 @@
   <view class="page-header">
     <text class="page-title">我的药单</text>
     <button class="add-btn" bindtap="showAddModal">
-      <text class="icon">+</text>
-      <text>添加药单</text>
+      <view class="add-btn-content">
+        <text class="icon">+</text>
+        <text>添加药单</text>
+      </view>
     </button>
   </view>
 

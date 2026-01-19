@@ -24,14 +24,25 @@
 }
 
 .add-btn {
-  display: flex;
-  align-items: center;
+  display: inline-flex;
   background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
   border: none;
-  padding: 16rpx 32rpx;
-  border-radius: 50rpx;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
   font-size: 28rpx;
+  border-radius: 50rpx;
+}
+
+.add-btn::after {
+  border: none;
+}
+
+.add-btn-content {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 32rpx;
 }
 
 .add-btn .icon {
