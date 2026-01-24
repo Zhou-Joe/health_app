@@ -91,26 +91,61 @@
         .product-header {
             margin-bottom: 2.5rem;
             border: var(--border-thick);
-            background: var(--brutal-yellow);
-            padding: 2rem;
-            box-shadow: var(--shadow-hard);
+            background: linear-gradient(135deg, #FFD60A, #FFE566);
+            padding: 2.5rem;
+            box-shadow: 8px 8px 0px #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3), transparent);
+            border-radius: 50%;
         }
 
         .product-logo {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 80px;
-            height: 80px;
-            background: var(--brutal-black);
-            border-radius: 16px;
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, #FF5C8D, #FF8A7A);
+            border-radius: 20px;
             margin-bottom: 1.5rem;
             border: var(--border-thick);
+            box-shadow: var(--shadow-hard);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-logo::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
         }
 
         .product-logo i {
-            font-size: 2.5rem;
-            color: var(--brutal-yellow);
+            font-size: 2.75rem;
+            color: white;
+            position: relative;
+            z-index: 1;
         }
 
         .product-title {
@@ -152,46 +187,69 @@
         .feature-card {
             background: var(--brutal-white);
             border: var(--border-thick);
-            padding: 1.5rem;
-            box-shadow: var(--shadow-hard-sm);
+            padding: 1.75rem;
+            box-shadow: 6px 6px 0px #000;
             transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--brutal-pink), var(--brutal-cyan), var(--brutal-blue), var(--brutal-yellow));
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
         }
 
         .feature-card:hover {
-            transform: translate(-4px, -4px);
-            box-shadow: 8px 8px 0px #000;
+            transform: translate(-6px, -6px);
+            box-shadow: 10px 10px 0px #000;
+        }
+
+        .feature-card:hover::after {
+            transform: scaleX(1);
         }
 
         .feature-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1rem;
-            font-size: 1.75rem;
+            font-size: 2rem;
             border: var(--border-thick);
+            box-shadow: var(--shadow-hard-sm);
+            position: relative;
+            overflow: hidden;
         }
 
         .feature-icon-upload {
-            background: var(--brutal-pink);
+            background: linear-gradient(135deg, #FF5C8D, #FF8A7A);
         }
 
         .feature-icon-ai {
-            background: var(--brutal-cyan);
+            background: linear-gradient(135deg, #14b8a6, #06FFA5);
         }
 
         .feature-icon-integration {
-            background: var(--brutal-blue);
+            background: linear-gradient(135deg, #4C8BF5, #7C9FFF);
         }
 
         .feature-icon-trends {
-            background: var(--brutal-yellow);
+            background: linear-gradient(135deg, #FFD60A, #FFE566);
         }
 
         .feature-icon i {
-            color: var(--brutal-black);
+            color: white;
+            position: relative;
+            z-index: 1;
         }
 
         .feature-title {
@@ -218,8 +276,21 @@
         .login-card {
             background: var(--brutal-white);
             border: var(--border-thick);
-            box-shadow: var(--shadow-hard);
-            padding: 3rem 2.5rem;
+            box-shadow: 8px 8px 0px #000;
+            padding: 3.5rem 2.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(20, 184, 166, 0.1), transparent);
+            border-radius: 50%;
         }
 
         @keyframes slideUp {
@@ -239,21 +310,37 @@
         }
 
         .logo-icon {
-            width: 72px;
-            height: 72px;
-            background: var(--brutal-black);
-            border-radius: 16px;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #14b8a6, #06FFA5);
+            border-radius: 20px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1.25rem;
             border: var(--border-thick);
-            box-shadow: var(--shadow-hard-sm);
+            box-shadow: var(--shadow-hard);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo-icon::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
         }
 
         .logo-icon i {
-            font-size: 2rem;
-            color: var(--brutal-yellow);
+            font-size: 2.25rem;
+            color: white;
+            position: relative;
+            z-index: 1;
         }
 
         .logo-title {
@@ -281,33 +368,34 @@
 
         .form-control {
             border: var(--border-thick);
-            border-radius: 8px;
-            padding: 0.875rem 1rem;
-            font-size: 0.9375rem;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 1rem 1.125rem;
+            font-size: 1rem;
+            font-weight: 700;
             transition: all 0.2s ease;
             background: #fff;
         }
 
         .form-control:focus {
-            border-color: var(--brutal-black);
-            box-shadow: var(--shadow-hard-sm);
+            border-color: var(--brutal-cyan);
+            box-shadow: 6px 6px 0px #000;
             outline: none;
-            transform: translate(-2px, -2px);
+            transform: translate(-3px, -3px);
         }
 
         .input-group-text {
             background: #fff;
             border: var(--border-thick);
             border-right: none;
-            border-radius: 8px 0 0 8px;
+            border-radius: 10px 0 0 10px;
             color: #000;
-            font-weight: 600;
+            font-weight: 700;
+            padding: 1rem 1rem;
         }
 
         .input-group .form-control {
             border-left: none;
-            border-radius: 0 8px 8px 0;
+            border-radius: 0 10px 10px 0;
         }
 
         .input-group .form-control:focus {
@@ -315,23 +403,40 @@
         }
 
         .btn-login {
-            background: var(--brutal-cyan);
+            background: linear-gradient(135deg, #14b8a6, #06FFA5);
             border: var(--border-thick);
-            border-radius: 8px;
-            padding: 0.875rem 1.5rem;
+            border-radius: 12px;
+            padding: 1rem 1.75rem;
             font-weight: 900;
-            font-size: 1rem;
+            font-size: 1.125rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.1em;
             width: 100%;
             transition: all 0.2s ease;
-            box-shadow: var(--shadow-hard-sm);
-            margin-top: 1rem;
+            box-shadow: 6px 6px 0px #000;
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
         }
 
         .btn-login:hover {
-            transform: translate(-4px, -4px);
-            box-shadow: 8px 8px 0px #000;
+            transform: translate(-6px, -6px);
+            box-shadow: 10px 10px 0px #000;
         }
 
         .btn-login:active {
