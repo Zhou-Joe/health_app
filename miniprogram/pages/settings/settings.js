@@ -283,7 +283,7 @@ Page({
   showAbout() {
     wx.showModal({
       title: '关于健康档案',
-      content: '版本：1.0.0\n\n个人健康管理系统，基于AI技术提供智能健康建议。',
+      content: '版本：2.0.0\n\n个人健康管理系统，基于AI技术提供智能健康建议。',
       showCancel: false,
       confirmText: '知道了'
     })
