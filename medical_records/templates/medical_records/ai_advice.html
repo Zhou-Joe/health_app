@@ -106,19 +106,28 @@ body::before {
     background: var(--brutal-green);
 }
 
-.btn-outline-primary, .btn-outline-danger {
+.btn-outline-primary {
     background: #FFF;
-    border-color: #000;
-    color: #000;
+    border-color: var(--brutal-cyan);
+    color: var(--brutal-cyan);
 }
 
 .btn-outline-primary:hover {
-    background: var(--brutal-cyan);
+    background: linear-gradient(135deg, var(--brutal-cyan), var(--brutal-green));
+    border-color: var(--brutal-green);
+    color: #000;
+}
+
+.btn-outline-danger {
+    background: #FFF;
+    border-color: var(--brutal-pink);
+    color: var(--brutal-pink);
 }
 
 .btn-outline-danger:hover {
-    background: var(--brutal-red);
-    color: #FFF;
+    background: linear-gradient(135deg, var(--brutal-pink), #FF8A7A);
+    border-color: #FF8A7A;
+    color: #000;
 }
 
 .btn-link {

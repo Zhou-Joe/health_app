@@ -124,18 +124,28 @@ body::before {
     background: var(--brutal-yellow);
 }
 
-.btn-outline-primary, .btn-outline-secondary {
+.btn-outline-primary {
     background: #FFF;
-    border-color: #000;
-    color: #000;
+    border-color: var(--brutal-cyan);
+    color: var(--brutal-cyan);
 }
 
 .btn-outline-primary:hover {
-    background: var(--brutal-cyan);
+    background: linear-gradient(135deg, var(--brutal-cyan), var(--brutal-green));
+    border-color: var(--brutal-green);
+    color: #000;
+}
+
+.btn-outline-secondary {
+    background: #FFF;
+    border-color: #666;
+    color: #666;
 }
 
 .btn-outline-secondary:hover {
-    background: var(--brutal-yellow);
+    background: linear-gradient(135deg, var(--brutal-yellow), #FFE566);
+    border-color: var(--brutal-yellow);
+    color: #000;
 }
 
 .btn-sm {
