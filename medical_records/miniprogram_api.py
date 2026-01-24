@@ -1420,10 +1420,11 @@ def miniprogram_merge_duplicate_checkups(request):
 
         merged_count = 0
         error_messages = []
+        source_checkup_list = list(source_checkups)  # 转换为列表避免迭代时修改QuerySet
 
         # 使用事务进行合并
         with transaction.atomic():
-            for source_checkup in source_checkups:
+            for source_checkup in source_checkup_list:
                 try:
                     # 追加备注
                     if source_checkup.notes:
@@ -1446,7 +1447,7 @@ def miniprogram_merge_duplicate_checkups(request):
                     error_messages.append(f"合并报告 {source_checkup.id} 失败: {str(e)}")
 
             # 保存目标报告的备注更新
-            if source_checkups.count() > 0:
+            if source_checkup_list:
                 target_checkup.save()
 
         return Response({
