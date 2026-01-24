@@ -44,6 +44,21 @@ Page({
       await api.deleteCheckup(this.data.checkup.id)
       util.showToast('删除成功')
 
+      // 通知上一页刷新数据
+      const pages = getCurrentPages()
+      if (pages.length >= 2) {
+        const prevPage = pages[pages.length - 2]
+        // 如果上一页是 checkups 页面，调用其刷新方法
+        if (prevPage.route === 'pages/checkups/checkups') {
+          prevPage.setData({
+            checkups: [],
+            page: 1,
+            hasMore: true
+          })
+          prevPage.loadCheckups()
+        }
+      }
+
       // 返回上一页
       setTimeout(() => {
         wx.navigateBack()

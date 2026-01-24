@@ -192,9 +192,13 @@ Page({
       await api.deleteCheckup(id)
       util.showToast('删除成功')
 
-      // 从列表中移除
-      const checkups = this.data.checkups.filter(c => c.id !== id)
-      this.setData({ checkups })
+      // 重新加载列表以确保数据正确
+      this.setData({
+        checkups: [],
+        page: 1,
+        hasMore: true
+      })
+      await this.loadCheckups()
     } catch (err) {
       console.error('删除失败:', err)
       util.showToast(err.message || '删除失败')

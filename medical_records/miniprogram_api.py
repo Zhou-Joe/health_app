@@ -233,14 +233,25 @@ def miniprogram_upload_report(request):
             is_merged = False
             merge_message = ''
 
-        # 创建文档处理记录
-        document_processing = DocumentProcessing.objects.create(
+        # 创建或更新文档处理记录
+        document_processing, created = DocumentProcessing.objects.get_or_create(
             user=request.user,
             health_checkup=health_checkup,
-            workflow_type=workflow_type,
-            status='pending',
-            progress=0
+            defaults={
+                'workflow_type': workflow_type,
+                'status': 'pending',
+                'progress': 0
+            }
         )
+
+        # 如果记录已存在且不是pending状态，重置为pending
+        if not created:
+            document_processing.workflow_type = workflow_type
+            document_processing.status = 'pending'
+            document_processing.progress = 0
+            document_processing.ocr_result = None
+            document_processing.ai_result = None
+            document_processing.save()
 
         # 启动后台处理
         import threading
