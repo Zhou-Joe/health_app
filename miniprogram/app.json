@@ -61,6 +61,7 @@
       }
     ]
   },
+  "version": "2.0.0",
   "permission": {
     "scope.userLocation": {
       "desc": "你的位置信息将用于附近的体检机构"
