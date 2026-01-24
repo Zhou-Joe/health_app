@@ -4,274 +4,536 @@
 
 {% block extra_css %}
 <style>
-.spin {
-    animation: spin 2s linear infinite;
+/* ═══════════════════════════════════════════════════════════
+   NEO-BRUTALIST MEDICAL - 新野兽派手动输入页面
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
+}
+
+body {
+    background: #FAFAFA;
+    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    color: #000;
+    overflow-x: hidden;
+}
+
+/* 棋盘格背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container-fluid {
+    position: relative;
+    z-index: 1;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
+}
+
+h1 i {
+    display: none;
+}
+
+.input-card {
+    border: var(--border-thick);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    overflow: hidden;
+    background: #FFF;
+}
+
+.input-card .card-header {
+    background: var(--brutal-cyan);
+    color: #000;
+    border: none;
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: var(--border-thick);
+}
+
+.input-card .card-body {
+    padding: 2rem;
+}
+
+.section-header {
+    background: var(--brutal-yellow);
+    border: var(--border-thick);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-hard-sm);
+    border-radius: 0;
+}
+
+.mode-toggle {
+    display: flex;
+    gap: 1rem;
+}
+
+.mode-toggle .btn-check {
+    display: none;
+}
+
+.mode-toggle .btn {
+    flex: 1;
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.875rem 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all 0.1s ease;
+    background: #FFF;
+    color: #000;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.mode-toggle .btn:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.mode-toggle .btn-check:checked + .btn {
+    background: var(--brutal-cyan);
+    color: #000;
+    border-color: #000;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.form-control, .form-select {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #000;
+    box-shadow: 6px 6px 0px var(--brutal-yellow);
+    background: #FFF;
+    outline: none;
+}
+
+.form-label {
+    font-weight: 800;
+    font-size: 0.875rem;
+    color: #000;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-primary {
+    background: var(--brutal-cyan);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 1.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-hard-sm);
+    color: #000;
+}
+
+.btn-primary:hover {
+    background: var(--brutal-green);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-secondary {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 1.5rem;
+    font-weight: 800;
+    color: #000;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-secondary:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.history-table {
+    border: var(--border-thick);
+    border-radius: 0;
+    overflow: hidden;
+}
+
+.history-table thead th {
+    background: #000;
+    color: #FFF;
+    font-weight: 800;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: none;
+    padding: 1rem;
+}
+
+.history-table tbody td {
+    padding: 0.875rem 1rem;
+    border-bottom: 2px solid #000;
+    vertical-align: middle;
+}
+
+.history-table tbody tr:nth-child(even) {
+    background: #F5F5F5;
+}
+
+.history-table tbody tr:hover {
+    background: var(--brutal-yellow);
+}
+
+.help-card {
+    background: var(--brutal-blue);
+    border: var(--border-thick);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-hard-sm);
+    border-radius: 0;
+    color: #FFF;
+}
+
+.help-card h6 {
+    color: #FFF;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.help-card ul {
+    font-size: 0.875rem;
+    color: #FFF;
+    margin-bottom: 0;
+}
+
+.help-card li {
+    margin-bottom: 0.375rem;
+    font-weight: 600;
+}
+
+.input-group-text {
+    background: #FFF;
+    border: var(--border-thick);
+    border-right: none;
+    border-radius: 0;
+    color: #000;
+    font-weight: 700;
+}
+
+.input-group .form-control {
+    border-left: none;
+    border-radius: 0;
+}
+
+.input-group .form-control:focus {
+    border-left: none;
 }
 
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+.spin {
+    animation: spin 2s linear infinite;
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">
-                    <i class="bi bi-pencil-square"></i> 手动输入健康指标
-                </h4>
-            </div>
-            <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
+<div class="container-fluid" style="max-width: 1000px;">
+    <!-- 页面标题 -->
+    <div class="mb-4">
+        <h1 class="fw-bold mb-2" style="color: #1e293b;">
+            <i class="bi bi-pencil-square" style="color: var(--primary);"></i> 手动输入健康指标
+        </h1>
+        <p style="color: #64748b; font-size: 1rem;">精确记录您的健康数据，构建完整健康档案</p>
+    </div>
 
-                    <!-- 体检基本信息 -->
-                    <div class="row mb-4 p-3 bg-light rounded">
-                        <!-- 报告模式选择 -->
-                        <div class="col-12 mb-3">
-                            <label class="form-label">
-                                <i class="bi bi-file-earmark-medical"></i> 报告保存方式 <span class="text-danger">*</span>
-                            </label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" name="report_mode" id="mode_new" value="new" checked>
-                                <label class="btn btn-outline-primary" for="mode_new">
-                                    <i class="bi bi-plus-circle"></i> 新建体检报告
-                                </label>
-
-                                <input type="radio" class="btn-check" name="report_mode" id="mode_existing" value="existing">
-                                <label class="btn btn-outline-primary" for="mode_existing">
-                                    <i class="bi bi-folder-plus"></i> 添加到已有报告
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- 新建报告区域 -->
-                        <div id="newReportSection">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label for="checkup_date" class="form-label">
-                                        <i class="bi bi-calendar"></i> 体检日期 <span class="text-danger">*</span>
-                                    </label>
-                                    <input type="date" class="form-control" id="checkup_date" name="checkup_date">
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="hospital" class="form-label">
-                                        <i class="bi bi-hospital"></i> 体检机构
-                                    </label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="hospital" name="hospital"
-                                               placeholder="请输入体检医院或机构名称" autocomplete="off">
-                                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                            <i class="bi bi-building"></i> 历史记录
-                                        </button>
-                                        <ul class="dropdown-menu" id="hospitalDropdown">
-                                            <li><a class="dropdown-item text-muted" href="#"><i class="bi bi-arrow-repeat spin"></i> 加载中...</a></li>
-                                        </ul>
-                                    </div>
-                                    <small class="form-text text-muted">可选，留空将显示"未知机构"</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 已有报告选择区域 -->
-                        <div id="existingReportSection" style="display: none;">
-                            <div class="col-12">
-                                <label for="existing_checkup" class="form-label">
-                                    <i class="bi bi-journal-medical"></i> 选择已有体检报告 <span class="text-danger">*</span>
-                                </label>
-                                <select class="form-select" id="existing_checkup" name="existing_checkup">
-                                    <option value="">-- 请选择体检报告 --</option>
-                                    <option value="" disabled><i class="bi bi-arrow-repeat spin"></i> 加载中...</option>
-                                </select>
-                                <small class="form-text text-muted">选择要将指标添加到的已有体检报告</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 健康指标信息 -->
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="{{ form.indicator_type.id_for_label }}" class="form-label">
-                                {{ form.indicator_type.label }}
-                            </label>
-                            {{ form.indicator_type }}
-                            {% if form.indicator_type.errors %}
-                                <div class="text-danger">
-                                    {{ form.indicator_type.errors }}
-                                </div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                请选择指标所属的医学分类
-                            </small>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="{{ form.status.id_for_label }}" class="form-label">
-                                {{ form.status.label }}
-                            </label>
-                            {{ form.status }}
-                            {% if form.status.errors %}
-                                <div class="text-danger">
-                                    {{ form.status.errors }}
-                                </div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                {{ form.status.help_text }}
-                            </small>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label for="{{ form.indicator_name.id_for_label }}" class="form-label">
-                                {{ form.indicator_name.label }}
-                            </label>
-                            {{ form.indicator_name }}
-                            {% if form.indicator_name.errors %}
-                                <div class="text-danger">
-                                    {{ form.indicator_name.errors }}
-                                </div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                {{ form.indicator_name.help_text }}
-                            </small>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label for="{{ form.value.id_for_label }}" class="form-label">
-                                {{ form.value.label }}
-                            </label>
-                            {{ form.value }}
-                            {% if form.value.errors %}
-                                <div class="text-danger">
-                                    {{ form.value.errors }}
-                                </div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                {{ form.value.help_text }}
-                            </small>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="{{ form.unit.id_for_label }}" class="form-label">
-                                {{ form.unit.label }}
-                            </label>
-                            {{ form.unit }}
-                            {% if form.unit.errors %}
-                                <div class="text-danger">
-                                    {{ form.unit.errors }}
-                                </div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                {{ form.unit.help_text }}
-                            </small>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="{{ form.reference_range.id_for_label }}" class="form-label">
-                                {{ form.reference_range.label }}
-                            </label>
-                            {{ form.reference_range }}
-                            {% if form.reference_range.errors %}
-                                <div class="text-danger">
-                                    {{ form.reference_range.errors }}
-                                </div>
-                            {% endif %}
-                            <small class="form-text text-muted">
-                                {{ form.reference_range.help_text }}
-                            </small>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> 返回首页
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> 保存指标
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <!-- 主输入卡片 -->
+    <div class="input-card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0 fw-bold">
+                <i class="bi bi-file-earmark-medical"></i> 录入健康指标
+            </h4>
         </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
 
-        <!-- 最近手动录入的指标 -->
-        {% if recent_indicators %}
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6 class="mb-0">
-                    <i class="bi bi-clock-history"></i> 最近手动录入的指标
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>指标名称</th>
-                                <th>检测值</th>
-                                <th>单位</th>
-                                <th>分类</th>
-                                <th>状态</th>
-                                <th>录入日期</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for indicator in recent_indicators %}
-                            <tr>
-                                <td>{{ indicator.indicator_name }}</td>
-                                <td><strong>{{ indicator.value }}</strong></td>
-                                <td>{{ indicator.unit|default:"-" }}</td>
-                                <td>
-                                    <span class="badge bg-light text-dark">{{ indicator.get_indicator_type_display }}</span>
-                                </td>
-                                <td>
-                                    {% if indicator.status == 'normal' %}
-                                        <span class="badge bg-success">正常</span>
-                                    {% elif indicator.status == 'abnormal' %}
-                                        <span class="badge bg-danger">异常</span>
-                                    {% else %}
-                                        <span class="badge bg-warning">关注</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ indicator.checkup.checkup_date|date:"Y-m-d" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+                <!-- 报告模式选择 -->
+                <div class="section-header">
+                    <label class="form-label mb-3">
+                        <i class="bi bi-file-earmark"></i> 报告保存方式 <span class="text-danger">*</span>
+                    </label>
+                    <div class="mode-toggle">
+                        <input type="radio" class="btn-check" name="report_mode" id="mode_new" value="new" checked>
+                        <label class="btn" for="mode_new">
+                            <i class="bi bi-plus-circle me-2"></i>新建体检报告
+                        </label>
 
-        <!-- 使用说明 -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6><i class="bi bi-info-circle"></i> 使用说明</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-primary">填写建议</h6>
-                        <ul class="small">
-                            <li><strong>指标名称：</strong>请使用标准的医学名称，如"血红蛋白浓度"、"空腹血糖"等</li>
-                            <li><strong>检测值：</strong>请填写准确的检测数值</li>
-                            <li><strong>单位：</strong>建议使用标准单位，如mmol/L、g/L、U/L等</li>
-                            <li><strong>参考范围：</strong>如知道正常值范围，请填写以便对比</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-primary">指标分类说明</h6>
-                        <ul class="small">
-                            <li><strong>体格检查：</strong>身高、体重、血压等基础指标</li>
-                            <li><strong>血液常规：</strong>血细胞相关指标</li>
-                            <li><strong>生化检验：</strong>血糖、血脂、肝肾功能等</li>
-                            <li><strong>其他分类：</strong>请根据实际检测项目选择</li>
-                        </ul>
+                        <input type="radio" class="btn-check" name="report_mode" id="mode_existing" value="existing">
+                        <label class="btn" for="mode_existing">
+                            <i class="bi bi-folder-plus me-2"></i>添加到已有报告
+                        </label>
                     </div>
                 </div>
+
+                <!-- 新建报告区域 -->
+                <div id="newReportSection">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="checkup_date" class="form-label">
+                                <i class="bi bi-calendar"></i> 体检日期 <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" id="checkup_date" name="checkup_date">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="hospital" class="form-label">
+                                <i class="bi bi-hospital"></i> 体检机构
+                            </label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="hospital" name="hospital"
+                                       placeholder="请输入体检医院或机构名称" autocomplete="off">
+                                <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="bi bi-building"></i> 历史记录
+                                </button>
+                                <ul class="dropdown-menu" id="hospitalDropdown">
+                                    <li><a class="dropdown-item text-muted" href="#"><i class="bi bi-arrow-repeat spin"></i> 加载中...</a></li>
+                                </ul>
+                            </div>
+                            <small class="form-text text-muted">可选，留空将显示"未知机构"</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 已有报告选择区域 -->
+                <div id="existingReportSection" style="display: none;">
+                    <div class="mb-3">
+                        <label for="existing_checkup" class="form-label">
+                            <i class="bi bi-journal-medical"></i> 选择已有体检报告 <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="existing_checkup" name="existing_checkup">
+                            <option value="">-- 请选择体检报告 --</option>
+                            <option value="" disabled><i class="bi bi-arrow-repeat spin"></i> 加载中...</option>
+                        </select>
+                        <small class="form-text text-muted">选择要将指标添加到的已有体检报告</small>
+                    </div>
+                </div>
+
+                <hr style="border-color: #e2e8f0; margin: 2rem 0;">
+
+                <!-- 健康指标信息 -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.indicator_type.id_for_label }}" class="form-label">
+                            <i class="bi bi-tags"></i> {{ form.indicator_type.label }}
+                        </label>
+                        {{ form.indicator_type }}
+                        {% if form.indicator_type.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.indicator_type.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            请选择指标所属的医学分类
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.status.id_for_label }}" class="form-label">
+                            <i class="bi bi-flag"></i> {{ form.status.label }}
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.status.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            {{ form.status.help_text }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.indicator_name.id_for_label }}" class="form-label">
+                        <i class="bi bi-card-text"></i> {{ form.indicator_name.label }}
+                    </label>
+                    {{ form.indicator_name }}
+                    {% if form.indicator_name.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.indicator_name.errors }}
+                        </div>
+                    {% endif %}
+                    <small class="form-text text-muted">
+                        {{ form.indicator_name.help_text }}
+                    </small>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label for="{{ form.value.id_for_label }}" class="form-label">
+                            <i class="bi bi-hash"></i> {{ form.value.label }}
+                        </label>
+                        {{ form.value }}
+                        {% if form.value.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.value.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            {{ form.value.help_text }}
+                        </small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.unit.id_for_label }}" class="form-label">
+                            <i class="bi bi-ruler"></i> {{ form.unit.label }}
+                        </label>
+                        {{ form.unit }}
+                        {% if form.unit.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.unit.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            {{ form.unit.help_text }}
+                        </small>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.reference_range.id_for_label }}" class="form-label">
+                            <i class="bi bi-bounding-box"></i> {{ form.reference_range.label }}
+                        </label>
+                        {{ form.reference_range }}
+                        {% if form.reference_range.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.reference_range.errors }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            {{ form.reference_range.help_text }}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> 返回首页
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> 保存指标
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 最近录入的指标 -->
+    {% if recent_indicators %}
+    <div class="input-card mb-4">
+        <div class="card-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: var(--primary-dark);">
+            <h5 class="mb-0 fw-bold">
+                <i class="bi bi-clock-history"></i> 最近手动录入的指标
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table history-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>指标名称</th>
+                            <th>检测值</th>
+                            <th>单位</th>
+                            <th>分类</th>
+                            <th>状态</th>
+                            <th>录入日期</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for indicator in recent_indicators %}
+                        <tr>
+                            <td><strong>{{ indicator.indicator_name }}</strong></td>
+                            <td style="color: var(--primary); font-weight: 700;">{{ indicator.value }}</td>
+                            <td class="text-muted">{{ indicator.unit|default:"-" }}</td>
+                            <td>
+                                <span class="badge" style="background: #f0fdfa; color: var(--primary-dark);">{{ indicator.get_indicator_type_display }}</span>
+                            </td>
+                            <td>
+                                {% if indicator.status == 'normal' %}
+                                    <span class="badge" style="background: #d1fae5; color: #065f46;">正常</span>
+                                {% elif indicator.status == 'abnormal' %}
+                                    <span class="badge" style="background: #fee2e2; color: #991b1b;">异常</span>
+                                {% else %}
+                                    <span class="badge" style="background: #fef3c7; color: #92400e;">关注</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ indicator.checkup.checkup_date|date:"Y-m-d" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 使用说明 -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="help-card h-100">
+                <h6><i class="bi bi-lightbulb"></i> 填写建议</h6>
+                <ul>
+                    <li><strong>指标名称：</strong>请使用标准的医学名称，如"血红蛋白浓度"、"空腹血糖"等</li>
+                    <li><strong>检测值：</strong>请填写准确的检测数值</li>
+                    <li><strong>单位：</strong>建议使用标准单位，如mmol/L、g/L、U/L等</li>
+                    <li><strong>参考范围：</strong>如知道正常值范围，请填写以便对比</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="help-card h-100" style="background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border-color: #fde047;">
+                <h6 style="color: #a16207;"><i class="bi bi-book"></i> 指标分类说明</h6>
+                <ul>
+                    <li><strong>体格检查：</strong>身高、体重、血压等基础指标</li>
+                    <li><strong>血液常规：</strong>血细胞相关指标</li>
+                    <li><strong>生化检验：</strong>血糖、血脂、肝肾功能等</li>
+                    <li><strong>其他分类：</strong>请根据实际检测项目选择</li>
+                </ul>
             </div>
         </div>
     </div>
@@ -385,7 +647,7 @@ async function loadHospitalDropdown() {
                     // 创建使用次数徽章
                     let usageBadge = '';
                     if (hospital.usage_count > 1) {
-                        usageBadge = `<span class="badge bg-primary ms-2">${hospital.usage_count}次</span>`;
+                        usageBadge = `<span class="badge ms-2" style="background: var(--primary); color: white;">${hospital.usage_count}次</span>`;
                     }
 
                     li.innerHTML = `

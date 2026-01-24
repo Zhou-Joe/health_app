@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/advice/<int:advice_id>/delete/', views.delete_advice, name='api_delete_advice'),
     path('api/conversations/', api_views.get_conversations, name='api_conversations'),
     path('api/conversations/create/', api_views.create_new_conversation, name='api_create_conversation'),
+    path('api/conversations/<int:conversation_id>/resources/', api_views.api_conversation_resources, name='api_conversation_resources'),
     path('api/conversations/<int:conversation_id>/', api_views.get_conversation_messages, name='api_conversation_messages'),
     path('api/conversations/<int:conversation_id>/delete/', api_views.delete_conversation, name='api_delete_conversation'),
     path('api/user-advices/', api_views.get_user_advices, name='api_user_advices'),

@@ -4,19 +4,92 @@
 
 {% block extra_css %}
 <style>
+/* ═══════════════════════════════════════════════════════════
+   NEO-BRUTALIST MEDICAL - 新野兽派数据整合页面
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --brutal-red: #FF4757;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
+}
+
+body {
+    background: #FAFAFA;
+    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    color: #000;
+    overflow-x: hidden;
+}
+
+/* 棋盘格背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+}
+
+h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.5rem;
+}
+
+h1 i {
+    display: none;
+}
+
+.card {
+    border: var(--border-thick);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard-sm);
+    background: #FFF;
+}
+
 .checkup-card {
     cursor: pointer;
-    transition: all 0.2s ease;
-    border: 2px solid transparent;
+    transition: all 0.1s ease;
+    border: var(--border-thick);
+    background: #FFF;
+    box-shadow: var(--shadow-hard-sm);
 }
+
 .checkup-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
 }
+
 .checkup-card.selected {
-    border-color: #0d6efd;
-    background-color: #f8f9fa;
+    border-color: #000;
+    background: var(--brutal-yellow);
+    box-shadow: 6px 6px 0px #000;
+    transform: translate(-2px, -2px);
 }
+
 .checkup-checkbox {
     position: absolute;
     top: 10px;
@@ -24,32 +97,113 @@
     width: 20px;
     height: 20px;
 }
+
 .integration-progress {
     display: none;
 }
+
 .loading-spinner {
     display: inline-block;
     width: 1rem;
     height: 1rem;
 }
+
 .result-card {
     max-height: 400px;
     overflow-y: auto;
+    border: var(--border-thick);
+    border-radius: 0;
 }
+
 .indicator-changed {
-    background-color: #fff3cd;
-    border-left: 4px solid #ffc107;
+    background-color: var(--brutal-yellow);
+    border-left: 6px solid #000;
+    border-bottom: var(--border-thick);
 }
+
 .indicator-unchanged {
-    background-color: #f8f9fa;
+    background-color: #FFF;
+    border-bottom: 2px solid #000;
 }
+
 .diff-old {
     text-decoration: line-through;
-    color: #dc3545;
+    color: var(--brutal-red);
+    font-weight: 700;
 }
+
 .diff-new {
-    color: #198754;
-    font-weight: 600;
+    color: var(--brutal-green);
+    font-weight: 800;
+}
+
+.btn {
+    border: var(--border-thick);
+    border-radius: 0;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-hard-sm);
+    transition: all 0.1s ease;
+}
+
+.btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-outline-primary {
+    background: #FFF;
+    border-color: #000;
+    color: #000;
+}
+
+.btn-outline-primary:hover {
+    background: var(--brutal-cyan);
+    border-color: #000;
+}
+
+.btn-outline-danger {
+    background: #FFF;
+    border-color: #000;
+    color: #000;
+}
+
+.btn-outline-danger:hover {
+    background: var(--brutal-red);
+    color: #FFF;
+}
+
+.btn-primary {
+    background: var(--brutal-cyan);
+    border-color: #000;
+    color: #000;
+}
+
+.btn-primary:hover {
+    background: var(--brutal-green);
+}
+
+.nav-pills .nav-link {
+    border: var(--border-thick);
+    border-radius: 0;
+    background: #FFF;
+    color: #000;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.nav-pills .nav-link:hover {
+    background: var(--brutal-yellow);
+    transform: translateY(-2px);
+}
+
+.nav-pills .nav-link.active {
+    background: var(--brutal-cyan);
+    color: #000;
+    border-color: #000;
 }
 </style>
 {% endblock %}

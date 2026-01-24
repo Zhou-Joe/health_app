@@ -22,6 +22,18 @@
              bindinput="onPasswordInput" />
     </view>
 
+    <view class="agreement-check">
+      <label class="checkbox-label" bindtap="toggleAgreement">
+        <checkbox class="agreement-checkbox" value="agreed" checked="{{agreed}}" catchtap="stopCheckboxEvent" />
+        <view class="check-content">
+          <text class="check-text">我已阅读并同意</text>
+          <text class="link-text" catchtap="showUserAgreement">《用户协议》</text>
+          <text class="check-text">和</text>
+          <text class="link-text" catchtap="showPrivacyPolicy">《隐私政策》</text>
+        </view>
+      </label>
+    </view>
+
     <button class="login-btn"
             bindtap="handleLogin"
             loading="{{loading}}">
@@ -40,13 +52,6 @@
             loading="{{wechatLoading}}">
       {{wechatLoading ? '登录中...' : '微信一键登录'}}
     </button>
-  </view>
-
-  <view class="login-footer">
-    <text class="footer-text">登录即表示同意</text>
-    <text class="link-text" bindtap="showUserAgreement">《用户协议》</text>
-    <text class="footer-text">和</text>
-    <text class="link-text" bindtap="showPrivacyPolicy">《隐私政策》</text>
   </view>
 
   <!-- 自定义弹窗 -->

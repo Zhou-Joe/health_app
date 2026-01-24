@@ -2,125 +2,378 @@
 
 {% block title %}上传体检报告 - 个人健康管理系统{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0">
-                    <i class="bi bi-upload"></i> 上传体检报告
-                </h4>
-            </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════════════════════
+   NEO-BRUTALIST MEDICAL - 新野兽派上传页面
+   ═══════════════════════════════════════════════════════════ */
 
-                    <div class="mb-3">
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
+}
+
+body {
+    background: #FAFAFA;
+    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    color: #000;
+    overflow-x: hidden;
+}
+
+/* 棋盘格背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container-fluid {
+    position: relative;
+    z-index: 1;
+}
+
+h1 {
+    font-size: 3rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+h1 i {
+    display: none;
+}
+
+.upload-card {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    overflow: hidden;
+}
+
+.upload-card .card-header {
+    background: var(--brutal-cyan);
+    color: #000;
+    border: none;
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: var(--border-thick);
+}
+
+.upload-card .card-body {
+    padding: 2rem;
+}
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #000;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 3px;
+    background: #000;
+    margin-left: 1rem;
+}
+
+.form-control, .form-select {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+    transition: all 0.1s ease;
+    color: #000;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #000;
+    box-shadow: 6px 6px 0px var(--brutal-yellow);
+    background: #FFF;
+    color: #000;
+    outline: none;
+}
+
+.form-control::placeholder {
+    color: #999;
+}
+
+.form-label {
+    font-weight: 800;
+    font-size: 0.875rem;
+    color: #000;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-text {
+    font-size: 0.8125rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.metric-card {
+    background: var(--brutal-yellow);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.metric-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-primary {
+    background: var(--brutal-cyan);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.875rem 2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-hard-sm);
+    color: #000;
+}
+
+.btn-primary:hover {
+    background: var(--brutal-green);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-secondary {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.875rem 2rem;
+    font-weight: 800;
+    color: #000;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-secondary:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.info-card {
+    background: var(--brutal-blue);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    box-shadow: var(--shadow-hard-sm);
+    color: #FFF;
+}
+
+.info-card .card-header {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 1rem;
+    color: #FFF;
+}
+
+.info-card ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    font-size: 0.9375rem;
+    color: #FFF;
+}
+
+.info-card li {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.text-danger {
+    color: var(--brutal-red) !important;
+    font-weight: 700;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 900px;">
+    <!-- 页面标题 -->
+    <div class="mb-4">
+        <h1 class="fw-bold mb-2" style="color: #1e293b;">
+            <i class="bi bi-cloud-arrow-up-fill" style="color: var(--primary);"></i> 上传体检报告
+        </h1>
+        <p style="color: #64748b; font-size: 1rem;">智能识别体检报告，自动提取健康指标</p>
+    </div>
+
+    <!-- 上传表单 -->
+    <div class="upload-card">
+        <div class="card-header">
+            <h4 class="mb-0 fw-bold">
+                <i class="bi bi-file-earmark-medical"></i> 报告信息
+            </h4>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="section-title">
+                    <i class="bi bi-info-circle"></i> 基本信息
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
                         <label for="{{ form.checkup_date.id_for_label }}" class="form-label">
                             {{ form.checkup_date.label }}
                         </label>
                         {{ form.checkup_date }}
                         {% if form.checkup_date.errors %}
-                            <div class="text-danger">
+                            <div class="text-danger small mt-1">
                                 {{ form.checkup_date.errors }}
                             </div>
                         {% endif %}
                     </div>
 
-                    <div class="mb-3">
+                    <div class="col-md-6">
                         <label for="{{ form.hospital.id_for_label }}" class="form-label">
                             {{ form.hospital.label }}
                         </label>
                         {{ form.hospital }}
                         {% if form.hospital.errors %}
-                            <div class="text-danger">
+                            <div class="text-danger small mt-1">
                                 {{ form.hospital.errors }}
                             </div>
                         {% endif %}
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="{{ form.report_file.id_for_label }}" class="form-label">
-                            {{ form.report_file.label }}
-                        </label>
-                        {{ form.report_file }}
-                        {% if form.report_file.errors %}
-                            <div class="text-danger">
-                                {{ form.report_file.errors }}
-                            </div>
-                        {% endif %}
-                        <div class="form-text">支持 PDF、JPG、PNG 格式，文件大小不超过 10MB</div>
+                <div class="mb-4">
+                    <label for="{{ form.report_file.id_for_label }}" class="form-label">
+                        <i class="bi bi-cloud-upload"></i> {{ form.report_file.label }}
+                    </label>
+                    {{ form.report_file }}
+                    {% if form.report_file.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.report_file.errors }}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        <i class="bi bi-info-circle"></i> 支持 PDF、JPG、PNG 格式，文件大小不超过 10MB
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="{{ form.notes.id_for_label }}" class="form-label">
-                            {{ form.notes.label }}
-                        </label>
-                        {{ form.notes }}
-                        {% if form.notes.errors %}
-                            <div class="text-danger">
-                                {{ form.notes.errors }}
-                            </div>
-                        {% endif %}
-                    </div>
+                <div class="mb-4">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label">
+                        {{ form.notes.label }}
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.notes.errors }}
+                        </div>
+                    {% endif %}
+                </div>
 
-                    <!-- 健康指标快速录入 -->
-                    <div class="mb-4">
-                        <h5>主要健康指标（可选）</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label class="form-label">血压 (mmHg)</label>
-                                <input type="text" class="form-control mb-2" placeholder="如: 120/80" name="blood_pressure">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">心率 (bpm)</label>
-                                <input type="text" class="form-control mb-2" placeholder="如: 72" name="heart_rate">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">体重 (kg)</label>
-                                <input type="text" class="form-control mb-2" placeholder="如: 65.5" name="weight">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">身高 (cm)</label>
-                                <input type="text" class="form-control mb-2" placeholder="如: 170" name="height">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">血糖 (mmol/L)</label>
-                                <input type="text" class="form-control mb-2" placeholder="如: 5.1" name="blood_sugar">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">胆固醇 (mmol/L)</label>
-                                <input type="text" class="form-control mb-2" placeholder="如: 4.8" name="cholesterol">
-                            </div>
+                <div class="section-title" style="margin-top: 2rem;">
+                    <i class="bi bi-activity"></i> 主要健康指标（可选）
+                </div>
+
+                <div class="metric-card">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-heart-pulse"></i> 血压
+                            </label>
+                            <input type="text" class="form-control" placeholder="如: 120/80" name="blood_pressure">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-heartbeat"></i> 心率
+                            </label>
+                            <input type="text" class="form-control" placeholder="如: 72" name="heart_rate">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-person"></i> 体重
+                            </label>
+                            <input type="text" class="form-control" placeholder="如: 65.5" name="weight">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-ruler"></i> 身高
+                            </label>
+                            <input type="text" class="form-control" placeholder="如: 170" name="height">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-droplet"></i> 血糖
+                            </label>
+                            <input type="text" class="form-control" placeholder="如: 5.1" name="blood_sugar">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-clipboard-data"></i> 胆固醇
+                            </label>
+                            <input type="text" class="form-control" placeholder="如: 4.8" name="cholesterol">
                         </div>
                     </div>
+                </div>
 
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> 返回首页
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-upload"></i> 上传报告
-                        </button>
-                    </div>
-                </form>
-            </div>
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> 返回首页
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> 上传报告
+                    </button>
+                </div>
+            </form>
         </div>
+    </div>
 
-        <!-- 上传说明 -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6>上传说明</h6>
-            </div>
-            <div class="card-body">
-                <ul class="mb-0">
-                    <li>请选择准确的体检日期，这将用于健康趋势分析</li>
-                    <li>支持上传体检报告的扫描件或照片</li>
-                    <li>填写主要健康指标有助于系统自动生成趋势图表</li>
-                    <li>所有数据将被安全存储，仅您本人可以查看</li>
-                </ul>
-            </div>
+    <!-- 上传说明 -->
+    <div class="info-card">
+        <div class="card-header">
+            <h6 class="fw-bold mb-0">
+                <i class="bi bi-lightbulb"></i> 上传说明
+            </h6>
         </div>
+        <ul>
+            <li>请选择准确的体检日期，这将用于健康趋势分析</li>
+            <li>支持上传体检报告的扫描件或照片</li>
+            <li>填写主要健康指标有助于系统自动生成趋势图表</li>
+            <li>所有数据将被安全存储，仅您本人可以查看</li>
+        </ul>
     </div>
 </div>
 {% endblock %}

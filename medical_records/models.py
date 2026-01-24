@@ -126,6 +126,7 @@ class HealthAdvice(models.Model):
     prompt_sent = models.TextField(blank=True, null=True, verbose_name='发送的Prompt')
     conversation_context = models.TextField(blank=True, null=True, verbose_name='对话上下文')
     selected_reports = models.TextField(blank=True, null=True, verbose_name='选中的报告ID列表（JSON格式）')
+    selected_medications = models.TextField(blank=True, null=True, verbose_name='选中的药单ID列表（JSON格式）')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     class Meta:

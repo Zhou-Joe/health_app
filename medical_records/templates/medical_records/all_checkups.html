@@ -1,144 +1,358 @@
-{% extends 'medical_records/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}我的所有体检报告{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════════════════════
+   NEO-BRUTALIST MEDICAL - 新野兽派体检记录
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --brutal-red: #FF4757;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
+}
+
+body {
+    background: #FAFAFA;
+    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    color: #000;
+    overflow-x: hidden;
+}
+
+/* 棋盘格背景 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.container-fluid {
+    position: relative;
+    z-index: 1;
+}
+
+.page-header {
+    background: var(--brutal-cyan);
+    color: #000;
+    padding: 2.5rem 2rem;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard);
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.page-header h2 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    margin: 0;
+}
+
+.reports-table-card {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    overflow: hidden;
+}
+
+.reports-table {
+    margin-bottom: 0;
+}
+
+.reports-table thead th {
+    background: #000;
+    color: #FFF;
+    font-weight: 800;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: none;
+    padding: 1.25rem 1.5rem;
+}
+
+.reports-table tbody td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 2px solid #000;
+    vertical-align: middle;
+    color: #000;
+}
+
+.reports-table tbody tr:nth-child(even) {
+    background: #F5F5F5;
+}
+
+.reports-table tbody tr:hover {
+    background: var(--brutal-yellow);
+}
+
+.btn-view {
+    background: var(--brutal-cyan);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.625rem 1.25rem;
+    font-weight: 800;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow-hard-sm);
+    color: #000;
+    transition: all 0.1s ease;
+}
+
+.btn-view:hover {
+    background: var(--brutal-green);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000;
+}
+
+.btn-upload {
+    background: var(--brutal-yellow);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 1.5rem;
+    font-weight: 800;
+    color: #000;
+    box-shadow: var(--shadow-hard-sm);
+    transition: all 0.1s ease;
+}
+
+.btn-upload:hover {
+    background: var(--brutal-pink);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000;
+}
+
+.pagination {
+    gap: 0.5rem;
+}
+
+.page-link {
+    border: var(--border-thick);
+    border-radius: 0;
+    color: #000;
+    font-weight: 800;
+    padding: 0.625rem 0.875rem;
+    transition: all 0.1s ease;
+    background: #FFF;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.page-link:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.page-item.active .page-link {
+    background: var(--brutal-cyan);
+    border-color: #000;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #000;
+    font-weight: 600;
+}
+
+.empty-state i {
+    font-size: 5rem;
+    margin-bottom: 1.5rem;
+    color: var(--brutal-cyan);
+}
+
+.badge-success {
+    background: var(--brutal-green);
+    color: #000;
+    border: 2px solid #000;
+    border-radius: 0;
+    padding: 0.5rem 0.75rem;
+    font-weight: 800;
+    box-shadow: 2px 2px 0px #000;
+}
+
+.badge-danger {
+    background: var(--brutal-red);
+    color: #FFF;
+    border: 2px solid #000;
+    border-radius: 0;
+    padding: 0.5rem 0.75rem;
+    font-weight: 800;
+    box-shadow: 2px 2px 0px #000;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid py-4">
     <!-- 页面标题 -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-1">我的所有体检报告</h2>
-            <p class="text-muted mb-0">共 {{ total_checkups }} 份体检报告</p>
-        </div>
-        <div>
-            <a href="{% url 'medical_records:upload_report' %}" class="btn btn-primary">
-                <i class="bi bi-plus-lg me-2"></i>上传新报告
-            </a>
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1 fw-bold">我的所有体检报告</h2>
+                <p class="mb-0" style="opacity: 0.9;">共 {{ total_checkups }} 份体检报告</p>
+            </div>
+            <div>
+                <a href="{% url 'medical_records:upload_report' %}" class="btn btn-upload">
+                    <i class="bi bi-plus-lg me-2"></i>上传新报告
+                </a>
+            </div>
         </div>
     </div>
 
     <!-- 体检记录列表 -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            {% if page_obj %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">体检日期</th>
-                            <th>医院/机构</th>
-                            <th>异常指标数</th>
-                            <th>体检报告</th>
-                            <th class="text-end pe-4">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for checkup in page_obj %}
-                        <tr>
-                            <td class="ps-4">
-                                <strong>{{ checkup.checkup_date|date:"Y年m月d日" }}</strong>
-                            </td>
-                            <td>
-                                <i class="bi bi-hospital text-muted me-1"></i>
-                                {{ checkup.hospital|default:"未知" }}
-                            </td>
-                            <td>
-                                {% with checkup.get_abnormal_count as abnormal_count %}
-                                {% if abnormal_count > 0 %}
-                                <span class="badge bg-danger">{{ abnormal_count }} 项异常</span>
-                                {% else %}
-                                <span class="badge bg-success">全部正常</span>
-                                {% endif %}
-                                {% endwith %}
-                            </td>
-                            <td>
-                                <span class="text-muted">
-                                    {% with checkup.indicators.count as indicator_count %}
-                                    {{ indicator_count }} 项指标
-                                    {% endwith %}
+    {% if page_obj %}
+    <div class="reports-table-card">
+        <div class="table-responsive">
+            <table class="table reports-table">
+                <thead>
+                    <tr>
+                        <th class="ps-4">体检日期</th>
+                        <th>医院/机构</th>
+                        <th>异常指标数</th>
+                        <th>体检报告</th>
+                        <th class="text-end pe-4">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for checkup in page_obj %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold" style="color: var(--primary-dark);">{{ checkup.checkup_date|date:"Y年m月d日" }}</div>
+                        </td>
+                        <td>
+                            <i class="bi bi-hospital me-2" style="color: #94a3b8;"></i>
+                            <span style="color: #475569;">{{ checkup.hospital|default:"未知" }}</span>
+                        </td>
+                        <td>
+                            {% with checkup.get_abnormal_count as abnormal_count %}
+                            {% if abnormal_count > 0 %}
+                                <span class="badge badge-danger">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> {{ abnormal_count }} 项异常
                                 </span>
-                            </td>
-                            <td class="text-end pe-4">
-                                <a href="{% url 'medical_records:checkup_detail' checkup.id %}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye me-1"></i>查看详情
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            {% else %}
+                                <span class="badge badge-success">
+                                    <i class="bi bi-check-circle me-1"></i> 全部正常
+                                </span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            <span style="color: #94a3b8; font-size: 0.875rem;">
+                                <i class="bi bi-clipboard-data me-1"></i>
+                                {% with checkup.indicators.count as indicator_count %}
+                                {{ indicator_count }} 项指标
+                                {% endwith %}
+                            </span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'medical_records:checkup_detail' checkup.id %}"
+                               class="btn btn-view">
+                                <i class="bi bi-eye me-1"></i>查看详情
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页 -->
+        {% if page_obj.paginator.num_pages > 1 %}
+        <div class="p-4 border-top">
+            <nav aria-label="体检报告分页">
+                <ul class="pagination justify-content-center mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="首页">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="上一页">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="下一页">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="末页">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            <div class="text-center mt-3" style="color: #94a3b8; font-size: 0.875rem;">
+                显示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 条，共 {{ page_obj.paginator.count }} 条
             </div>
+        </div>
+        {% endif %}
+    </div>
 
-            <!-- 分页 -->
-            {% if page_obj.paginator.num_pages > 1 %}
-            <div class="p-3 border-top">
-                <nav aria-label="体检报告分页">
-                    <ul class="pagination justify-content-center mb-0">
-                        {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page=1" aria-label="首页">
-                                <i class="bi bi-chevron-double-left"></i>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="上一页">
-                                <i class="bi bi-chevron-left"></i>
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link"><i class="bi bi-chevron-left"></i></span>
-                        </li>
-                        {% endif %}
-
-                        {% for num in page_obj.paginator.page_range %}
-                        {% if page_obj.number == num %}
-                        <li class="page-item active">
-                            <span class="page-link">{{ num }}</span>
-                        </li>
-                        {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
-                        </li>
-                        {% endif %}
-                        {% endfor %}
-
-                        {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="下一页">
-                                <i class="bi bi-chevron-right"></i>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="末页">
-                                <i class="bi bi-chevron-double-right"></i>
-                            </a>
-                        </li>
-                        {% else %}
-                        <li class="page-item disabled">
-                            <span class="page-link"><i class="bi bi-chevron-right"></i></span>
-                        </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-                <div class="text-center text-muted small mt-2">
-                    显示第 {{ page_obj.start_index }} 到 {{ page_obj.end_index }} 条，共 {{ page_obj.paginator.count }} 条
-                </div>
-            </div>
-            {% endif %}
-
-            {% else %}
-            <div class="text-center py-5">
-                <i class="bi bi-folder2-open text-muted" style="font-size: 4rem;"></i>
-                <p class="text-muted mt-3 mb-3">暂无体检报告</p>
-                <a href="{% url 'medical_records:upload_report' %}" class="btn btn-primary">
-                    <i class="bi bi-upload me-2"></i>上传第一份体检报告
-                </a>
-            </div>
-            {% endif %}
+    {% else %}
+    <div class="reports-table-card">
+        <div class="empty-state">
+            <i class="bi bi-folder2-open"></i>
+            <h3 style="color: #64748b; margin-bottom: 1rem;">暂无体检报告</h3>
+            <p style="margin-bottom: 2rem;">开始上传您的第一份体检报告吧</p>
+            <a href="{% url 'medical_records:upload_report' %}" class="btn btn-view">
+                <i class="bi bi-upload me-2"></i>上传第一份体检报告
+            </a>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

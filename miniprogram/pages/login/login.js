@@ -11,7 +11,8 @@ Page({
     wechatLoading: false,
     showModal: false,
     modalTitle: '',
-    modalContent: ''
+    modalContent: '',
+    agreed: false
   },
 
   onUsernameInput(e) {
@@ -22,8 +23,25 @@ Page({
     this.setData({ password: e.detail.value })
   },
 
+  // 切换协议勾选状态
+  toggleAgreement() {
+    this.setData({
+      agreed: !this.data.agreed
+    })
+  },
+
+  // 阻止checkbox事件冒泡
+  stopCheckboxEvent(e) {
+    // 阻止事件冒泡，防止触发toggleAgreement
+  },
+
   // 账号密码登录
   async handleLogin() {
+    if (!this.data.agreed) {
+      util.showToast('请先阅读并同意用户协议和隐私政策')
+      return
+    }
+
     if (!this.data.username || !this.data.password) {
       util.showToast('请输入用户名和密码')
       return
@@ -54,6 +72,11 @@ Page({
 
   // 微信一键登录
   async handleWechatLogin() {
+    if (!this.data.agreed) {
+      util.showToast('请先阅读并同意用户协议和隐私政策')
+      return
+    }
+
     this.setData({ wechatLoading: true })
 
     try {

@@ -4,78 +4,446 @@
 
 {% block extra_css %}
 <style>
-.dashboard-card {
-    transition: all 0.3s ease;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* ═══════════════════════════════════════════════════════════
+   NEO-BRUTALIST MEDICAL DASHBOARD - 新野兽派医疗仪表板
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --brutal-red: #FF4757;
+    --brutal-black: #000000;
+    --brutal-white: #FFFFFF;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
 }
-.dashboard-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
-.sidebar-card {
-    border-left: 4px solid #007bff;
-    margin-bottom: 1rem;
+
+body {
+    background: #FAFAFA;
+    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
+    color: #000;
+    overflow-x: hidden;
 }
-.status-badge {
-    font-size: 0.75rem;
+
+/* 页面背景 - 棋盘格图案 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    pointer-events: none;
+    z-index: 0;
 }
-.chart-container {
+
+.container-fluid {
     position: relative;
-    height: 300px;
+    z-index: 1;
 }
-.indicator-value {
-    font-size: 1.5rem;
-    font-weight: bold;
+
+/* ═══════════════════════════════════════════════════════════
+   超大标题 - 粗体，冲击力
+   ═══════════════════════════════════════════════════════════ */
+
+h1 {
+    font-size: 3.5rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    margin-bottom: 0.5rem;
+    position: relative;
+    display: inline-block;
 }
-.indicator-trend {
-    font-size: 0.875rem;
+
+h1::before {
+    content: '健康数据仪表板';
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    z-index: -1;
+    color: var(--brutal-yellow);
+    opacity: 1;
 }
-.indicator-card {
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: all 0.3s ease;
+
+h1 i {
+    display: none;
 }
-.indicator-card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+
+/* 副标题 - 不对称布局 */
+p {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 0;
+    padding-left: 1rem;
+    border-left: 4px solid var(--brutal-cyan);
 }
-.indicator-card .card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 8px 8px 0 0 !important;
-    padding: 12px 15px;
+
+/* ═══════════════════════════════════════════════════════════
+   野兽派卡片 - 粗边框 + 硬阴影
+   ═══════════════════════════════════════════════════════════ */
+
+.dashboard-card {
+    background: var(--brutal-white);
+    border: var(--border-thick);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    margin-bottom: 1.5rem;
 }
-.indicator-card .card-header h6 {
-    font-weight: 600;
+
+.dashboard-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0px #000;
+}
+
+.dashboard-card .card-header {
+    background: transparent;
+    border-bottom: var(--border-thick);
+    padding: 1.5rem;
+    border-radius: 0;
+}
+
+.dashboard-card .card-header h6,
+.dashboard-card .card-header h5 {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 1rem;
     margin: 0;
 }
-.indicator-card .card-header small {
-    opacity: 0.9;
+
+.dashboard-card .card-body {
+    padding: 1.5rem;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   野兽派按钮 - 粗体，硬阴影，hover时偏移
+   ═══════════════════════════════════════════════════════════ */
+
+.btn {
+    border: var(--border-thick);
+    border-radius: 0;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1.5rem;
+    box-shadow: var(--shadow-hard-sm);
+    transition: all 0.1s ease;
+    position: relative;
+}
+
+.btn:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px #000;
+}
+
+.btn-primary {
+    background: var(--brutal-cyan);
+    color: #000;
+    border-color: #000;
+}
+
+.btn-primary:hover {
+    background: var(--brutal-green);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-outline-primary {
+    background: transparent;
+    border-color: #000;
+    color: #000;
+}
+
+.btn-outline-primary:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-outline-danger {
+    background: transparent;
+    border-color: #000;
+    color: #000;
+}
+
+.btn-outline-danger:hover {
+    background: var(--brutal-pink);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.btn-outline-info {
+    background: transparent;
+    border-color: #000;
+    color: #000;
+}
+
+.btn-outline-info:hover {
+    background: var(--brutal-blue);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   野兽派徽章 - 纯色背景，粗边框
+   ═══════════════════════════════════════════════════════════ */
+
+.badge {
+    padding: 0.5rem 0.875rem;
+    border: 2px solid #000;
+    border-radius: 0;
+    font-weight: 800;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 2px 2px 0px #000;
+}
+
+.badge.bg-primary {
+    background: var(--brutal-cyan);
+    color: #000;
+}
+
+.badge.bg-success {
+    background: var(--brutal-green);
+    color: #000;
+}
+
+.badge.bg-danger {
+    background: var(--brutal-red);
+    color: #FFF;
+}
+
+.badge.bg-warning {
+    background: var(--brutal-yellow);
+    color: #000;
+}
+
+.badge.bg-info {
+    background: var(--brutal-blue);
+    color: #FFF;
+}
+
+.badge.bg-light {
+    background: var(--brutal-white);
+    color: #000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   指标卡片 - 彩色顶部边框
+   ═══════════════════════════════════════════════════════════ */
+
+.indicator-card {
+    background: var(--brutal-white);
+    border: var(--border-thick);
+    border-top: 6px solid var(--brutal-cyan);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard-sm);
+    transition: all 0.15s ease;
+}
+
+.indicator-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+}
+
+.indicator-card .card-header {
+    background: transparent;
+    border-bottom: var(--border-thick);
+    padding: 1rem;
+    color: #000;
+}
+
+.indicator-card .card-header h6 {
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 0.875rem;
+}
+
 .indicator-card .card-body {
-    padding: 15px;
+    padding: 1rem;
+    background: #FFF;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   数据表格 - 粗边框，斑马纹
+   ═══════════════════════════════════════════════════════════ */
+
 .indicator-table {
     margin-bottom: 0;
+    font-size: 0.875rem;
 }
+
 .indicator-table thead th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    color: #495057;
-    font-weight: 600;
+    background: #000;
+    color: #FFF;
+    font-weight: 800;
     font-size: 0.75rem;
-    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.875rem;
+    border: none;
 }
+
 .indicator-table tbody td {
-    vertical-align: middle;
-    border-bottom: 1px solid #f1f3f5;
+    padding: 0.875rem;
+    border-bottom: 2px solid #000;
+    color: #000;
 }
-.indicator-table tbody tr:last-child td {
-    border-bottom: none;
+
+.indicator-table tbody tr:nth-child(even) {
+    background: #F5F5F5;
 }
+
 .indicator-table tbody tr:hover {
-    background-color: #f8f9fa;
+    background: var(--brutal-yellow);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   标签页 - 粗边框，硬阴影
+   ═══════════════════════════════════════════════════════════ */
+
+.nav-tabs {
+    border-bottom: var(--border-thick);
+    gap: 0;
+}
+
+.nav-tabs .nav-link {
+    border: 2px solid #000;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    background: #F5F5F5;
+    color: #000;
+    font-weight: 700;
+    padding: 1rem 1.5rem;
+    margin-right: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.nav-tabs .nav-link:hover {
+    background: var(--brutal-yellow);
+    transform: translateY(-2px);
+}
+
+.nav-tabs .nav-link.active {
+    background: var(--brutal-cyan);
+    color: #000;
+    border-color: #000;
+    border-bottom: 2px solid #FFF;
+    margin-bottom: -2px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   进度条 - 纯色填充
+   ═══════════════════════════════════════════════════════════ */
+
+.progress {
+    height: 12px;
+    border: 2px solid #000;
+    border-radius: 0;
+    background: #F5F5F5;
+}
+
+.progress-bar {
+    border-radius: 0;
+    transition: width 0.3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Alert - 纯色背景 + 粗边框
+   ═══════════════════════════════════════════════════════════ */
+
+.alert {
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.alert-danger {
+    background: var(--brutal-red);
+    color: #FFF;
+    border-color: #000;
+}
+
+.alert-success {
+    background: var(--brutal-green);
+    color: #000;
+    border-color: #000;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   卡片彩色边框
+   ═══════════════════════════════════════════════════════════ */
+
+.card.border-danger {
+    border-left: 6px solid var(--brutal-red) !important;
+}
+
+.card.border-success {
+    border-left: 6px solid var(--brutal-green) !important;
+}
+
+.card.border-warning {
+    border-left: 6px solid var(--brutal-yellow) !important;
+}
+
+.card.border-info {
+    border-left: 6px solid var(--brutal-blue) !important;
+}
+
+.card.border-danger .card-header {
+    background: var(--brutal-red);
+    color: #FFF;
+    border-bottom-color: #000 !important;
+}
+
+.card.border-info .card-header {
+    background: var(--brutal-blue);
+    color: #FFF;
+    border-bottom-color: #000 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   文字颜色重置
+   ═══════════════════════════════════════════════════════════ */
+
+.text-muted {
+    color: #666 !important;
+    font-weight: 500;
+}
+
+.fw-bold {
+    color: #000 !important;
+    font-weight: 800 !important;
+}
+
+.border-bottom {
+    border-color: #000 !important;
+    border-width: 2px;
 }
 </style>
 {% endblock %}
@@ -85,9 +453,14 @@
     <!-- 页面标题 -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="mb-0">
-                <i class="bi bi-heart-pulse text-primary"></i> 健康数据仪表板
-            </h1>
+            <div class="d-flex align-items-center gap-3">
+                <div class="flex-grow-1">
+                    <h1 class="mb-1 fw-bold" style="color: var(--text-primary);">
+                        <i class="bi bi-heart-pulse-fill" style="color: var(--primary);"></i> 健康数据仪表板
+                    </h1>
+                    <p class="mb-0" style="color: var(--text-secondary);">全面掌控您的健康状况</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -214,6 +587,91 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 用药提醒 -->
+                {% if has_medication_reminders %}
+                <div class="col-12 mb-3">
+                    <div class="card dashboard-card border-info h-100">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-capsule"></i> 用药提醒
+                                <span class="badge bg-light text-info ms-2">{{ medication_reminders|length }} 种药</span>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                {% for reminder in medication_reminders %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card {% if reminder.taken_today %}border-success{% else %}border-warning{% endif %}">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1">
+                                                        <i class="bi bi-pills"></i> {{ reminder.medication.medicine_name }}
+                                                    </h6>
+                                                    <div class="text-muted small">
+                                                        {{ reminder.medication.dosage }}
+                                                    </div>
+                                                </div>
+                                                {% if reminder.taken_today %}
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> 已服药
+                                                </span>
+                                                {% else %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="bi bi-clock"></i> 待服药
+                                                </span>
+                                                {% endif %}
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="small text-muted">
+                                                    <i class="bi bi-calendar3"></i>
+                                                    {{ reminder.medication.start_date|date:"m月d日" }} -
+                                                    {{ reminder.medication.end_date|date:"m月d日" }}
+                                                    <span class="ms-2">
+                                                        剩余 {{ reminder.days_remaining }} 天
+                                                    </span>
+                                                </div>
+                                                <div class="small" title="服药进度">
+                                                    <div class="progress" style="height: 6px; width: 80px;">
+                                                        <div class="progress-bar {% if reminder.progress_percentage >= 80 %}bg-success{% elif reminder.progress_percentage >= 50 %}bg-info{% else %}bg-warning{% endif %}"
+                                                             style="width: {{ reminder.progress_percentage }}%"
+                                                             role="progressbar"></div>
+                                                    </div>
+                                                    <span class="text-muted">{{ reminder.progress_percentage }}%</span>
+                                                </div>
+                                            </div>
+
+                                            {% if not reminder.taken_today %}
+                                            <div class="mt-2">
+                                                <a href="{% url 'medical_records:medication_list' %}"
+                                                   class="btn btn-sm btn-outline-primary w-100">
+                                                    <i class="bi bi-check2-square"></i> 打卡服药
+                                                </a>
+                                            </div>
+                                            {% endif %}
+
+                                            {% if reminder.medication.notes %}
+                                            <div class="mt-2 text-muted small">
+                                                <i class="bi bi-sticky"></i> {{ reminder.medication.notes }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mt-3">
+                                <a href="{% url 'medical_records:medication_list' %}" class="btn btn-outline-info btn-sm w-100">
+                                    <i class="bi bi-list-ul"></i> 查看所有药单
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -264,15 +722,15 @@
 {% block extra_js %}
 <script>
 // 图表数据
-const chartData = {{ chart_data|safe }};
+const chartData = {{ chart_data|safe }} || {};
 const rawData = chartData; // 保持向后兼容
 
 // 从Django传递的动态指标分类列表
-const indicatorTypeList = {{ indicator_type_list|safe }};
+const indicatorTypeList = {{ indicator_type_list|safe }} || [];
 console.log('Indicator type list from Django:', indicatorTypeList);
 
 // 从Django传递的动态指标分类映射
-const dynamicIndicatorMapping = {{ indicator_type_mapping|safe }};
+const dynamicIndicatorMapping = {{ indicator_type_mapping|safe }} || {};
 console.log('Dynamic indicator mapping from Django:', dynamicIndicatorMapping);
 
 // 动态生成标签按钮和内容面板
@@ -375,7 +833,7 @@ function createTableForIndicator(indicatorName, indicatorData) {
     })).sort((a, b) => new Date(b.date) - new Date(a.date));
 
     let tableHtml = `
-        <div class="col-lg-6 col-xl-4 mb-3">
+        <div class="col-lg-6 col-xl-4 mb-2">
             <div class="card indicator-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 text-truncate" title="${indicatorName}">${indicatorName}</h6>
@@ -504,7 +962,7 @@ function deleteCheckup(checkupId) {
         return;
     }
 
-    const deleteUrl = `/health/checkup/${checkupId}/delete/`;
+    const deleteUrl = `/checkup/${checkupId}/delete/`;
 
     fetch(deleteUrl, {
         method: 'POST',

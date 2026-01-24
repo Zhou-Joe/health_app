@@ -1311,8 +1311,11 @@ def stream_ai_advice(request):
 
         # 获取对话ID（可选）
         conversation_id = data.get('conversation_id')
+        conversation_mode = data.get('conversation_mode', 'new_conversation')
         conversation = None
-        if conversation_id:
+
+        # 只在非新对话模式下才加载历史对话
+        if conversation_mode != 'new_conversation' and conversation_id:
             try:
                 conversation = Conversation.objects.get(id=conversation_id, user=request.user, is_active=True)
             except Conversation.DoesNotExist:
@@ -1326,6 +1329,17 @@ def stream_ai_advice(request):
             selected_reports = HealthCheckup.objects.filter(
                 id__in=selected_report_ids,
                 user=request.user
+            )
+
+        # 获取选择的药单ID
+        selected_medication_ids = data.get('selected_medication_ids', [])
+        selected_medications = None
+        if selected_medication_ids:
+            from .models import Medication
+            selected_medications = Medication.objects.filter(
+                id__in=selected_medication_ids,
+                user=request.user,
+                is_active=True
             )
 
         # 获取AI医生设置
@@ -1374,15 +1388,8 @@ def stream_ai_advice(request):
             (model_name and 'Baichuan' in model_name)
         )
 
-        # 构建系统提示词（和call_ai_doctor_api保持一致）
-        system_prompt = """你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。
-
-注意事项：
-1. 你的建议仅供参考，不能替代专业医生的诊断
-2. 对于异常指标，请给出可能的原因和建议
-3. 建议用户定期体检，遵医嘱进行复查
-4. 强调本建议仅供参考，具体诊疗请咨询专业医生
-5. 回答要专业但平易近人，建议要具体可行"""
+        # 构建系统提示词（使用统一的prompt配置）
+        system_prompt = AI_DOCTOR_SYSTEM_PROMPT
 
         # 构建用户消息
         user_message_parts = [f"当前问题：{question}"]
@@ -1415,20 +1422,59 @@ def stream_ai_advice(request):
                 has_health_data = True
                 health_data_text = format_health_data_for_prompt(health_data) if health_data else ""
 
-        if has_health_data:
-            user_message_parts.extend([
-                f"\n用户健康数据：\n{health_data_text}",
-                "\n请基于以上信息：",
-                "1. 结合对话历史，理解用户的连续关注点",
-                "2. 分析用户的健康状况和趋势",
-                "3. 针对用户的具体问题提供专业建议",
-                "4. 注意观察指标的历史变化趋势",
-                "5. 给出实用的生活方式和医疗建议",
-                "6. 如有异常指标，请特别说明并建议应对措施"
-            ])
+        # 添加药单信息
+        medication_data_text = ""
+        if selected_medications is not None and selected_medications.exists():
+            medication_parts = ["\n用药信息："]
+            for med in selected_medications:
+                medication_parts.append(f"- {med.medicine_name}")
+                medication_parts.append(f"  服药方式：{med.dosage}")
+                medication_parts.append(f"  疗程：{med.start_date} 至 {med.end_date} (共{med.total_days}天)")
+                medication_parts.append(f"  当前进度：已服药{med.days_taken}/{med.total_days}天 ({med.progress_percentage}%)")
+                if med.notes:
+                    medication_parts.append(f"  备注：{med.notes}")
+                medication_parts.append("")  # 空行分隔
+            medication_data_text = "\n".join(medication_parts)
+
+        # 构建用户消息的健康数据和药单信息部分
+        if has_health_data or medication_data_text:
+            # 添加健康数据
+            if has_health_data:
+                user_message_parts.append(f"\n用户健康数据：\n{health_data_text}")
+
+            # 添加药单信息
+            if medication_data_text:
+                user_message_parts.append(medication_data_text)
+
+            # 添加指导性提示
+            user_message_parts.append("\n请基于以上信息：")
+            user_message_parts.append("1. 结合对话历史，理解用户的连续关注点")
+            user_message_parts.append("2. 分析用户的健康状况和趋势")
+            if medication_data_text:
+                user_message_parts.append("3. 结合用户的用药情况，分析药物与健康状况的关系")
+                user_message_parts.append("4. 针对用户的具体问题提供专业建议")
+                user_message_parts.append("5. 注意观察指标的历史变化趋势")
+                user_message_parts.append("6. 给出实用的生活方式和医疗建议")
+                user_message_parts.append("7. 如有异常指标，请特别说明并建议应对措施")
+            else:
+                user_message_parts.append("3. 针对用户的具体问题提供专业建议")
+                user_message_parts.append("4. 注意观察指标的历史变化趋势")
+                user_message_parts.append("5. 给出实用的生活方式和医疗建议")
+                user_message_parts.append("6. 如有异常指标，请特别说明并建议应对措施")
         else:
+            # 没有提供健康数据和药单信息
+            notice_parts = ["\n注意："]
+            if selected_reports is not None and not selected_reports.exists():
+                notice_parts.append("用户选择不提供任何体检报告数据")
+            if selected_medications is not None and not selected_medications.exists():
+                if len(notice_parts) > 1:
+                    notice_parts.append("，不提供用药信息")
+                else:
+                    notice_parts.append("用户选择不提供用药信息")
+            notice_parts.append("，请仅基于问题提供一般性健康建议。")
+
             user_message_parts.extend([
-                "\n注意：用户选择不提供任何体检报告数据，请仅基于问题提供一般性健康建议。",
+                "".join(notice_parts),
                 "\n请基于以上问题：",
                 "1. 结合对话历史，理解用户的关注点",
                 "2. 提供一般性的健康建议和知识",
@@ -1455,11 +1501,14 @@ def stream_ai_advice(request):
             error_msg = None
 
             try:
+                # 首先发送prompt内容
+                yield f"data: {json.dumps({'prompt': prompt}, ensure_ascii=False)}\n\n"
+
                 # 根据提供商选择不同的流式调用方式
                 if provider == 'gemini':
                     # 使用 LangChain 的 ChatGoogleGenerativeAI
                     from langchain_google_genai import ChatGoogleGenerativeAI
-                    from langchain_core.messages import HumanMessage, SystemMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
                     llm = ChatGoogleGenerativeAI(
                         model=model_name,
@@ -1472,10 +1521,10 @@ def stream_ai_advice(request):
                     # 构建消息列表（支持system角色）
                     messages = []
                     if is_baichuan:
-                        # 百川API：使用system和user分离
-                        messages.append(SystemMessage(content=system_prompt))
+                        # 百川API：使用assistant和user分离
+                        messages.append(AIMessage(content=system_prompt))
                         messages.append(HumanMessage(content=user_message))
-                        print(f"[AI医生-流式-Gemini] 使用system角色模式")
+                        print(f"[AI医生-流式-Gemini] 使用assistant角色模式")
                     else:
                         # 其他API：合并为单一消息
                         messages.append(HumanMessage(content=prompt))
@@ -1512,7 +1561,7 @@ def stream_ai_advice(request):
                 else:
                     # 使用 OpenAI 兼容格式（LangChain）
                     from langchain_openai import ChatOpenAI
-                    from langchain_core.messages import HumanMessage, SystemMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
                     # 处理 API URL，避免重复路径
                     # LangChain 会自动添加 /chat/completions，所以如果 URL 中已包含，需要移除
@@ -1538,10 +1587,10 @@ def stream_ai_advice(request):
                     # 构建消息列表（支持system角色）
                     messages = []
                     if is_baichuan:
-                        # 百川API：使用system和user分离
-                        messages.append(SystemMessage(content=system_prompt))
+                        # 百川API：使用assistant和user分离
+                        messages.append(AIMessage(content=system_prompt))
                         messages.append(HumanMessage(content=user_message))
-                        print(f"[AI医生-流式-OpenAI兼容] 使用system角色模式，模型：{model_name}")
+                        print(f"[AI医生-流式-OpenAI兼容] 使用assistant角色模式，模型：{model_name}")
                     else:
                         # 其他API：合并为单一消息
                         messages.append(HumanMessage(content=prompt))
@@ -1581,7 +1630,9 @@ def stream_ai_advice(request):
                         question=question,
                         answer=full_response,
                         prompt_sent=prompt,
-                        conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
+                        conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
+                        selected_reports=json.dumps(selected_report_ids, ensure_ascii=False) if selected_report_ids else None,
+                        selected_medications=json.dumps(selected_medication_ids, ensure_ascii=False) if selected_medication_ids else None
                     )
 
                     # 发送保存成功的消息
@@ -2033,15 +2084,23 @@ def stream_integrate_data(request):
                     gemini_config = SystemSettings.get_gemini_config()
                     api_key = gemini_config.get('api_key', '')
                     model_name = gemini_config.get('model_name', 'gemini-2.5-flash-exp')
+                    api_url = gemini_config.get('api_url', '')
 
                     if not api_key:
                         raise Exception("Gemini API密钥未配置")
+
+                    # 判断是否为百川API
+                    is_baichuan = (
+                        llm_provider == 'baichuan' or
+                        (api_url and 'baichuan' in api_url.lower()) or
+                        (model_name and 'Baichuan' in model_name)
+                    )
 
                     yield f"data: {json.dumps({'status': 'llm_thinking', 'message': '💭 Gemini正在分析数据...'}, ensure_ascii=False)}\n\n"
 
                     # 使用流式调用
                     from langchain_google_genai import ChatGoogleGenerativeAI
-                    from langchain_core.messages import HumanMessage, SystemMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
                     llm = ChatGoogleGenerativeAI(
                         model=model_name,
@@ -2051,7 +2110,11 @@ def stream_integrate_data(request):
                         streaming=True
                     )
 
-                    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+                    # 根据是否为百川API使用不同的消息格式
+                    if is_baichuan:
+                        messages = [AIMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+                    else:
+                        messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
                     llm_response = ""
 
                     # 流式输出token
@@ -2097,7 +2160,14 @@ def stream_integrate_data(request):
 
                     # 使用流式调用OpenAI兼容模式
                     from langchain_openai import ChatOpenAI
-                    from langchain_core.messages import HumanMessage, SystemMessage
+                    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+                    # 判断是否为百川API
+                    is_baichuan = (
+                        llm_provider == 'baichuan' or
+                        (api_url and 'baichuan' in api_url.lower()) or
+                        (model_name and 'Baichuan' in model_name)
+                    )
 
                     # 处理 API URL
                     base_url = api_url
@@ -2116,7 +2186,11 @@ def stream_integrate_data(request):
                         streaming=True
                     )
 
-                    messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+                    # 根据是否为百川API使用不同的消息格式
+                    if is_baichuan:
+                        messages = [AIMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+                    else:
+                        messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
                     llm_response = ""
 
                     # 流式输出token
@@ -2672,4 +2746,86 @@ def api_medication_records(request, medication_id):
         'success': True,
         'records': record_list
     })
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+@login_required
+def api_conversation_resources(request, conversation_id):
+    """获取对话关联的报告和药单信息"""
+    from .models import Conversation, HealthAdvice, HealthCheckup, Medication
+
+    try:
+        conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user, is_active=True)
+
+        # 获取对话中最新的建议
+        latest_advice = HealthAdvice.objects.filter(
+            conversation=conversation,
+            user=request.user
+        ).order_by('-created_at').first()
+
+        if not latest_advice:
+            return JsonResponse({
+                'success': True,
+                'reports': [],
+                'medications': [],
+                'message': '对话中没有保存的数据'
+            })
+
+        reports = []
+        medications = []
+
+        # 解析选中的报告
+        if latest_advice.selected_reports:
+            try:
+                report_ids = json.loads(latest_advice.selected_reports)
+                if report_ids:
+                    reports_qs = HealthCheckup.objects.filter(
+                        id__in=report_ids,
+                        user=request.user
+                    )
+                    for report in reports_qs:
+                        reports.append({
+                            'id': report.id,
+                            'hospital': report.hospital,
+                            'checkup_date': report.checkup_date.strftime('%Y-%m-%d') if report.checkup_date else '',
+                        })
+            except json.JSONDecodeError:
+                pass
+
+        # 解析选中的药单
+        if latest_advice.selected_medications:
+            try:
+                medication_ids = json.loads(latest_advice.selected_medications)
+                if medication_ids:
+                    medications_qs = Medication.objects.filter(
+                        id__in=medication_ids,
+                        user=request.user,
+                        is_active=True
+                    )
+                    for med in medications_qs:
+                        medications.append({
+                            'id': med.id,
+                            'medicine_name': med.medicine_name,
+                            'start_date': med.start_date.strftime('%Y-%m-%d') if med.start_date else '',
+                            'end_date': med.end_date.strftime('%Y-%m-%d') if med.end_date else '',
+                            'total_days': med.total_days,
+                            'days_taken': med.days_taken,
+                            'progress_percentage': med.progress_percentage,
+                            'dosage': med.dosage,
+                        })
+            except json.JSONDecodeError:
+                pass
+
+        return JsonResponse({
+            'success': True,
+            'reports': reports,
+            'medications': medications
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'获取对话资源失败: {str(e)}'
+        }, status=500)
 

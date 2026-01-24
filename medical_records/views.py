@@ -8,8 +8,9 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 import json
 import requests
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, UserProfile
+from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, UserProfile, Medication, MedicationRecord
 from .forms import HealthCheckupForm, HealthIndicatorForm, ManualIndicatorForm, HealthAdviceForm, SystemSettingsForm, CustomUserCreationForm, UserProfileForm
+from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
 
 
 def register(request):
@@ -201,6 +202,31 @@ def dashboard(request):
     total_checkups = HealthCheckup.objects.filter(user=user).count()
     latest_checkup = HealthCheckup.objects.filter(user=user).order_by('-checkup_date').first()
 
+    # 用药提醒 - 获取当前需要服药的药单
+    today = timezone.now().date()
+    medication_reminders = Medication.objects.filter(
+        user=user,
+        is_active=True,
+        start_date__lte=today,
+        end_date__gte=today
+    ).order_by('start_date')
+
+    # 为每个药单检查今天是否已服药
+    medication_reminders_with_status = []
+    for med in medication_reminders:
+        # 检查今天是否已有服药记录
+        taken_today = MedicationRecord.objects.filter(
+            medication=med,
+            record_date=today
+        ).exists()
+
+        medication_reminders_with_status.append({
+            'medication': med,
+            'taken_today': taken_today,
+            'days_remaining': (med.end_date - today).days + 1,
+            'progress_percentage': med.progress_percentage
+        })
+
     # 计算健康评分
     health_score = 85  # 默认分数
     if latest_checkup:
@@ -234,6 +260,10 @@ def dashboard(request):
 
         # 我的体检报告卡片数据
         'all_checkups': checkups_with_stats,  # 使用带统计的数据
+
+        # 用药提醒
+        'medication_reminders': medication_reminders_with_status,
+        'has_medication_reminders': len(medication_reminders_with_status) > 0,
     }
 
     return render(request, 'medical_records/dashboard.html', context)
@@ -376,12 +406,13 @@ def ai_health_advice(request):
                 conversation = None
 
                 if conversation_mode == 'continue_conversation':
-                    # 继续现有对话
+                    # 继续现有对话（包含历史对话上下文）
                     conversation_id = request.POST.get('conversation_id')
                     if conversation_id:
                         from .models import Conversation
                         try:
                             conversation = Conversation.objects.get(id=conversation_id, user=request.user, is_active=True)
+                            conversation_for_context = conversation  # 继续对话时，传递 conversation 以包含历史上下文
                         except Conversation.DoesNotExist:
                             return JsonResponse({
                                 'success': False,
@@ -393,13 +424,15 @@ def ai_health_advice(request):
                             'error': '请选择要继续的对话'
                         })
                 else:
-                    # 创建新对话
+                    # 创建新对话（不包含历史对话上下文）
                     from .models import Conversation
                     # 使用用户问题的前50个字符作为对话标题
                     question_text = advice.question[:50]
                     if len(advice.question) > 50:
                         question_text += '...'
                     conversation = Conversation.create_new_conversation(request.user, f"健康咨询: {question_text}")
+                    # 创建新对话时，设置为 None 以便后续判断不包含历史上下文
+                    conversation_for_context = None
 
                 advice.conversation = conversation
 
@@ -441,8 +474,9 @@ def ai_health_advice(request):
                         )
 
                 # 生成AI响应，传入选择的报告、药单和对话上下文
+                # 注意：conversation 用于关联消息到对话，conversation_for_context 用于决定是否包含历史上下文
                 question = advice.question
-                answer, prompt_sent, conversation_context = generate_ai_advice(question, request.user, selected_reports, conversation, selected_medications)
+                answer, prompt_sent, conversation_context = generate_ai_advice(question, request.user, selected_reports, conversation_for_context, selected_medications)
 
                 # 如果AI生成失败，返回错误信息
                 if not answer:
@@ -460,6 +494,17 @@ def ai_health_advice(request):
                 advice.answer = answer
                 advice.prompt_sent = prompt_sent
                 advice.conversation_context = json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
+
+                # 保存选中的报告ID列表
+                if selected_reports:
+                    report_ids = [str(r.id) for r in selected_reports]
+                    advice.selected_reports = json.dumps(report_ids, ensure_ascii=False)
+
+                # 保存选中的药单ID列表
+                if selected_medications:
+                    medication_ids = [str(m.id) for m in selected_medications]
+                    advice.selected_medications = json.dumps(medication_ids, ensure_ascii=False)
+
                 advice.save()
 
                 # 如果是AJAX请求，返回JSON响应
@@ -797,15 +842,19 @@ def get_selected_reports_health_data(user, selected_reports):
 
 
 def get_conversation_context(user, conversation=None, max_conversations=50):  # 增加到50次对话
-    """获取用户最近的对话上下文"""
+    """获取用户最近的对话上下文
+
+    Args:
+        user: 用户对象
+        conversation: 对话对象，如果为 None 则返回空列表（新对话）
+        max_conversations: 最大对话数量（仅在 conversation 为 None 时有效，目前该参数已废弃）
+    """
     if conversation:
-        # 获取特定对话的上下文
+        # 获取特定对话的上下文（继续对话模式）
         recent_advices = HealthAdvice.get_conversation_messages(conversation.id)
     else:
-        # 获取用户的所有对话上下文（包括没有关联对话的旧数据）
-        recent_advices = HealthAdvice.objects.filter(
-            user=user
-        ).order_by('-created_at')[:max_conversations]
+        # 创建新对话，不包含任何历史对话上下文
+        recent_advices = []
 
     context = []
     for advice in recent_advices:  # 对于特定对话已经是按时间正序
@@ -946,13 +995,7 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None, m
             full_prompt = "\n".join(prompt_parts)
 
             # 系统消息
-            system_message = """你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。
-
-注意事项：
-1. 你的建议仅供参考，不能替代专业医生的诊断
-2. 对于异常指标，请给出可能的原因和建议
-3. 建议用户定期体检，遵医嘱进行复查
-4. 强调本建议仅供参考，具体诊疗请咨询专业医生"""
+            system_message = AI_DOCTOR_SYSTEM_PROMPT
 
             return call_gemini_api(full_prompt, system_message, timeout), None
 
@@ -967,15 +1010,8 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None, m
             'Baichuan' in model_name
         )
 
-        # 构建系统提示词
-        system_prompt = """你是一位专业的AI医生助手，请基于用户的健康数据和问题提供专业建议。
-
-注意事项：
-1. 你的建议仅供参考，不能替代专业医生的诊断
-2. 对于异常指标，请给出可能的原因和建议
-3. 建议用户定期体检，遵医嘱进行复查
-4. 强调本建议仅供参考，具体诊疗请咨询专业医生
-5. 回答要专业但平易近人，建议要具体可行"""
+        # 构建系统提示词（使用统一的prompt配置）
+        system_prompt = AI_DOCTOR_SYSTEM_PROMPT
 
         # 构建用户消息
         user_message_parts = [f"当前问题：{question}"]
@@ -1062,10 +1098,10 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None, m
         # 构建消息列表
         messages = []
 
-        # 如果是百川API，添加system角色消息
+        # 如果是百川API，添加assistant角色消息
         if is_baichuan:
-            messages.append({'role': 'system', 'content': system_prompt})
-            print(f"[AI医生] 使用百川API模式，已添加system角色")
+            messages.append({'role': 'assistant', 'content': system_prompt})
+            print(f"[AI医生] 使用百川API模式，已添加assistant角色")
 
         # 添加用户消息
         messages.append({'role': 'user', 'content': user_message})
