@@ -18,6 +18,10 @@ urlpatterns = [
     path('checkups/<int:checkup_id>/', miniprogram_api.miniprogram_checkup_detail, name='checkup_detail'),
     path('checkups/<int:checkup_id>/delete/', miniprogram_api.miniprogram_delete_checkup, name='delete_checkup'),
 
+    # 体检报告导出
+    path('export/checkups/pdf/', miniprogram_api.miniprogram_export_checkups_pdf, name='export_checkups_pdf'),
+    path('export/checkups/word/', miniprogram_api.miniprogram_export_checkups_word, name='export_checkups_word'),
+
     # 健康指标
     path('indicators/', miniprogram_api.miniprogram_indicators, name='indicators'),
     path('indicators/create/', miniprogram_api.miniprogram_create_indicator, name='create_indicator'),

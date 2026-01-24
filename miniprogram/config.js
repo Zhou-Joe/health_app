@@ -73,11 +73,11 @@ module.exports = {
     medicationCheckin: '/api/miniprogram/medications/checkin/',
     medicationRecords: (id) => `/api/miniprogram/medications/${id}/records/`,
 
-    // 导出功能（使用网页端接口）
+    // 导出功能（使用小程序专用接口）
     exportHealthTrendsPDF: '/dashboard/export/pdf/',
     exportHealthTrendsWord: '/dashboard/export/word/',
-    exportCheckupsPDF: '/export/checkups/pdf/',
-    exportCheckupsWord: '/export/checkups/word/'
+    exportCheckupsPDF: '/api/miniprogram/export/checkups/pdf/',
+    exportCheckupsWord: '/api/miniprogram/export/checkups/word/'
   },
 
   // 存储键名

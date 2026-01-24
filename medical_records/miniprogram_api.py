@@ -1593,6 +1593,110 @@ def miniprogram_export_conversation_word(request, conversation_id):
             'success': False,
             'message': f'导出Word失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# ==================== 导出体检报告为PDF/Word ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_export_checkups_pdf(request):
+    """小程序专用：批量导出体检报告为PDF"""
+    try:
+        from .export_utils import CheckupReportsExporter
+        from .models import HealthCheckup
+
+        # 获取请求中的报告ID列表
+        checkup_ids = request.GET.get('checkup_ids', '')
+        if not checkup_ids:
+            return Response({
+                'success': False,
+                'message': '未选择任何报告'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 解析报告ID
+        checkup_id_list = [int(id.strip()) for id in checkup_ids.split(',') if id.strip().isdigit()]
+
+        if not checkup_id_list:
+            return Response({
+                'success': False,
+                'message': '无效的报告ID'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取用户自己的报告
+        checkups = HealthCheckup.objects.filter(
+            user=request.user,
+            id__in=checkup_id_list
+        ).order_by('-checkup_date')
+
+        if not checkups.exists():
+            return Response({
+                'success': False,
+                'message': '未找到指定的报告'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 导出
+        exporter = CheckupReportsExporter(checkups)
+        return exporter.export_to_pdf()
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'[导出PDF] user={request.user.username}, error: {str(e)}')
+        print(f'[导出PDF] traceback: {error_details}')
+        return Response({
+            'success': False,
+            'message': f'导出PDF失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_export_checkups_word(request):
+    """小程序专用：批量导出体检报告为Word"""
+    try:
+        from .export_utils import CheckupReportsExporter
+        from .models import HealthCheckup
+
+        # 获取请求中的报告ID列表
+        checkup_ids = request.GET.get('checkup_ids', '')
+        if not checkup_ids:
+            return Response({
+                'success': False,
+                'message': '未选择任何报告'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 解析报告ID
+        checkup_id_list = [int(id.strip()) for id in checkup_ids.split(',') if id.strip().isdigit()]
+
+        if not checkup_id_list:
+            return Response({
+                'success': False,
+                'message': '无效的报告ID'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取用户自己的报告
+        checkups = HealthCheckup.objects.filter(
+            user=request.user,
+            id__in=checkup_id_list
+        ).order_by('-checkup_date')
+
+        if not checkups.exists():
+            return Response({
+                'success': False,
+                'message': '未找到指定的报告'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 导出
+        exporter = CheckupReportsExporter(checkups)
+        return exporter.export_to_word()
+
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f'[导出Word] user={request.user.username}, error: {str(e)}')
+        print(f'[导出Word] traceback: {error_details}')
+        return Response({
+            'success': False,
+            'message': f'导出Word失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # ==================== 完善个人信息 ====================
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

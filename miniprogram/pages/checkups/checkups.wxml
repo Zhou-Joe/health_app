@@ -17,8 +17,8 @@
     </view>
     <view class="header-actions">
       <view class="batch-download-btn" bindtap="toggleSelectMode" wx:if="{{checkups.length > 0 && !isSelectMode}}">
-        <text class="batch-icon">📥</text>
-        <text class="batch-text">批量下载</text>
+        <text class="batch-icon">📊</text>
+        <text class="batch-text">数据整合导出</text>
       </view>
       <view class="cancel-select-btn" bindtap="toggleSelectMode" wx:if="{{isSelectMode}}">
         <text class="cancel-text">取消选择</text>
@@ -39,13 +39,13 @@
       <view class="batch-btn select-all-btn" bindtap="toggleSelectAll">
         <text>{{selectAll ? '✓' : ''}} 全选</text>
       </view>
-      <view class="batch-btn download-pdf-btn" bindtap="downloadSelected" data-format="pdf">
+      <view class="batch-btn download-pdf-btn" bindtap="exportSelected" data-format="pdf">
         <text class="btn-icon">📄</text>
-        <text>下载PDF</text>
+        <text>导出PDF</text>
       </view>
-      <view class="batch-btn download-word-btn" bindtap="downloadSelected" data-format="word">
+      <view class="batch-btn download-word-btn" bindtap="exportSelected" data-format="word">
         <text class="btn-icon">📝</text>
-        <text>下载Word</text>
+        <text>导出Word</text>
       </view>
     </view>
   </view>
@@ -73,15 +73,7 @@
             <text class="report-date">{{item.checkup_date}}</text>
           </view>
         </view>
-        <view class="card-actions" wx:if="{{!isSelectMode}}">
-          <view class="download-btn" catchtap="downloadSingle" data-id="{{item.id}}" data-format="pdf">
-            <text>📄</text>
-          </view>
-          <view class="download-btn" catchtap="downloadSingle" data-id="{{item.id}}" data-format="word">
-            <text>📝</text>
-          </view>
-        </view>
-        <view class="status-dot status-{{item.status}}" wx:else></view>
+        <view class="status-dot status-{{item.status}}"></view>
       </view>
 
       <!-- 卡片内容 -->

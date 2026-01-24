@@ -116,28 +116,20 @@ Page({
   },
 
   /**
-   * 下载单个报告
+   * 批量导出选中的报告
    */
-  async downloadSingle(e) {
-    const { id, format } = e.currentTarget.dataset
-    await this.downloadReport([id], format)
-  },
-
-  /**
-   * 批量下载选中的报告
-   */
-  async downloadSelected(format) {
+  async exportSelected(format) {
     if (this.data.selectedIds.length === 0) {
-      util.showToast('请先选择要下载的报告')
+      util.showToast('请先选择要导出的报告')
       return
     }
-    await this.downloadReport(this.data.selectedIds, format)
+    await this.exportReport(this.data.selectedIds, format)
   },
 
   /**
-   * 下载报告
+   * 导出报告
    */
-  async downloadReport(checkupIds, format) {
+  async exportReport(checkupIds, format) {
     const formatText = format === 'pdf' ? 'PDF' : 'Word'
     util.showLoading(`生成${formatText}中...`)
 
@@ -161,8 +153,8 @@ Page({
         }
       })
     } catch (err) {
-      console.error('下载失败:', err)
-      util.showToast(err.message || '下载失败')
+      console.error('导出失败:', err)
+      util.showToast(err.message || '导出失败')
     } finally {
       util.hideLoading()
     }
