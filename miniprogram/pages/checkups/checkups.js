@@ -118,7 +118,10 @@ Page({
   /**
    * 批量导出选中的报告
    */
-  async exportSelected(format) {
+  async exportSelected(e) {
+    const format = e.currentTarget.dataset.format
+    console.log('[导出选中] format参数:', format, '完整事件对象:', e.currentTarget.dataset)
+
     if (this.data.selectedIds.length === 0) {
       util.showToast('请先选择要导出的报告')
       return
@@ -134,8 +137,10 @@ Page({
     util.showLoading(`生成${formatText}中...`)
 
     try {
-      console.log('[导出报告] checkupIds:', checkupIds, 'format:', format)
+      console.log('[导出报告] checkupIds:', checkupIds, 'format:', format, 'format类型:', typeof format)
       const downloadFunc = format === 'pdf' ? api.exportCheckupsPDF : api.exportCheckupsWord
+      console.log('[导出报告] 使用的函数:', format === 'pdf' ? 'exportCheckupsPDF' : 'exportCheckupsWord')
+
       const tempFilePath = await downloadFunc(checkupIds)
       console.log('[导出报告] 下载完成，临时文件:', tempFilePath)
 
