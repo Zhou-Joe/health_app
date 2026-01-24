@@ -16,8 +16,13 @@
       </view>
     </view>
     <view class="header-actions">
-      <view class="header-action select-btn" bindtap="toggleSelectMode" wx:if="{{checkups.length > 0}}">
-        <text class="select-icon">{{isSelectMode ? '✕' : '☑'}}</text>
+      <view class="batch-download-btn" bindtap="toggleSelectMode" wx:if="{{checkups.length > 0 && !isSelectMode}}">
+        <text class="batch-icon">📥</text>
+        <text class="batch-text">批量下载</text>
+      </view>
+      <view class="cancel-select-btn" bindtap="toggleSelectMode" wx:if="{{isSelectMode}}">
+        <text class="cancel-text">取消选择</text>
+        <text class="cancel-icon">✕</text>
       </view>
       <view class="header-action" bindtap="goToUpload">
         <text class="add-icon">+</text>

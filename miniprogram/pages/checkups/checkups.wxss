@@ -94,8 +94,64 @@ page {
 .header-actions {
   display: flex;
   gap: 12rpx;
+  align-items: center;
 }
 
+/* 批量下载按钮 */
+.batch-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  background: linear-gradient(135deg, var(--secondary), #5BA8B8);
+  border-radius: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(74, 144, 164, 0.3);
+  transition: all 0.3s ease;
+}
+
+.batch-download-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 2rpx 8rpx rgba(74, 144, 164, 0.3);
+}
+
+.batch-icon {
+  font-size: 28rpx;
+}
+
+.batch-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: white;
+}
+
+/* 取消选择按钮 */
+.cancel-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  background: #F0F0F0;
+  border-radius: 32rpx;
+  transition: all 0.3s ease;
+}
+
+.cancel-select-btn:active {
+  transform: scale(0.95);
+  background: #E0E0E0;
+}
+
+.cancel-text {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #666;
+}
+
+.cancel-icon {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 添加按钮 */
 .header-action {
   width: 64rpx;
   height: 64rpx;
@@ -112,13 +168,7 @@ page {
   transform: scale(0.9);
 }
 
-.header-action.select-btn {
-  background: linear-gradient(135deg, var(--secondary), #5BA8B8);
-  box-shadow: 0 8rpx 24rpx rgba(74, 144, 164, 0.3);
-}
-
-.add-icon,
-.select-icon {
+.add-icon {
   font-size: 40rpx;
   color: white;
   font-weight: 300;
