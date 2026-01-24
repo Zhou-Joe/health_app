@@ -25,31 +25,19 @@ def register_chinese_font():
     """注册中文字体"""
     font_registered = False
 
-    # 尝试多个常见的中文字体路径（按优先级排序）
+    # 强制使用 wqy-microhei 字体（优先检查最常见的安装路径）
     font_paths = [
-        # RHEL/CentOS/Alibaba Cloud Linux 字体路径
-        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',  # Noto Sans CJK (正确路径)
-        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Medium.ttc',  # Noto Sans CJK Medium
-        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc',  # Noto Sans CJK Bold
-        '/usr/share/fonts/google-noto-sans-cjk/NotoSansCJK-Regular.ttc',  # 备选路径
-        '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',  # 备选路径
-        '/usr/share/fonts/cjk/NotoSansCJK-Regular.ttc',  # 备选路径
-        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',  # OpenType
+        # RHEL/CentOS/Alibaba Cloud Linux - wqy-microhei
+        '/usr/share/fonts/wqy-microhei/wqy-microhei.ttc',  # 主要路径
+        '/usr/share/fonts/wqy-microhei/wqy-microhei.tbf',  # 备选扩展名
+        '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',  # Ubuntu/Debian 路径
+        '/usr/share/fonts/truetype/wqy/wqy-microhei.ttf',  # Ubuntu/Debian 路径
+        '/usr/share/fonts/wqy/wqy-microhei.ttc',  # 简化路径
 
-        # Ubuntu/Debian 字体路径
-        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',  # Linux WQY
-        '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',  # Linux Droid
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',  # Linux Liberation
-
-        # macOS 字体路径
-        '/System/Library/Fonts/PingFang.ttc',  # macOS
-
-        # Windows 字体路径
-        'C:/Windows/Fonts/msyh.ttc',  # Windows 微软雅黑
-        'C:/Windows/Fonts/simhei.ttf',  # Windows 黑体
-
-        # 其他常见路径
-        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',  # DejaVu Sans
+        # 如果上面的都不行，尝试其他字体
+        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',  # Noto Sans CJK
+        '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',  # WQY Zenhei
+        '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',  # Droid
     ]
 
     for font_path in font_paths:
@@ -66,9 +54,8 @@ def register_chinese_font():
 
     if not font_registered:
         print("⚠ Warning: No Chinese font found. Chinese characters may display as squares.")
-        print("To fix this, install Chinese fonts:")
-        print("  - RHEL/CentOS/Alibaba Cloud: sudo yum install -y google-noto-sans-cjk-fonts")
-        print("  - Ubuntu/Debian: sudo apt install -y fonts-wqy-zenhei")
+        print("Please install wqy-microhei-fonts:")
+        print("  - RHEL/CentOS/Alibaba Cloud: sudo yum install -y wqy-microhei-fonts")
 
     return font_registered
 
