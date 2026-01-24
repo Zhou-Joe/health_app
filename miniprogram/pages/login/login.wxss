@@ -18,7 +18,7 @@ page {
 .login-container {
   min-height: 100vh;
   background: linear-gradient(180deg, #FFF5F0 0%, #FFFEF9 50%, #FFF9F5 100%);
-  padding: 120rpx 60rpx 80rpx;
+  padding: 80rpx 50rpx 60rpx;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -35,29 +35,29 @@ page {
 }
 
 .glow-1 {
-  width: 500rpx;
-  height: 500rpx;
+  width: 450rpx;
+  height: 450rpx;
   background: radial-gradient(circle, rgba(255, 138, 122, 0.5) 0%, transparent 70%);
-  top: -100rpx;
-  right: -150rpx;
+  top: -80rpx;
+  right: -120rpx;
   animation-delay: 0s;
 }
 
 .glow-2 {
-  width: 400rpx;
-  height: 400rpx;
+  width: 380rpx;
+  height: 380rpx;
   background: radial-gradient(circle, rgba(168, 230, 207, 0.4) 0%, transparent 70%);
-  top: 300rpx;
-  left: -100rpx;
+  top: 250rpx;
+  left: -90rpx;
   animation-delay: 2s;
 }
 
 .glow-3 {
-  width: 350rpx;
-  height: 350rpx;
+  width: 320rpx;
+  height: 320rpx;
   background: radial-gradient(circle, rgba(255, 179, 194, 0.3) 0%, transparent 70%);
-  bottom: 200rpx;
-  right: -80rpx;
+  bottom: 180rpx;
+  right: -70rpx;
   animation-delay: 4s;
 }
 
@@ -77,13 +77,13 @@ page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 60rpx;
+  margin-bottom: 40rpx;
   position: relative;
   z-index: 2;
 }
 
 .logo-wrapper {
-  margin-bottom: 30rpx;
+  margin-bottom: 24rpx;
   animation: heartbeat 2s ease-in-out infinite;
 }
 
@@ -97,12 +97,12 @@ page {
 }
 
 .logo-icon {
-  width: 140rpx;
-  height: 140rpx;
+  width: 120rpx;
+  height: 120rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 80rpx;
+  font-size: 68rpx;
   background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
   border-radius: 50%;
   box-shadow:
@@ -112,19 +112,19 @@ page {
 }
 
 .app-name {
-  font-size: 56rpx;
+  font-size: 48rpx;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 16rpx;
+  margin-bottom: 12rpx;
   letter-spacing: 2rpx;
   text-shadow: 0 2rpx 8rpx rgba(255, 138, 122, 0.15);
 }
 
 .app-desc {
-  font-size: 28rpx;
+  font-size: 26rpx;
   color: var(--text-secondary);
   letter-spacing: 1rpx;
-  margin-bottom: 12rpx;
+  margin-bottom: 10rpx;
   text-align: center;
 }
 
@@ -138,13 +138,96 @@ page {
   box-shadow: 0 4rpx 12rpx rgba(168, 230, 207, 0.3);
 }
 
+/* ==================== 功能介绍部分 ==================== */
+.features-section {
+  margin-bottom: 36rpx;
+  position: relative;
+  z-index: 2;
+}
+
+.features-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 20rpx;
+  letter-spacing: 2rpx;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10rpx);
+  -webkit-backdrop-filter: blur(10rpx);
+  border-radius: 20rpx;
+  padding: 28rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4rpx 20rpx rgba(255, 138, 122, 0.08),
+    0 0 0 1rpx rgba(255, 255, 255, 0.6);
+  border: 2rpx solid rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+  min-height: 240rpx;
+}
+
+.feature-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  margin-bottom: 12rpx;
+  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+.feature-icon-upload {
+  background: linear-gradient(135deg, #FFE5E0, #FFD4CC);
+}
+
+.feature-icon-ai {
+  background: linear-gradient(135deg, #E5F0FF, #D4E4FF);
+}
+
+.feature-icon-integration {
+  background: linear-gradient(135deg, #E0FFE5, #CCFFD4);
+}
+
+.feature-icon-trends {
+  background: linear-gradient(135deg, #FFF5E0, #FFEACC);
+}
+
+.feature-title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6rpx;
+}
+
+.feature-desc {
+  font-size: 18rpx;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 26rpx;
+  padding: 0 4rpx;
+}
+
 /* ==================== 登录表单 ==================== */
 .login-form {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20rpx);
   -webkit-backdrop-filter: blur(20rpx);
   border-radius: 48rpx;
-  padding: 60rpx 50rpx;
+  padding: 50rpx 40rpx;
   box-shadow:
     0 8rpx 32rpx rgba(255, 138, 122, 0.12),
     0 0 0 1rpx rgba(255, 255, 255, 0.8);
@@ -155,15 +238,15 @@ page {
 
 /* 表单项 */
 .form-item {
-  margin-bottom: 28rpx;
+  margin-bottom: 24rpx;
 }
 
 .input-wrapper {
   display: flex;
   align-items: center;
   background: var(--warm-white);
-  border-radius: 28rpx;
-  padding: 0 28rpx;
+  border-radius: 24rpx;
+  padding: 0 24rpx;
   box-shadow:
     0 4rpx 16rpx rgba(255, 138, 122, 0.08),
     inset 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
@@ -180,15 +263,15 @@ page {
 }
 
 .input-icon {
-  font-size: 36rpx;
-  margin-right: 16rpx;
+  font-size: 32rpx;
+  margin-right: 14rpx;
   opacity: 0.6;
 }
 
 .input-field {
   flex: 1;
-  height: 100rpx;
-  font-size: 30rpx;
+  height: 88rpx;
+  font-size: 28rpx;
   color: var(--text-primary);
   font-weight: 500;
 }
@@ -200,7 +283,7 @@ page {
 
 /* 协议勾选 */
 .agreement-check {
-  margin: 28rpx 0 32rpx;
+  margin: 24rpx 0 28rpx;
   padding: 0 8rpx;
 }
 
@@ -208,16 +291,16 @@ page {
   display: flex;
   align-items: flex-start;
   font-size: 24rpx;
-  line-height: 40rpx;
+  line-height: 38rpx;
 }
 
 .custom-checkbox {
-  width: 44rpx;
-  height: 44rpx;
-  border-radius: 12rpx;
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 10rpx;
   border: 3rpx solid var(--warm-peach);
   background: var(--warm-white);
-  margin-right: 16rpx;
+  margin-right: 14rpx;
   margin-top: 2rpx;
   flex-shrink: 0;
   display: flex;
@@ -236,7 +319,7 @@ page {
 
 .checkmark {
   color: white;
-  font-size: 28rpx;
+  font-size: 26rpx;
   font-weight: bold;
   animation: checkmark 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
@@ -275,10 +358,10 @@ page {
 .warm-btn-primary,
 .warm-btn-wechat {
   width: 100%;
-  height: 108rpx;
-  border-radius: 32rpx;
+  height: 96rpx;
+  border-radius: 28rpx;
   border: none;
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -309,7 +392,7 @@ page {
 .warm-btn-primary {
   background: linear-gradient(135deg, var(--warm-coral) 0%, var(--warm-peach) 100%);
   color: white;
-  margin-top: 36rpx;
+  margin-top: 28rpx;
 }
 
 .warm-btn-primary:active {
@@ -324,11 +407,11 @@ page {
 .btn-content {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 10rpx;
 }
 
 .btn-icon {
-  font-size: 36rpx;
+  font-size: 32rpx;
 }
 
 .warm-btn-wechat {
@@ -343,14 +426,14 @@ page {
 }
 
 .wechat-icon {
-  font-size: 36rpx;
+  font-size: 32rpx;
 }
 
 /* ==================== 分隔线 ==================== */
 .divider {
   display: flex;
   align-items: center;
-  margin: 40rpx 0 36rpx;
+  margin: 28rpx 0 24rpx;
 }
 
 .divider-line {
@@ -360,7 +443,7 @@ page {
 }
 
 .divider-or {
-  padding: 0 24rpx;
+  padding: 0 20rpx;
   font-size: 24rpx;
   color: var(--text-light);
   font-weight: 500;
@@ -369,7 +452,7 @@ page {
 /* ==================== 底部装饰 ==================== */
 .bottom-decoration {
   position: absolute;
-  bottom: 60rpx;
+  bottom: 40rpx;
   left: 0;
   right: 0;
   display: flex;
@@ -437,10 +520,10 @@ page {
 }
 
 .modal-content {
-  width: 640rpx;
+  width: 600rpx;
   max-height: 80vh;
   background: var(--warm-white);
-  border-radius: 36rpx;
+  border-radius: 32rpx;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -454,7 +537,7 @@ page {
 }
 
 .modal-header {
-  padding: 36rpx;
+  padding: 32rpx;
   background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
   display: flex;
   justify-content: space-between;
@@ -462,41 +545,41 @@ page {
 }
 
 .modal-title {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: white;
 }
 
 .modal-close {
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   background: rgba(255, 255, 255, 0.25);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 300;
 }
 
 .modal-body {
   flex: 1;
-  padding: 40rpx;
+  padding: 36rpx;
   max-height: 60vh;
   background: var(--warm-white);
 }
 
 .modal-text {
   font-size: 26rpx;
-  line-height: 48rpx;
+  line-height: 44rpx;
   color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 .modal-footer {
-  padding: 28rpx 36rpx;
+  padding: 24rpx 32rpx;
   border-top: 2rpx solid rgba(255, 138, 122, 0.1);
   display: flex;
   justify-content: center;
@@ -504,8 +587,8 @@ page {
 }
 
 .modal-btn {
-  width: 240rpx;
-  height: 80rpx;
+  width: 220rpx;
+  height: 76rpx;
   background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
   color: white;
   font-size: 28rpx;
