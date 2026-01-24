@@ -134,10 +134,23 @@ Page({
     util.showLoading(`生成${formatText}中...`)
 
     try {
+      console.log('[导出报告] checkupIds:', checkupIds, 'format:', format)
       const downloadFunc = format === 'pdf' ? api.exportCheckupsPDF : api.exportCheckupsWord
       const tempFilePath = await downloadFunc(checkupIds)
+      console.log('[导出报告] 下载完成，临时文件:', tempFilePath)
 
       util.hideLoading()
+
+      // 获取文件信息
+      wx.getFileInfo({
+        filePath: tempFilePath,
+        success: (res) => {
+          console.log('[导出报告] 文件信息:', res)
+        },
+        fail: (err) => {
+          console.log('[导出报告] 获取文件信息失败:', err)
+        }
+      })
 
       // 打开文件
       wx.openDocument({
@@ -145,15 +158,15 @@ Page({
         fileType: format,
         showMenu: true,
         success: () => {
-          console.log('文件打开成功')
+          console.log('[导出报告] 文件打开成功')
         },
         fail: (err) => {
-          console.error('打开文件失败:', err)
-          util.showToast('打开文件失败')
+          console.error('[导出报告] 打开文件失败:', err)
+          util.showToast('打开文件失败，请重试')
         }
       })
     } catch (err) {
-      console.error('导出失败:', err)
+      console.error('[导出报告] 导出失败:', err)
       util.showToast(err.message || '导出失败')
     } finally {
       util.hideLoading()
