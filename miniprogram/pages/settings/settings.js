@@ -23,12 +23,44 @@ Page({
     const year = today.getFullYear()
     const month = String(today.getMonth() + 1).padStart(2, '0')
     const day = String(today.getDate()).padStart(2, '0')
+
     this.setData({
-      today: `${year}-${month}-${day}`,
-      userInfo: app.globalData.userInfo || {}
+      today: `${year}-${month}-${day}`
     })
 
     this.loadUserProfile()
+  },
+
+  /**
+   * 选择头像
+   */
+  async chooseAvatar() {
+    try {
+      const res = await wx.getUserProfile({
+        desc: '用于完善用户资料'
+      })
+
+      const avatarUrl = res.userInfo.avatarUrl
+      console.log('获取到头像:', avatarUrl)
+
+      // 保存到本地存储
+      wx.setStorageSync('wechat_avatar', avatarUrl)
+
+      // 更新页面显示
+      this.setData({
+        'userInfo.avatar_url': avatarUrl
+      })
+
+      util.showToast('头像已更新')
+    } catch (err) {
+      console.log('获取头像失败:', err)
+      // 用户取消授权
+      if (err.errMsg && err.errMsg.includes('cancel')) {
+        util.showToast('您取消了授权')
+      } else {
+        util.showToast('获取头像失败')
+      }
+    }
   },
 
   /**
@@ -36,14 +68,18 @@ Page({
    */
   async loadUserProfile() {
     try {
+      // 从本地存储读取微信头像
+      const wechatAvatar = wx.getStorageSync('wechat_avatar') || ''
+
       const res = await api.getUserInfo()
       const user = res.user
 
-      console.log('[调试] API返回的完整用户信息:', JSON.stringify(user, null, 2))
-      console.log('[调试] user.birth_date:', user.birth_date)
-      console.log('[调试] user.gender:', user.gender)
-      console.log('[调试] user.age:', user.age)
-      console.log('[调试] user.age类型:', typeof user.age)
+      // 使用微信头像
+      if (wechatAvatar) {
+        user.avatar_url = wechatAvatar
+      }
+
+      console.log('用户信息:', user)
 
       // 计算年龄显示
       let ageDisplay = '未知'
@@ -55,9 +91,7 @@ Page({
         } else {
           ageDisplay = '未知'
         }
-        console.log('[调试] 计算后的ageDisplay:', ageDisplay)
       } else {
-        console.log('[调试] birth_date为空，年龄显示未知')
         ageDisplay = '未知'
       }
 
@@ -70,7 +104,6 @@ Page({
         age: ageDisplay
       }
 
-      console.log('[调试] 最终userProfile:', userProfile)
 
       this.setData({
         userProfile,
@@ -150,10 +183,6 @@ Page({
   async saveEdit() {
     const { editField, editValue } = this.data
 
-    console.log('[保存] 开始保存')
-    console.log('[保存] editField:', editField)
-    console.log('[保存] editValue:', editValue)
-    console.log('[保存] 当前userProfile:', this.data.userProfile)
 
     // 验证
     if (editField.key === 'nickname') {
@@ -175,7 +204,6 @@ Page({
         util.showToast('请选择出生日期')
         return
       }
-      console.log('[保存] 出生日期验证通过:', editValue)
     }
 
     this.setData({ saving: true })
@@ -192,19 +220,14 @@ Page({
       // 注意：需要映射驼峰命名到下划线命名
       if (editField.key === 'birthDate') {
         data.birth_date = editValue
-        console.log('[保存] 更新birth_date:', editValue)
       } else if (editField.key === 'nickname') {
         data.nickname = editValue
-        console.log('[保存] 更新nickname:', editValue)
       } else if (editField.key === 'gender') {
         data.gender = editValue
-        console.log('[保存] 更新gender:', editValue)
       }
 
-      console.log('[保存] 最终请求数据:', JSON.stringify(data, null, 2))
 
       const res = await api.completeProfile(data)
-      console.log('[保存] API响应:', res)
 
       util.showToast('保存成功')
 

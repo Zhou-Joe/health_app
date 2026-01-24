@@ -9,7 +9,10 @@ const util = require('../../utils/util.js')
 Page({
   data: {
     conversations: [],
-    loading: false
+    loading: false,
+    showSearch: false,
+    searchKeyword: '',
+    searchFocused: false
   },
 
   onLoad() {
@@ -18,6 +21,62 @@ Page({
 
   onShow() {
     // 每次显示页面时刷新列表
+    this.loadConversations()
+  },
+
+  /**
+   * 切换搜索框显示
+   */
+  toggleSearch() {
+    this.setData({
+      showSearch: !this.data.showSearch
+    })
+  },
+
+  /**
+   * 搜索输入
+   */
+  onSearchInput(e) {
+    const keyword = e.detail.value
+    this.setData({ searchKeyword: keyword })
+
+    // 防抖搜索
+    if (this.searchTimer) {
+      clearTimeout(this.searchTimer)
+    }
+
+    this.searchTimer = setTimeout(() => {
+      this.filterConversations(keyword)
+    }, 300)
+  },
+
+  /**
+   * 过滤对话列表
+   */
+  filterConversations(keyword) {
+    if (!keyword || !keyword.trim()) {
+      this.loadConversations()
+      return
+    }
+
+    const filtered = this.data.conversations.filter(conv => {
+      const title = (conv.title || '').toLowerCase()
+      const preview = (conv.preview || '').toLowerCase()
+      const searchLower = keyword.toLowerCase()
+      return title.includes(searchLower) || preview.includes(searchLower)
+    })
+
+    this.setData({ conversations: filtered })
+  },
+
+  /**
+   * 清除搜索
+   */
+  clearSearch() {
+    this.setData({
+      searchKeyword: '',
+      showSearch: false
+    })
     this.loadConversations()
   },
 
@@ -34,7 +93,8 @@ Page({
       const res = await api.getConversations()
       const conversations = (res.data || []).map(conv => ({
         ...conv,
-        created_at: this.formatDate(conv.created_at)
+        created_at: this.formatDate(conv.created_at),
+        preview: this.generatePreview(conv)
       }))
 
       this.setData({ conversations })
@@ -45,6 +105,25 @@ Page({
       this.setData({ loading: false })
       util.hideLoading()
     }
+  },
+
+  /**
+   * 生成预览文本
+   */
+  generatePreview(conversation) {
+    // 如果有预览字段直接使用
+    if (conversation.preview) {
+      return conversation.preview
+    }
+
+    // 否则使用标题
+    if (conversation.title) {
+      return conversation.title.length > 50
+        ? conversation.title.substring(0, 50) + '...'
+        : conversation.title
+    }
+
+    return '暂无预览'
   },
 
   /**
@@ -129,10 +208,9 @@ Page({
     util.showLoading('生成中...')
     try {
       const token = wx.getStorageSync('token')
-      const baseUrl = 'https://www.zctestbench.asia/health'
+      const baseUrl = 'https://www.zctestbench.asia'
       const exportUrl = `${baseUrl}/api/miniprogram/conversations/${conversationId}/export/word/`
 
-      console.log('[导出] 开始下载:', exportUrl)
 
       // 下载文件
       const downloadRes = await new Promise((resolve, reject) => {
@@ -142,7 +220,6 @@ Page({
             'Authorization': `Token ${token}`
           },
           success: (res) => {
-            console.log('[导出] 下载响应状态码:', res.statusCode)
             if (res.statusCode === 200) {
               resolve(res.tempFilePath)
             } else if (res.statusCode === 400) {
@@ -181,7 +258,6 @@ Page({
         fileType: 'docx',
         showMenu: true,
         success: () => {
-          console.log('[导出] 文档打开成功')
           util.showToast('导出成功')
         },
         fail: (err) => {
@@ -204,6 +280,28 @@ Page({
     wx.navigateTo({
       url: '/pages/ai-advice/ai-advice'
     })
+  },
+
+  /**
+   * 返回上一页
+   */
+  goBack() {
+    wx.navigateBack()
+  },
+
+  /**
+   * 阻止事件冒泡
+   */
+  stopPropagation() {
+    // 空方法，用于阻止点击事件冒泡
+  },
+
+  /**
+   * 加载更多
+   */
+  loadMore() {
+    // 目前已加载所有数据，暂不需要分页
+    // 如果需要分页加载，可以在这里实现
   },
 
   /**

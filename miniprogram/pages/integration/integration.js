@@ -22,8 +22,6 @@ Page({
     try {
       const res = await api.getCheckups({ page_size: 100, status: 'completed' })
       const checkups = res.data || []
-      console.log('加载的报告列表:', checkups)
-      console.log('第一个报告ID:', checkups[0]?.id, '类型:', typeof checkups[0]?.id)
       this.setData({ checkups })
     } catch (err) {
       console.error('加载报告失败:', err)
@@ -55,8 +53,6 @@ Page({
       selectedIdSet[idNum] = true
     }
 
-    console.log('更新后的已选择IDs:', selectedIds)
-    console.log('更新后的selectedIdSet:', selectedIdSet)
 
     this.setData({
       selectedIds,
@@ -78,8 +74,6 @@ Page({
     this.setData({ integrating: true })
 
     try {
-      console.log('开始数据整合，选择的报告ID:', this.data.selectedIds)
-      console.log('用户提示词:', this.data.userPrompt)
 
       const requestData = {
         checkup_ids: this.data.selectedIds
@@ -88,11 +82,9 @@ Page({
       // 如果用户填写了提示词，添加到请求数据中
       if (this.data.userPrompt && this.data.userPrompt.trim()) {
         requestData.user_prompt = this.data.userPrompt.trim()
-        console.log('包含用户自定义提示词')
       }
 
       const res = await api.integrateData(requestData)
-      console.log('整合结果:', res)
 
       // 显示整合结果并跳转到详情页
       wx.showModal({
@@ -142,7 +134,6 @@ Page({
     util.showLoading('查找中...')
     try {
       const res = await api.detectDuplicates()
-      console.log('相同报告检测结果:', res)
 
       const groups = res.data || []
       // 为每组初始化主报告ID（默认选第一个）
@@ -227,7 +218,6 @@ Page({
         source_checkup_ids: sourceCheckupIds
       })
 
-      console.log('合并结果:', res)
 
       util.showToast(res.message || '合并成功')
 

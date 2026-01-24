@@ -1,199 +1,260 @@
 <!--pages/ai-advice/ai-advice.wxml-->
 <view class="ai-advice-container">
-  <!-- 顶部标题 -->
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
+  </view>
+
+  <!-- 页面头部 -->
   <view class="page-header">
     <view class="header-left">
-      <text class="page-title">AI健康医生</text>
-      <text class="page-subtitle">智能分析您的健康数据</text>
+      <text class="header-emoji">💬</text>
+      <view class="header-text">
+        <text class="header-title">AI健康医生</text>
+        <text class="header-subtitle">专业健康咨询</text>
+      </view>
     </view>
-    <view class="header-right">
-      <button class="history-btn" bindtap="goToHistory">📋 历史</button>
+    <view class="header-right" bindtap="goToHistory">
+      <text class="history-btn">📋 历史</text>
     </view>
   </view>
 
-  <!-- 对话模式选择 -->
-  <view class="section-card">
-    <view class="section-title">
-      <text class="title-icon">💬</text>
-      <text class="title-text">对话模式</text>
+  <!-- 主要内容区 -->
+  <view class="main-content">
+    <!-- AI形象卡片 -->
+    <view class="ai-card">
+      <view class="ai-avatar">🤖</view>
+      <text class="ai-greeting">您好！我是AI健康助手</text>
+      <text class="ai-desc">点击下方按钮开始咨询</text>
     </view>
 
-    <view class="mode-selector">
-      <view class="mode-option {{conversationMode === 'new' ? 'active' : ''}}"
+    <!-- 选项按钮网格 -->
+    <view class="options-grid">
+      <!-- 对话模式 -->
+      <view class="option-card" bindtap="showModeModal">
+        <view class="option-icon-wrap mode-theme">
+          <text class="option-emoji">✨</text>
+        </view>
+        <text class="option-title">对话模式</text>
+        <text class="option-value">{{conversationMode === 'new' ? '新建对话' : '继续对话'}}</text>
+      </view>
+
+      <!-- 体检报告 -->
+      <view class="option-card" bindtap="showReportModal">
+        <view class="option-icon-wrap report-theme">
+          <text class="option-emoji">📋</text>
+        </view>
+        <text class="option-title">体检报告</text>
+        <text class="option-value">{{reportMode === 'none' ? '不使用' : selectedReportIds.length + '份'}}</text>
+      </view>
+
+      <!-- 药单信息 -->
+      <view class="option-card" bindtap="showMedicationModal">
+        <view class="option-icon-wrap medication-theme">
+          <text class="option-emoji">💊</text>
+        </view>
+        <text class="option-title">药单信息</text>
+        <text class="option-value">{{medicationMode === 'none' ? '不使用' : selectedMedicationIds.length + '份'}}</text>
+      </view>
+    </view>
+
+    <!-- 问题输入区 -->
+    <view class="input-section">
+      <view class="input-card">
+        <textarea class="question-input"
+                  value="{{question}}"
+                  bindinput="onQuestionInput"
+                  placeholder="请描述您的健康问题..."
+                  maxlength="1000"
+                  auto-height
+                  adjust-position="{{true}}"
+                  show-confirm-bar="{{false}}" />
+        <view class="input-footer">
+          <text class="char-count">{{question.length}}/1000</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="submit-section">
+      <button class="submit-btn"
+              bindtap="handleSubmit"
+              loading="{{submitting}}"
+              disabled="{{submitting}}">
+        <view wx:if="{{!submitting}}" class="btn-content">
+          <text class="btn-icon">🚀</text>
+          <text>开始咨询</text>
+        </view>
+        <text wx:else>处理中...</text>
+      </button>
+    </view>
+  </view>
+</view>
+
+<!-- 对话模式弹窗 -->
+<view class="modal-mask" wx:if="{{showModeModal}}" bindtap="hideModals">
+  <view class="modal-container" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">对话模式</text>
+      <text class="modal-close" bindtap="hideModals">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="modal-option {{conversationMode === 'new' ? 'active' : ''}}"
             bindtap="selectConversationMode"
             data-mode="new">
-        <text class="mode-icon">✨</text>
-        <text class="mode-title">创建新对话</text>
-        <view class="mode-check" wx:if="{{conversationMode === 'new'}}">✓</view>
+        <text class="modal-option-icon">🌟</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">新建对话</text>
+          <text class="modal-option-desc">开始全新的健康咨询</text>
+        </view>
+        <view class="modal-check" wx:if="{{conversationMode === 'new'}}">✓</view>
       </view>
 
-      <view class="mode-option {{conversationMode === 'continue' ? 'active' : ''}}"
+      <view class="modal-option {{conversationMode === 'continue' ? 'active' : ''}}"
             bindtap="selectConversationMode"
             data-mode="continue">
-        <text class="mode-icon">🔄</text>
-        <text class="mode-title">继续对话</text>
-        <view class="mode-check" wx:if="{{conversationMode === 'continue'}}">✓</view>
+        <text class="modal-option-icon">🔄</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">继续对话</text>
+          <text class="modal-option-desc">延续之前的咨询</text>
+        </view>
+        <view class="modal-check" wx:if="{{conversationMode === 'continue'}}">✓</view>
+      </view>
+
+      <!-- 历史对话列表 -->
+      <view class="history-list" wx:if="{{conversationMode === 'continue' && conversations.length > 0}}">
+        <view class="history-title">选择对话</view>
+        <scroll-view class="history-scroll" scroll-y>
+          <view class="history-item {{selectedConversationId === item.id ? 'active' : ''}}"
+                wx:for="{{conversations}}"
+                wx:key="id"
+                bindtap="selectConversation"
+                data-id="{{item.id}}">
+            <text class="history-title-text">{{item.title}}</text>
+            <text class="history-meta">{{item.message_count}}条 · {{item.created_at}}</text>
+          </view>
+        </scroll-view>
       </view>
     </view>
-
-    <!-- 选择对话 -->
-    <view class="conversation-select" wx:if="{{conversationMode === 'continue' && conversations.length > 0}}">
-      <view class="select-label">选择要继续的对话：</view>
-      <view class="conversation-list">
-        <view class="conv-item {{selectedConversationId === item.id ? 'active' : ''}}"
-              wx:for="{{conversations}}"
-              wx:key="id">
-          <view class="conv-main" bindtap="selectConversation" data-id="{{item.id}}">
-            <text class="conv-title">{{item.title}}</text>
-            <text class="conv-count">{{item.message_count}}条消息</text>
-          </view>
-          <view class="conv-delete" catchtap="deleteConversation" data-id="{{item.id}}">删除</view>
-        </view>
-      </view>
+    <view class="modal-footer">
+      <button class="modal-btn" bindtap="hideModals">确定</button>
     </view>
   </view>
+</view>
 
-  <!-- 报告选择 -->
-  <view class="section-card">
-    <view class="section-title">
-      <text class="title-icon">📋</text>
-      <text class="title-text">体检报告选择</text>
+<!-- 体检报告弹窗 -->
+<view class="modal-mask" wx:if="{{showReportModal}}" bindtap="hideModals">
+  <view class="modal-container" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">体检报告</text>
+      <text class="modal-close" bindtap="hideModals">✕</text>
     </view>
-
-    <view class="report-mode-selector">
-      <view class="report-mode-option {{reportMode === 'none' ? 'active' : ''}}"
+    <view class="modal-body">
+      <view class="modal-option {{reportMode === 'none' ? 'active' : ''}}"
             bindtap="selectReportMode"
             data-mode="none">
-        <text class="report-mode-icon">💭</text>
-        <text class="report-mode-title">不使用报告</text>
-        <view class="report-mode-check" wx:if="{{reportMode === 'none'}}">✓</view>
+        <text class="modal-option-icon">💭</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">不使用报告</text>
+          <text class="modal-option-desc">仅基于问题咨询</text>
+        </view>
+        <view class="modal-check" wx:if="{{reportMode === 'none'}}">✓</view>
       </view>
 
-      <view class="report-mode-option {{reportMode === 'select' ? 'active' : ''}}"
+      <view class="modal-option {{reportMode === 'select' ? 'active' : ''}}"
             bindtap="selectReportMode"
             data-mode="select">
-        <text class="report-mode-icon">📊</text>
-        <text class="report-mode-title">选择报告</text>
-        <view class="report-mode-check" wx:if="{{reportMode === 'select'}}">✓</view>
-      </view>
-    </view>
-
-    <!-- 报告列表 -->
-    <view class="report-list" wx:if="{{reportMode === 'select' && reports.length > 0}}">
-      <view class="report-actions">
-        <button class="action-btn" bindtap="selectAllReports">全选</button>
-        <button class="action-btn" bindtap="selectRecentReports">最近2份</button>
-        <button class="action-btn" bindtap="clearReports">清空</button>
-      </view>
-
-      <view class="report-items">
-        <view class="report-item {{item.selected ? 'selected' : ''}}"
-              wx:for="{{reports}}"
-              wx:key="id"
-              bindtap="toggleReport"
-              data-id="{{item.id}}">
-          <view class="report-check">{{item.selected ? '✓' : ''}}</view>
-          <view class="report-info">
-            <text class="report-hospital">{{item.hospital}}</text>
-            <text class="report-date">{{item.checkup_date}}</text>
-            <text class="report-count">{{item.indicators_count || 0}}项指标</text>
-          </view>
+        <text class="modal-option-icon">📊</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">选择报告</text>
+          <text class="modal-option-desc">基于体检数据分析</text>
         </view>
+        <view class="modal-check" wx:if="{{reportMode === 'select'}}">✓</view>
       </view>
 
-      <view class="selected-tip" wx:if="{{selectedReportIds.length > 0}}">
-        <text class="tip-text">已选择 {{selectedReportIds.length}} 份报告</text>
+      <!-- 报告列表 -->
+      <view class="report-list-section" wx:if="{{reportMode === 'select' && reports.length > 0}}">
+        <view class="list-actions">
+          <button class="action-tag" bindtap="selectAllReports">全选</button>
+          <button class="action-tag" bindtap="selectRecentReports">最近2份</button>
+          <button class="action-tag clear" bindtap="clearReports">清空</button>
+        </view>
+        <scroll-view class="report-scroll" scroll-y>
+          <view class="report-item {{item.selected ? 'selected' : ''}}"
+                wx:for="{{reports}}"
+                wx:key="id"
+                bindtap="toggleReport"
+                data-id="{{item.id}}">
+            <view class="report-check">{{item.selected ? '✓' : ''}}</view>
+            <view class="report-content">
+              <text class="report-name">🏥 {{item.hospital}}</text>
+              <text class="report-meta">{{item.checkup_date}} · {{item.indicators_count}}项</text>
+            </view>
+          </view>
+        </scroll-view>
       </view>
     </view>
-
-    <view class="empty-reports" wx:if="{{reportMode === 'select' && reports.length === 0}}">
-      <text class="empty-text">暂无体检报告</text>
-      <text class="empty-hint">请先上传报告再咨询</text>
+    <view class="modal-footer">
+      <button class="modal-btn" bindtap="hideModals">确定</button>
     </view>
   </view>
+</view>
 
-  <!-- 药单选择 -->
-  <view class="section-card">
-    <view class="section-title">
-      <text class="title-icon">💊</text>
-      <text class="title-text">药单选择</text>
+<!-- 药单弹窗 -->
+<view class="modal-mask" wx:if="{{showMedicationModal}}" bindtap="hideModals">
+  <view class="modal-container" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">药单信息</text>
+      <text class="modal-close" bindtap="hideModals">✕</text>
     </view>
-
-    <view class="report-mode-selector">
-      <view class="report-mode-option {{medicationMode === 'none' ? 'active' : ''}}"
+    <view class="modal-body">
+      <view class="modal-option {{medicationMode === 'none' ? 'active' : ''}}"
             bindtap="selectMedicationMode"
             data-mode="none">
-        <text class="report-mode-icon">💭</text>
-        <text class="report-mode-title">不使用药单</text>
-        <view class="report-mode-check" wx:if="{{medicationMode === 'none'}}">✓</view>
+        <text class="modal-option-icon">💭</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">不使用药单</text>
+          <text class="modal-option-desc">仅咨询健康问题</text>
+        </view>
+        <view class="modal-check" wx:if="{{medicationMode === 'none'}}">✓</view>
       </view>
 
-      <view class="report-mode-option {{medicationMode === 'select' ? 'active' : ''}}"
+      <view class="modal-option {{medicationMode === 'select' ? 'active' : ''}}"
             bindtap="selectMedicationMode"
             data-mode="select">
-        <text class="report-mode-icon">💊</text>
-        <text class="report-mode-title">选择药单</text>
-        <view class="report-mode-check" wx:if="{{medicationMode === 'select'}}">✓</view>
-      </view>
-    </view>
-
-    <!-- 药单列表 -->
-    <view class="report-list" wx:if="{{medicationMode === 'select' && medications.length > 0}}">
-      <view class="report-actions">
-        <button class="action-btn" bindtap="selectAllMedications">全选</button>
-        <button class="action-btn" bindtap="clearMedications">清空</button>
-      </view>
-
-      <view class="report-items">
-        <view class="report-item {{item.selected ? 'selected' : ''}}"
-              wx:for="{{medications}}"
-              wx:key="id"
-              bindtap="toggleMedication"
-              data-id="{{item.id}}">
-          <view class="report-check">{{item.selected ? '✓' : ''}}</view>
-          <view class="report-info">
-            <text class="report-hospital">{{item.medicine_name}}</text>
-            <text class="report-date">{{item.dosage}}</text>
-            <text class="report-count">{{item.start_date}} 至 {{item.end_date}}</text>
-          </view>
+        <text class="modal-option-icon">💊</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">选择药单</text>
+          <text class="modal-option-desc">结合用药情况分析</text>
         </view>
+        <view class="modal-check" wx:if="{{medicationMode === 'select'}}">✓</view>
       </view>
 
-      <view class="selected-tip" wx:if="{{selectedMedicationIds.length > 0}}">
-        <text class="tip-text">已选择 {{selectedMedicationIds.length}} 份药单</text>
+      <!-- 药单列表 -->
+      <view class="medication-list-section" wx:if="{{medicationMode === 'select' && medications.length > 0}}">
+        <view class="list-actions">
+          <button class="action-tag" bindtap="selectAllMedications">全选</button>
+          <button class="action-tag clear" bindtap="clearMedications">清空</button>
+        </view>
+        <scroll-view class="medication-scroll" scroll-y>
+          <view class="medication-item {{item.selected ? 'selected' : ''}}"
+                wx:for="{{medications}}"
+                wx:key="id"
+                bindtap="toggleMedication"
+                data-id="{{item.id}}">
+            <view class="medication-check">{{item.selected ? '✓' : ''}}</view>
+            <view class="medication-content">
+              <text class="medication-name">💊 {{item.medicine_name}}</text>
+              <text class="medication-meta">{{item.dosage}}</text>
+              <text class="medication-date">{{item.start_date}} 至 {{item.end_date}}</text>
+            </view>
+          </view>
+        </scroll-view>
       </view>
     </view>
-
-    <view class="empty-reports" wx:if="{{medicationMode === 'select' && medications.length === 0}}">
-      <text class="empty-text">暂无药单</text>
-      <text class="empty-hint">您还没有添加任何药单</text>
+    <view class="modal-footer">
+      <button class="modal-btn" bindtap="hideModals">确定</button>
     </view>
-  </view>
-
-  <!-- 问题输入 -->
-  <view class="section-card">
-    <view class="section-title">
-      <text class="title-icon">❓</text>
-      <text class="title-text">描述您的问题</text>
-    </view>
-
-    <textarea class="question-input"
-              value="{{question}}"
-              bindinput="onQuestionInput"
-              placeholder="请详细描述您的健康问题，AI医生会基于您的数据提供专业建议..."
-              maxlength="1000"
-              auto-height
-              adjust-position="{{true}}"
-              show-confirm-bar="{{false}}" />
-  </view>
-
-  <!-- 提交按钮 -->
-  <view class="submit-section">
-    <button class="submit-btn {{question.trim() ? 'active' : ''}}"
-            bindtap="handleSubmit"
-            disabled="{{submitting}}">
-      <text wx:if="{{!submitting}}">🤖 获取AI建议</text>
-      <text wx:else>分析中...</text>
-    </button>
   </view>
 </view>

@@ -1,46 +1,125 @@
 <!--pages/conversation-history/conversation-history.wxml-->
-<view class="history-container">
-  <!-- 顶部标题 -->
-  <view class="page-header">
-    <text class="page-title">咨询历史</text>
-    <text class="page-subtitle">查看所有AI健康咨询记录</text>
+<view class="history-page">
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="gradient-blob blob-1"></view>
+    <view class="gradient-blob blob-2"></view>
+    <view class="gradient-blob blob-3"></view>
   </view>
 
-  <!-- 对话列表 -->
-  <view class="conversation-list" wx:if="{{conversations.length > 0}}">
-    <view class="conversation-item card"
-          wx:for="{{conversations}}"
-          wx:key="id"
-          bindtap="goToConversation"
-          data-id="{{item.id}}">
-      <view class="item-header">
-        <text class="item-title">{{item.title}}</text>
-        <view class="item-actions">
-          <text class="export-text" catchtap="exportConversation" data-id="{{item.id}}">导出</text>
-          <text class="delete-text" catchtap="deleteConversation" data-id="{{item.id}}">删除</text>
+  <!-- 头部区域 -->
+  <view class="page-header">
+    <view class="header-nav">
+      <view class="nav-btn back-btn" bindtap="goBack">
+        <text class="nav-icon">←</text>
+      </view>
+      <view class="header-content">
+        <text class="page-title">咨询记录</text>
+        <text class="page-count">{{conversations.length}} 条对话</text>
+      </view>
+      <view class="nav-btn search-btn" bindtap="toggleSearch">
+        <text class="nav-icon">🔍</text>
+      </view>
+    </view>
+
+    <!-- 搜索框 -->
+    <view class="search-container {{showSearch ? 'show' : ''}}">
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <input class="search-input"
+               value="{{searchKeyword}}"
+               bindinput="onSearchInput"
+               placeholder="搜索对话内容..." />
+        <view class="search-clear {{searchKeyword ? 'visible' : ''}}" bindtap="clearSearch">
+          <text>✕</text>
         </view>
-      </view>
-
-      <view class="item-meta">
-        <text class="meta-text">{{item.message_count}}条消息</text>
-        <text class="meta-text">{{item.created_at}}</text>
-      </view>
-
-      <view class="item-preview" wx:if="{{item.latest_question}}">
-        <text class="preview-text">{{item.latest_question}}</text>
-      </view>
-
-      <view class="item-footer">
-        <text class="view-text">查看对话 ›</text>
       </view>
     </view>
   </view>
 
-  <!-- 空状态 -->
-  <view class="empty-container" wx:else>
-    <image class="empty-icon" src="/images/empty.png" mode="aspectFit"></image>
-    <text class="empty-text">暂无咨询记录</text>
-    <text class="empty-hint">开始您的第一次AI健康咨询吧</text>
-    <button class="btn-primary mt-20" bindtap="goToAIAdvice">开始咨询</button>
-  </view>
+  <!-- 内容区域 -->
+  <scroll-view class="content-scroll" scroll-y bindscrolltolower="loadMore">
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{conversations.length === 0 && !loading}}">
+      <view class="empty-visual">
+        <view class="empty-circle circle-1"></view>
+        <view class="empty-circle circle-2"></view>
+        <view class="empty-circle circle-3"></view>
+        <text class="empty-icon">💭</text>
+      </view>
+      <text class="empty-title">暂无咨询记录</text>
+      <text class="empty-text">开始与AI健康助手对话吧</text>
+      <view class="empty-btn" bindtap="goToAIAdvice">
+        <text>开始对话</text>
+      </view>
+    </view>
+
+    <!-- 对话列表 -->
+    <view class="conversation-timeline" wx:else>
+      <view class="timeline-line"></view>
+
+      <view class="conversation-item"
+            wx:for="{{conversations}}"
+            wx:key="id"
+            style="animation-delay: {{index * 0.08}}s">
+        <view class="timeline-dot"></view>
+
+        <view class="conversation-card" bindtap="goToConversation" data-id="{{item.id}}">
+          <!-- 卡片主体 -->
+          <view class="card-main">
+            <!-- 状态指示器 -->
+            <view class="card-status {{item.status || 'completed'}}">
+              <view class="status-dot"></view>
+            </view>
+
+            <!-- 卡片内容 -->
+            <view class="card-content">
+              <view class="card-header">
+                <text class="card-title">{{item.title}}</text>
+                <view class="card-badge" wx:if="{{item.status === 'generating'}}">
+                  <text>生成中</text>
+                </view>
+              </view>
+
+              <text class="card-preview">{{item.preview || '暂无预览'}}</text>
+
+              <view class="card-footer">
+                <view class="card-meta">
+                  <text class="meta-icon">🕐</text>
+                  <text class="meta-text">{{item.created_at}}</text>
+                </view>
+                <view class="card-meta">
+                  <text class="meta-icon">💬</text>
+                  <text class="meta-text">{{item.message_count || 0}} 条消息</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 卡片操作 -->
+          <view class="card-actions" catchtap="stopPropagation">
+            <view class="action-item" bindtap="exportConversation" data-id="{{item.id}}">
+              <view class="action-icon">📄</view>
+              <text class="action-label">导出</text>
+            </view>
+            <view class="action-item delete" bindtap="deleteConversation" data-id="{{item.id}}">
+              <view class="action-icon">🗑</view>
+              <text class="action-label">删除</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="loading-state" wx:if="{{loading && conversations.length > 0}}">
+      <view class="loading-dots">
+        <view class="dot dot-1"></view>
+        <view class="dot dot-2"></view>
+        <view class="dot dot-3"></view>
+      </view>
+    </view>
+
+  </scroll-view>
 </view>

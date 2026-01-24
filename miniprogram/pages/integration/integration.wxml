@@ -1,97 +1,129 @@
 <view class="integration-container">
-  <view class="intro-card card">
-    <view class="card-title">数据智能整合</view>
-    <text class="intro-text">选择多份体检报告，AI将自动统一指标名称、单位和参考范围</text>
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
   </view>
 
-  <!-- 检测重复报告 -->
-  <view class="duplicate-detection card">
-    <view class="section-title">
-      <text>合并报告</text>
-      <text class="detect-btn" bindtap="detectDuplicates">查找相同报告</text>
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-left">
+      <text class="header-emoji">🔄</text>
+      <view class="header-text">
+        <text class="header-title">数据整合</text>
+        <text class="header-subtitle">AI智能统一指标</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 介绍卡片 -->
+  <view class="intro-card">
+    <text class="intro-emoji">✨</text>
+    <view class="intro-content">
+      <text class="intro-title">智能整合</text>
+      <text class="intro-text">选择多份报告，AI将自动统一指标名称、单位和参考范围</text>
+    </view>
+  </view>
+
+  <!-- 重复报告检测 -->
+  <view class="section-card">
+    <view class="section-header">
+      <text class="section-title">合并报告</text>
+      <view class="detect-btn" bindtap="detectDuplicates">
+        <text class="detect-btn-text">查找相同</text>
+      </view>
     </view>
 
+    <!-- 重复列表 -->
     <view class="duplicate-list" wx:if="{{duplicateGroups.length > 0}}">
       <view class="duplicate-group" wx:for="{{duplicateGroups}}" wx:key="date">
         <view class="duplicate-header">
-          <text class="duplicate-title">{{item.date}} · {{item.hospital}}</text>
-          <text class="duplicate-count">{{item.count}}份相同报告</text>
+          <text class="duplicate-date">{{item.date}}</text>
+          <text class="duplicate-count">{{item.count}}份</text>
         </view>
+        <text class="duplicate-hospital">{{item.hospital}}</text>
 
-        <view class="duplicate-checkups">
-          <view class="duplicate-checkup-item"
+        <!-- 报告列表 -->
+        <view class="checkup-list">
+          <view class="checkup-item-mini"
                 wx:for="{{item.checkups}}"
                 wx:for-item="checkup"
-                wx:key="id">
-            <view class="checkup-radio"
-                  bindtap="selectTargetCheckup"
-                  data-group-index="{{index}}"
-                  data-checkup-id="{{checkup.id}}">
-              <view class="radio-icon {{item.targetCheckupId === checkup.id ? 'checked' : ''}}">
-                {{item.targetCheckupId === checkup.id ? '●' : '○'}}
-              </view>
-            </view>
-            <view class="checkup-details">
-              <text class="checkup-id">ID: {{checkup.id}}</text>
-              <text class="checkup-meta">{{checkup.indicators_count}}项指标 · {{checkup.created_at}}</text>
-              <text class="checkup-notes" wx:if="{{checkup.notes}}">备注: {{checkup.notes}}</text>
+                wx:key="id"
+                bindtap="selectTargetCheckup"
+                data-group-index="{{index}}"
+                data-checkup-id="{{checkup.id}}">
+            <view class="radio-dot {{item.targetCheckupId === checkup.id ? 'checked' : ''}}"></view>
+            <view class="checkup-mini-info">
+              <text class="mini-id">ID: {{checkup.id}}</text>
+              <text class="mini-meta">{{checkup.indicators_count}}项 · {{checkup.created_at}}</text>
             </view>
           </view>
         </view>
 
-        <view class="duplicate-actions">
-          <text class="target-hint">已选择ID {{item.targetCheckupId}} 作为主报告</text>
+        <view class="duplicate-footer">
+          <text class="target-text">已选ID {{item.targetCheckupId}}</text>
           <button class="merge-btn"
                   bindtap="mergeDuplicates"
                   data-group-index="{{index}}"
                   disabled="{{!item.targetCheckupId || item.merging}}"
                   loading="{{item.merging}}">
-            {{item.merging ? '合并中...' : '合并这组'}}
+            {{item.merging ? '合并中...' : '合并'}}
           </button>
         </view>
       </view>
     </view>
 
     <view class="no-duplicates" wx:elif="{{hasChecked && duplicateGroups.length === 0}}">
-      <text class="no-duplicates-text">✓ 未发现相同日期和机构的报告</text>
+      <text class="no-duplicate-icon">✓</text>
+      <text class="no-duplicate-text">未发现相同报告</text>
     </view>
 
     <view class="detect-hint" wx:else>
-      <text class="hint-text">点击"查找相同报告"按钮查找相同日期和机构的报告</text>
+      <text class="hint-icon">💡</text>
+      <text class="hint-text">点击查找相同日期和机构的报告</text>
     </view>
   </view>
 
-  <view class="checkups-list card">
-    <view class="section-title">选择要整合的报告（至少2份）</view>
-    <view class="checkup-item" wx:for="{{checkups}}" wx:key="id">
-      <view class="checkbox" bindtap="toggleSelection" data-id="{{item.id}}">
-        <view class="checkbox-icon {{selectedIdSet[item.id] ? 'checked' : ''}}">
-          {{selectedIdSet[item.id] ? '✓' : ''}}
+  <!-- 报告选择 -->
+  <view class="section-card">
+    <view class="section-header">
+      <text class="section-title">选择报告 (至少2份)</text>
+    </view>
+
+    <view class="checkup-list-full">
+      <view class="checkup-row"
+            wx:for="{{checkups}}"
+            wx:key="id"
+            bindtap="toggleSelection"
+            data-id="{{item.id}}">
+        <view class="checkbox-box {{selectedIdSet[item.id] ? 'checked' : ''}}">
+          <text class="check-icon" wx:if="{{selectedIdSet[item.id]}}">✓</text>
+        </view>
+        <view class="checkup-row-info">
+          <text class="row-hospital">{{item.hospital}}</text>
+          <text class="row-meta">{{item.checkup_date}} · {{item.indicators_count}}项</text>
         </view>
       </view>
-      <view class="checkup-info" bindtap="toggleSelection" data-id="{{item.id}}">
-        <text class="hospital">{{item.hospital}}</text>
-        <text class="date">{{item.checkup_date}} · {{item.indicators_count}}项</text>
-      </view>
     </view>
   </view>
 
-  <!-- 自定义提示词 -->
-  <view class="user-prompt-card card">
-    <view class="section-title">自定义提示词（可选）</view>
-    <textarea
-      class="prompt-input"
-      placeholder="例如：请特别关注血压、血糖指标；确保日期格式统一..."
-      value="{{userPrompt}}"
-      bindinput="onPromptInput"
-      maxlength="200"
-    />
-    <text class="prompt-hint">可选。添加你希望AI特别关注的方面，留空则使用默认规则</text>
+  <!-- 自定义提示 -->
+  <view class="section-card">
+    <view class="section-header">
+      <text class="section-title">自定义提示 (可选)</text>
+    </view>
+    <textarea class="prompt-area"
+              placeholder="例如：请特别关注血压、血糖指标..."
+              value="{{userPrompt}}"
+              bindinput="onPromptInput"
+              maxlength="200" />
+    <text class="prompt-hint">添加你希望AI特别关注的方面</text>
   </view>
 
-  <view class="action-area">
-    <text class="selected-count">已选择 {{selectedIds.length}} 份报告</text>
-    <button class="integrate-btn btn-primary"
+  <!-- 底部操作区 -->
+  <view class="action-bar">
+    <text class="action-count">已选择 {{selectedIds.length}} 份</text>
+    <button class="integrate-btn"
             bindtap="handleIntegrate"
             disabled="{{selectedIds.length < 2 || integrating}}"
             loading="{{integrating}}">

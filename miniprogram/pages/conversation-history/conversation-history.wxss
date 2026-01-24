@@ -1,106 +1,412 @@
-/* pages/conversation-history/conversation-history.wxss */
-.history-container {
+/* pages/conversation-history/conversation-history.wxss - 时间轴风格设计 */
+
+page {
+  background: linear-gradient(180deg, #FFF5F0 0%, #FFFEF9 100%);
+  height: 100%;
+}
+
+/* ==================== 页面容器 ==================== */
+.history-page {
   min-height: 100vh;
-  background: #FFFFFF;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.06) 0%, transparent 50%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==================== 背景装饰 ==================== */
+.bg-decoration {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.gradient-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80rpx);
+  opacity: 0.2;
+  animation: blobFloat 25s ease-in-out infinite;
+}
+
+.blob-1 {
+  width: 500rpx;
+  height: 500rpx;
+  background: radial-gradient(circle, rgba(255, 138, 122, 0.5), transparent);
+  top: -100rpx;
+  right: -150rpx;
+}
+
+.blob-2 {
+  width: 400rpx;
+  height: 400rpx;
+  background: radial-gradient(circle, rgba(168, 230, 207, 0.4), transparent);
+  top: 40%;
+  left: -100rpx;
+  animation-delay: 8s;
+}
+
+.blob-3 {
+  width: 350rpx;
+  height: 350rpx;
+  background: radial-gradient(circle, rgba(232, 93, 76, 0.3), transparent);
+  bottom: 10%;
+  right: -80rpx;
+  animation-delay: 16s;
+}
+
+@keyframes blobFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(50rpx, -80rpx) scale(1.1); }
+  66% { transform: translate(-40rpx, 60rpx) scale(0.95); }
 }
 
 /* ==================== 页面头部 ==================== */
 .page-header {
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  padding: 40rpx 30rpx;
-  text-align: center;
+  position: relative;
+  z-index: 10;
+  padding: 60rpx 24rpx 24rpx;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.nav-btn {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04), 0 8rpx 16rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.nav-btn:active {
+  transform: scale(0.95);
+}
+
+.nav-icon {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 400;
+}
+
+.header-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
 }
 
 .page-title {
-  display: block;
   font-size: 36rpx;
-  font-weight: 600;
-  color: #FFFFFF;
-  margin-bottom: 8rpx;
+  font-weight: 800;
+  color: #1A1A1A;
+  letter-spacing: 1rpx;
 }
 
-.page-subtitle {
-  display: block;
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.9);
+.page-count {
+  font-size: 22rpx;
+  color: #999;
+  font-weight: 500;
 }
 
-/* ==================== 对话列表 ==================== */
-.conversation-list {
-  padding: 20rpx;
+/* ==================== 搜索框 ==================== */
+.search-container {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.conversation-item {
-  background-color: #FFFFFF;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.search-container.show {
+  max-height: 200rpx;
+  opacity: 1;
   margin-bottom: 16rpx;
 }
 
-.item-title {
-  flex: 1;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #333333;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item-actions {
+.search-box {
   display: flex;
   align-items: center;
-  margin-left: 16rpx;
-  gap: 16rpx;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04), 0 8rpx 16rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.5);
 }
 
-.export-text {
-  font-size: 26rpx;
-  color: #FF9A9E;
-  font-weight: 500;
-  padding: 8rpx;
+.search-icon {
+  font-size: 28rpx;
+  color: #999;
 }
 
-.delete-text {
-  font-size: 26rpx;
-  color: #FF8A8A;
-  font-weight: 500;
-  padding: 8rpx;
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1A1A1A;
 }
 
-.item-meta {
+.search-clear {
+  width: 32rpx;
+  height: 32rpx;
   display: flex;
-  gap: 24rpx;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 50%;
+  font-size: 20rpx;
+  color: #999;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.2s ease;
+}
+
+.search-clear.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ==================== 内容区域 ==================== */
+.content-scroll {
+  height: calc(100vh - 200rpx);
+  position: relative;
+  z-index: 1;
+}
+
+/* ==================== 空状态 ==================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: 60rpx 40rpx;
+}
+
+.empty-visual {
+  position: relative;
+  width: 200rpx;
+  height: 200rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 40rpx;
+}
+
+.empty-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 2rpx solid rgba(255, 138, 122, 0.2);
+  animation: pulseRing 3s ease-in-out infinite;
+}
+
+.circle-1 {
+  width: 200rpx;
+  height: 200rpx;
+}
+
+.circle-2 {
+  width: 150rpx;
+  height: 150rpx;
+  animation-delay: 1s;
+}
+
+.circle-3 {
+  width: 100rpx;
+  height: 100rpx;
+  animation-delay: 2s;
+}
+
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.1); opacity: 0.6; }
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1A1A1A;
   margin-bottom: 12rpx;
 }
 
-.meta-text {
-  font-size: 20rpx;
-  color: #999999;
-}
-
-.item-preview {
-  padding: 16rpx;
-  background-color: #F8F9FA;
-  border-radius: 8rpx;
-  margin-bottom: 16rpx;
-}
-
-.preview-text {
+.empty-text {
   font-size: 26rpx;
-  color: #666666;
+  color: #999;
+  margin-bottom: 32rpx;
+}
+
+.empty-btn {
+  padding: 20rpx 48rpx;
+  background: linear-gradient(135deg, #FF8A7A 0%, #E85D4C 100%);
+  border-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(232, 93, 76, 0.3);
+  font-size: 28rpx;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.empty-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 12rpx rgba(232, 93, 76, 0.3);
+}
+
+/* ==================== 时间轴列表 ==================== */
+.conversation-timeline {
+  position: relative;
+  padding: 20rpx 0 40rpx 40rpx;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 54rpx;
+  top: 40rpx;
+  bottom: 40rpx;
+  width: 4rpx;
+  background: linear-gradient(180deg, rgba(255, 138, 122, 0.3) 0%, rgba(168, 230, 207, 0.3) 100%);
+  border-radius: 2rpx;
+}
+
+.conversation-item {
+  position: relative;
+  margin-bottom: 32rpx;
+  animation: slideInItem 0.5s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@keyframes slideInItem {
+  from {
+    opacity: 0;
+    transform: translateX(-40rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -28rpx;
+  top: 32rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background: white;
+  border: 4rpx solid #FF8A7A;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4rpx rgba(255, 138, 122, 0.2);
+  z-index: 2;
+}
+
+/* ==================== 对话卡片 ==================== */
+.conversation-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06), 0 8rpx 32rpx rgba(0, 0, 0, 0.04);
+  border: 1rpx solid rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.conversation-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+/* 卡片主体 */
+.card-main {
+  display: flex;
+  padding: 24rpx;
+  gap: 16rpx;
+}
+
+.card-status {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 8rpx;
+  position: relative;
+}
+
+.card-status.completed {
+  background: #A8E6CF;
+  box-shadow: 0 0 0 4rpx rgba(168, 230, 207, 0.2);
+}
+
+.card-status.generating {
+  background: #FF8A7A;
+  box-shadow: 0 0 0 4rpx rgba(255, 138, 122, 0.2);
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { box-shadow: 0 0 0 4rpx rgba(255, 138, 122, 0.2); }
+  50% { box-shadow: 0 0 0 8rpx rgba(255, 138, 122, 0.4); }
+}
+
+.card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.card-title {
+  flex: 1;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.card-badge {
+  padding: 6rpx 12rpx;
+  background: linear-gradient(135deg, rgba(255, 138, 122, 0.15), rgba(232, 93, 76, 0.15));
+  border-radius: 12rpx;
+  font-size: 20rpx;
+  color: #E85D4C;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.card-preview {
+  font-size: 26rpx;
+  color: #666;
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -109,63 +415,104 @@
   -webkit-box-orient: vertical;
 }
 
-.item-footer {
+.card-footer {
   display: flex;
-  justify-content: flex-end;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #F0F0F0;
+  gap: 20rpx;
 }
 
-.view-text {
-  font-size: 24rpx;
-  color: #FF9A9E;
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.meta-icon {
+  font-size: 22rpx;
+}
+
+.meta-text {
+  font-size: 22rpx;
+  color: #999;
   font-weight: 500;
 }
 
-/* ==================== 空状态 ==================== */
-.empty-container {
+/* ==================== 卡片操作 ==================== */
+.card-actions {
+  display: flex;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.action-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 120rpx 60rpx;
+  gap: 6rpx;
+  padding: 16rpx;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
-.empty-icon {
-  width: 200rpx;
-  height: 200rpx;
-  margin-bottom: 30rpx;
-  opacity: 0.5;
+.action-item:active {
+  background: rgba(0, 0, 0, 0.05);
 }
 
-.empty-text {
-  font-size: 28rpx;
-  color: #999999;
-  margin-bottom: 12rpx;
+.action-item:after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rpx;
+  height: 60%;
+  background: rgba(0, 0, 0, 0.05);
 }
 
-.empty-hint {
-  font-size: 26rpx;
-  color: #BBBBBB;
-  margin-bottom: 40rpx;
+.action-item:last-child:after {
+  display: none;
 }
 
-.mt-20 {
-  margin-top: 20rpx;
+.action-icon {
+  font-size: 32rpx;
 }
 
-/* ==================== 通用按钮样式 ==================== */
-.btn-primary {
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #5A4A4A;
-  border: none;
-  border-radius: 50rpx;
-  padding: 24rpx 60rpx;
-  font-size: 26rpx;
+.action-label {
+  font-size: 22rpx;
+  color: #666;
   font-weight: 500;
-  box-shadow: 0 8rpx 24rpx rgba(255, 154, 158, 0.3);
 }
 
-.btn-primary::after {
-  border: none;
+.action-item.delete .action-label {
+  color: #E85D4C;
+}
+
+/* ==================== 加载状态 ==================== */
+.loading-state {
+  padding: 40rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 12rpx;
+}
+
+.loading-dots .dot {
+  width: 12rpx;
+  height: 12rpx;
+  background: #FF8A7A;
+  border-radius: 50%;
+  animation: loadingBounce 1.4s ease-in-out infinite;
+}
+
+.loading-dots .dot-1 { animation-delay: 0s; }
+.loading-dots .dot-2 { animation-delay: 0.2s; }
+.loading-dots .dot-3 { animation-delay: 0.4s; }
+
+@keyframes loadingBounce {
+  0%, 80%, 100% { transform: scale(1); opacity: 0.5; }
+  40% { transform: scale(1.4); opacity: 1; }
 }

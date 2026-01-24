@@ -1,94 +1,206 @@
 /* pages/login/login.wxss */
+
+/* ==================== 温暖治愈风格变量 ==================== */
+page {
+  --warm-coral: #FF8A7A;
+  --warm-peach: #FFB4A2;
+  --warm-cream: #FFF5F0;
+  --warm-white: #FFFEF9;
+  --warm-mint: #A8E6CF;
+  --warm-lavender: #E8D5F2;
+  --warm-yellow: #FFF3B0;
+  --text-primary: #5D4E46;
+  --text-secondary: #8B7E7A;
+  --text-light: #B5A8A3;
+}
+
+/* ==================== 主容器 ==================== */
 .login-container {
   min-height: 100vh;
-  background: #FFFFFF;
-  background-image:
-    radial-gradient(circle at 20% 30%, rgba(255, 154, 158, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(168, 237, 234, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(254, 207, 239, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 90% 20%, rgba(255, 154, 158, 0.08) 0%, transparent 30%),
-    radial-gradient(circle at 10% 90%, rgba(168, 237, 234, 0.1) 0%, transparent 35%);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
-  padding: 120rpx 60rpx;
+  background: linear-gradient(180deg, #FFF5F0 0%, #FFFEF9 50%, #FFF9F5 100%);
+  padding: 120rpx 60rpx 80rpx;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
-.login-container::before {
-  content: '';
+/* 温暖的光晕效果 */
+.warm-glow {
   position: absolute;
+  border-radius: 50%;
+  filter: blur(80rpx);
+  opacity: 0.4;
+  animation: float 8s ease-in-out infinite;
+}
+
+.glow-1 {
+  width: 500rpx;
+  height: 500rpx;
+  background: radial-gradient(circle, rgba(255, 138, 122, 0.5) 0%, transparent 70%);
   top: -100rpx;
-  right: -100rpx;
+  right: -150rpx;
+  animation-delay: 0s;
+}
+
+.glow-2 {
   width: 400rpx;
   height: 400rpx;
-  background: linear-gradient(135deg, #FFE5E5 0%, #E8F5FF 100%);
-  border-radius: 50%;
-  opacity: 0.6;
+  background: radial-gradient(circle, rgba(168, 230, 207, 0.4) 0%, transparent 70%);
+  top: 300rpx;
+  left: -100rpx;
+  animation-delay: 2s;
 }
 
-.login-container::after {
-  content: '';
-  position: absolute;
-  bottom: -80rpx;
-  left: -80rpx;
-  width: 300rpx;
-  height: 300rpx;
-  background: linear-gradient(135deg, #E8F5FF 0%, #E0F2F1 100%);
-  border-radius: 50%;
-  opacity: 0.5;
+.glow-3 {
+  width: 350rpx;
+  height: 350rpx;
+  background: radial-gradient(circle, rgba(255, 179, 194, 0.3) 0%, transparent 70%);
+  bottom: 200rpx;
+  right: -80rpx;
+  animation-delay: 4s;
 }
 
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-30rpx) scale(1.05);
+    opacity: 0.5;
+  }
+}
+
+/* ==================== 头部区域 ==================== */
 .login-header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 80rpx;
+  margin-bottom: 60rpx;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+.logo-wrapper {
+  margin-bottom: 30rpx;
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.logo-icon {
+  width: 140rpx;
+  height: 140rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 80rpx;
+  background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
+  border-radius: 50%;
+  box-shadow:
+    0 10rpx 40rpx rgba(255, 138, 122, 0.3),
+    0 0 0 8rpx rgba(255, 255, 255, 0.5),
+    inset 0 -4rpx 12rpx rgba(0, 0, 0, 0.1);
 }
 
 .app-name {
-  font-size: 52rpx;
-  font-weight: 500;
-  color: #333333;
-  margin-bottom: 20rpx;
+  font-size: 56rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16rpx;
   letter-spacing: 2rpx;
+  text-shadow: 0 2rpx 8rpx rgba(255, 138, 122, 0.15);
 }
 
 .app-desc {
-  font-size: 26rpx;
-  color: #999999;
+  font-size: 28rpx;
+  color: var(--text-secondary);
   letter-spacing: 1rpx;
+  margin-bottom: 12rpx;
+  text-align: center;
 }
 
+.subtitle-tag {
+  background: linear-gradient(135deg, var(--warm-mint), #C8F7DC);
+  color: #3A7A5C;
+  padding: 8rpx 24rpx;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  box-shadow: 0 4rpx 12rpx rgba(168, 230, 207, 0.3);
+}
+
+/* ==================== 登录表单 ==================== */
 .login-form {
-  background-color: #FAFAFA;
-  border-radius: 32rpx;
-  padding: 70rpx 50rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20rpx);
+  -webkit-backdrop-filter: blur(20rpx);
+  border-radius: 48rpx;
+  padding: 60rpx 50rpx;
+  box-shadow:
+    0 8rpx 32rpx rgba(255, 138, 122, 0.12),
+    0 0 0 1rpx rgba(255, 255, 255, 0.8);
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  border: 2rpx solid rgba(255, 255, 255, 0.9);
 }
 
+/* 表单项 */
 .form-item {
   margin-bottom: 28rpx;
 }
 
-.input-field {
-  width: 100%;
-  height: 96rpx;
-  background-color: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 0 32rpx;
-  font-size: 30rpx;
-  box-sizing: border-box;
-  border: 2rpx solid #F0F0F0;
-  transition: all 0.3s;
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--warm-white);
+  border-radius: 28rpx;
+  padding: 0 28rpx;
+  box-shadow:
+    0 4rpx 16rpx rgba(255, 138, 122, 0.08),
+    inset 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
+  border: 2rpx solid rgba(255, 138, 122, 0.1);
+  transition: all 0.3s ease;
 }
 
+.input-wrapper:focus-within {
+  box-shadow:
+    0 6rpx 24rpx rgba(255, 138, 122, 0.15),
+    inset 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
+  border-color: var(--warm-coral);
+  transform: translateY(-2rpx);
+}
+
+.input-icon {
+  font-size: 36rpx;
+  margin-right: 16rpx;
+  opacity: 0.6;
+}
+
+.input-field {
+  flex: 1;
+  height: 100rpx;
+  font-size: 30rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.input-placeholder {
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+/* 协议勾选 */
 .agreement-check {
-  margin-top: 24rpx;
+  margin: 28rpx 0 32rpx;
   padding: 0 8rpx;
 }
 
@@ -99,13 +211,46 @@
   line-height: 40rpx;
 }
 
-.agreement-checkbox {
-  width: 40rpx;
-  height: 40rpx;
-  margin-right: 12rpx;
-  margin-top: 4rpx;
+.custom-checkbox {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 12rpx;
+  border: 3rpx solid var(--warm-peach);
+  background: var(--warm-white);
+  margin-right: 16rpx;
+  margin-top: 2rpx;
   flex-shrink: 0;
-  transform: scale(0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 2rpx 8rpx rgba(255, 138, 122, 0.1);
+}
+
+.custom-checkbox.checked {
+  background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
+  border-color: var(--warm-coral);
+  transform: scale(1.1);
+  box-shadow: 0 4rpx 12rpx rgba(255, 138, 122, 0.3);
+}
+
+.checkmark {
+  color: white;
+  font-size: 28rpx;
+  font-weight: bold;
+  animation: checkmark 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes checkmark {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .check-content {
@@ -115,140 +260,257 @@
 
 .check-text {
   font-size: 24rpx;
-  color: #999999;
+  color: var(--text-secondary);
 }
 
-.login-btn {
-  width: 100%;
-  height: 96rpx;
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #5A4A4A;
-  font-size: 32rpx;
-  font-weight: 500;
-  border-radius: 20rpx;
-  border: none;
-  margin-top: 40rpx;
-  box-shadow: 0 8rpx 24rpx rgba(255, 154, 158, 0.3);
+.link-text {
+  font-size: 24rpx;
+  color: var(--warm-coral);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2rpx;
 }
 
-.wechat-login-btn {
+/* ==================== 按钮样式 ==================== */
+.warm-btn-primary,
+.warm-btn-wechat {
   width: 100%;
-  height: 96rpx;
-  background: linear-gradient(135deg, #A8EDEA 0%, #FED6E3 100%);
-  color: #5A4A4A;
-  font-size: 32rpx;
-  font-weight: 500;
-  border-radius: 20rpx;
+  height: 108rpx;
+  border-radius: 32rpx;
   border: none;
+  font-size: 32rpx;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(168, 237, 234, 0.3);
+  transition: all 0.3s ease;
+  box-shadow: 0 8rpx 24rpx rgba(255, 138, 122, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 
+.warm-btn-primary::before,
+.warm-btn-wechat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.warm-btn-primary:active::before,
+.warm-btn-wechat:active::before {
+  left: 100%;
+}
+
+.warm-btn-primary {
+  background: linear-gradient(135deg, var(--warm-coral) 0%, var(--warm-peach) 100%);
+  color: white;
+  margin-top: 36rpx;
+}
+
+.warm-btn-primary:active {
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 12rpx rgba(255, 138, 122, 0.2);
+}
+
+.warm-btn-primary[disabled] {
+  opacity: 0.5;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.btn-icon {
+  font-size: 36rpx;
+}
+
+.warm-btn-wechat {
+  background: linear-gradient(135deg, #A8E6CF 0%, #C8F7DC 100%);
+  color: #3A7A5C;
+  box-shadow: 0 8rpx 24rpx rgba(168, 230, 207, 0.3);
+}
+
+.warm-btn-wechat:active {
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 12rpx rgba(168, 230, 207, 0.25);
+}
+
+.wechat-icon {
+  font-size: 36rpx;
+}
+
+/* ==================== 分隔线 ==================== */
 .divider {
   display: flex;
   align-items: center;
-  margin: 36rpx 0;
+  margin: 40rpx 0 36rpx;
 }
 
 .divider-line {
   flex: 1;
   height: 2rpx;
-  background-color: #E8E8E8;
+  background: linear-gradient(90deg, transparent, rgba(255, 138, 122, 0.2), transparent);
 }
 
-.divider-text {
+.divider-or {
   padding: 0 24rpx;
-  font-size: 26rpx;
-  color: #BBBBBB;
+  font-size: 24rpx;
+  color: var(--text-light);
+  font-weight: 500;
 }
 
-.login-footer {
-  margin-top: auto;
-  text-align: center;
-  padding-bottom: 40rpx;
-  position: relative;
+/* ==================== 底部装饰 ==================== */
+.bottom-decoration {
+  position: absolute;
+  bottom: 60rpx;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
   z-index: 1;
 }
 
-.footer-text {
-  font-size: 24rpx;
-  color: #CCCCCC;
+.decoration-circle {
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: bounce 2s ease-in-out infinite;
 }
 
-.link-text {
-  font-size: 24rpx;
-  color: #5A8EEF;
-  text-decoration: underline;
+.circle-1 {
+  width: 24rpx;
+  height: 24rpx;
+  background: var(--warm-coral);
+  animation-delay: 0s;
 }
 
-/* 自定义弹窗样式 */
+.circle-2 {
+  width: 32rpx;
+  height: 32rpx;
+  background: var(--warm-mint);
+  animation-delay: 0.2s;
+}
+
+.circle-3 {
+  width: 24rpx;
+  height: 24rpx;
+  background: var(--warm-peach);
+  animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10rpx);
+  }
+}
+
+/* ==================== 弹窗样式 ==================== */
 .custom-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(93, 78, 70, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.custom-modal.show {
+  opacity: 1;
+  visibility: visible;
 }
 
 .modal-content {
   width: 640rpx;
   max-height: 80vh;
-  background-color: #FFFFFF;
-  border-radius: 24rpx;
+  background: var(--warm-white);
+  border-radius: 36rpx;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 20rpx 60rpx rgba(93, 78, 70, 0.2);
+  transform: scale(0.8);
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.custom-modal.show .modal-content {
+  transform: scale(1);
 }
 
 .modal-header {
-  padding: 32rpx;
-  border-bottom: 2rpx solid #F0F0F0;
-  text-align: center;
+  padding: 36rpx;
+  background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .modal-title {
   font-size: 32rpx;
-  font-weight: 500;
-  color: #333333;
+  font-weight: 600;
+  color: white;
+}
+
+.modal-close {
+  width: 48rpx;
+  height: 48rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32rpx;
+  font-weight: 300;
 }
 
 .modal-body {
   flex: 1;
-  padding: 32rpx;
+  padding: 40rpx;
   max-height: 60vh;
+  background: var(--warm-white);
 }
 
 .modal-text {
-  font-size: 22rpx;
-  line-height: 40rpx;
-  color: #666666;
+  font-size: 26rpx;
+  line-height: 48rpx;
+  color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 .modal-footer {
-  padding: 24rpx 32rpx;
-  border-top: 2rpx solid #F0F0F0;
+  padding: 28rpx 36rpx;
+  border-top: 2rpx solid rgba(255, 138, 122, 0.1);
   display: flex;
   justify-content: center;
+  background: var(--warm-white);
 }
 
 .modal-btn {
-  width: 200rpx;
-  height: 72rpx;
-  background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%);
-  color: #5A4A4A;
+  width: 240rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
+  color: white;
   font-size: 28rpx;
-  border-radius: 36rpx;
+  font-weight: 600;
+  border-radius: 24rpx;
   border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 6rpx 20rpx rgba(255, 138, 122, 0.3);
 }

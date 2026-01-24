@@ -41,7 +41,10 @@ Page({
     isGenerating: false,
     pollTimer: null,
     streamTimer: null,
-    adviceId: null
+    adviceId: null,
+    // 新增字段
+    showAttachmentMenu: false,
+    scrollToView: ''
   },
 
   onLoad(options) {
@@ -280,8 +283,6 @@ Page({
         selectedReportIds: lastSelectedReports,
         lastMessageId: messages.length > 0 ? messages[messages.length - 1].id : null
       })
-
-      console.log('[对话] 已加载上一轮对话的报告设置:', lastSelectedReports)
     } catch (err) {
       console.error('加载对话失败:', err)
       util.showToast(err.message || '加载失败')
@@ -387,14 +388,11 @@ Page({
   async loadReports() {
     try {
       this.setData({ reportsLoading: true, reportsError: null })
-      console.log('[对话] 开始加载报告列表...')
 
       const res = await api.getCheckups({ page_size: 100 })
-      console.log('[对话] API响应:', res)
 
       // 后端返回格式: { success: true, checkups: [...], count: ... }
       const checkupsData = res.checkups || res.data || res.results || []
-      console.log('[对话] 解析后的报告数据:', checkupsData)
 
       const reports = checkupsData.map(r => {
         // 安全地格式化日期
@@ -415,7 +413,6 @@ Page({
         }
       })
 
-      console.log(`[对话] 成功加载 ${reports.length} 份报告:`, reports)
 
       this.setData({
         reports,
@@ -465,7 +462,6 @@ Page({
       // 恢复上次的选择
       this.restoreMedicationSelection()
 
-      console.log(`[对话] 成功加载 ${medications.length} 份药单`)
     } catch (err) {
       console.error('加载药单列表失败:', err)
       this.setData({
@@ -483,7 +479,6 @@ Page({
     try {
       const lastSelection = wx.getStorageSync('lastConsultationSelection')
       if (lastSelection) {
-        console.log('[对话] 恢复上次选择:', lastSelection)
         if (lastSelection.selectedReportIds && lastSelection.selectedReportIds.length > 0) {
           this.setData({
             selectedReportIds: lastSelection.selectedReportIds,
@@ -559,7 +554,6 @@ Page({
         timestamp: new Date().getTime()
       }
       wx.setStorageSync('lastConsultationSelection', selection)
-      console.log('[对话] 保存选择:', selection)
     } catch (err) {
       console.error('保存选择失败:', err)
     }
@@ -579,6 +573,24 @@ Page({
     this.setData({
       showReportSelector: willShow
     })
+  },
+
+  /**
+   * 打开报告选择器（同时关闭附件菜单）
+   */
+  openReportSelector() {
+    // 先关闭附件菜单
+    this.setData({ showAttachmentMenu: false })
+
+    // 如果还没有加载过数据，则加载数据
+    if (!this.data.reportsLoaded) {
+      this.loadReports()
+    }
+
+    // 然后打开报告选择器
+    setTimeout(() => {
+      this.setData({ showReportSelector: true })
+    }, 100)
   },
 
   /**
@@ -654,6 +666,24 @@ Page({
     this.setData({
       showMedicationSelector: willShow
     })
+  },
+
+  /**
+   * 打吃药单选择器（同时关闭附件菜单）
+   */
+  openMedicationSelector() {
+    // 先关闭附件菜单
+    this.setData({ showAttachmentMenu: false })
+
+    // 如果还没有加载过数据，则加载数据
+    if (!this.data.medicationsLoaded) {
+      this.loadMedications()
+    }
+
+    // 然后吃药单选择器
+    setTimeout(() => {
+      this.setData({ showMedicationSelector: true })
+    }, 100)
   },
 
   /**
@@ -807,11 +837,9 @@ Page({
 
       if (this.data.conversationMode === 'continue' && this.data.conversationId) {
         requestData.conversation_id = this.data.conversationId
-        console.log('[对话] 继续对话，使用报告设置:', this.data.selectedReportIds)
 
         // 如果有使用报告，给用户提示
         if (this.data.selectedReportIds.length > 0) {
-          console.log(`[对话] 本次对话将引用 ${this.data.selectedReportIds.length} 份报告`)
         }
       }
 
@@ -999,14 +1027,6 @@ Page({
 
     if (msg) {
       const newExpanded = !msg.expanded
-      console.log('切换展开状态:', {
-        index,
-        oldExpanded: msg.expanded,
-        newExpanded,
-        contentLength: msg.content ? msg.content.length : 0,
-        contentPreview: msg.content ? msg.content.substring(0, 50) : 'NO CONTENT',
-        contentSub100: msg.content ? msg.content.substring(0, 100) : 'NO CONTENT'
-      })
 
       // 创建全新的消息数组
       const newMessages = this.data.messages.map((m, i) => {
@@ -1018,12 +1038,6 @@ Page({
 
       this.setData({
         messages: newMessages
-      }, () => {
-        // setData 回调中验证数据
-        console.log('setData后的数据:', {
-          expanded: this.data.messages[index].expanded,
-          content: this.data.messages[index].content ? this.data.messages[index].content.substring(0, 50) : 'EMPTY'
-        })
       })
     }
   },
@@ -1047,12 +1061,11 @@ Page({
     util.showLoading('生成中...')
     try {
       const token = wx.getStorageSync('token')
-      const baseUrl = 'https://www.zctestbench.asia/health'
+      const baseUrl = 'https://www.zctestbench.asia'
       const exportUrl = index === 0
         ? `${baseUrl}/api/miniprogram/conversations/${this.data.conversationId}/export/pdf/`
         : `${baseUrl}/api/miniprogram/conversations/${this.data.conversationId}/export/word/`
 
-      console.log('[导出] 开始下载:', exportUrl)
 
       // 下载文件
       const downloadRes = await new Promise((resolve, reject) => {
@@ -1062,7 +1075,6 @@ Page({
             'Authorization': `Token ${token}`
           },
           success: (res) => {
-            console.log('[导出] 下载响应状态码:', res.statusCode)
             if (res.statusCode === 200) {
               resolve(res.tempFilePath)
             } else {
@@ -1084,7 +1096,6 @@ Page({
         fileType: index === 0 ? 'pdf' : 'docx',
         showMenu: true,
         success: () => {
-          console.log('[导出] 文档打开成功')
           util.showToast('导出成功')
         },
         fail: (err) => {
@@ -1142,5 +1153,47 @@ Page({
   setQuickQuestion(e) {
     const question = e.currentTarget.dataset.question
     this.setData({ inputText: question })
+  },
+
+  /**
+   * 显示附件菜单
+   */
+  showAttachmentMenu() {
+    this.setData({ showAttachmentMenu: true })
+  },
+
+  /**
+   * 隐藏附件菜单
+   */
+  hideAttachmentMenu() {
+    this.setData({ showAttachmentMenu: false })
+  },
+
+  /**
+   * 阻止事件冒泡
+   */
+  stopPropagation() {
+    // 空方法，用于阻止点击事件冒泡
+  },
+
+  /**
+   * 输入框聚焦
+   */
+  onInputFocus() {
+    // 可以在这里添加输入框聚焦时的逻辑
+  },
+
+  /**
+   * 输入框失焦
+   */
+  onInputBlur() {
+    // 可以在这里添加输入框失焦时的逻辑
+  },
+
+  /**
+   * 输入框内容变化
+   */
+  onInputChange(e) {
+    this.setData({ inputText: e.detail.value })
   }
 })

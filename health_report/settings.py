@@ -128,12 +128,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-# Production settings for /health subpath
-FORCE_SCRIPT_NAME = '/health'
+# Production settings
 USE_X_FORWARDED_HOST = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-STATIC_URL = '/health/static/'
+STATIC_URL = '/static/'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -158,20 +157,20 @@ REST_FRAMEWORK = {
 }
 
 # Media files
-MEDIA_URL = '/health/media/'
+MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Static files configuration
-STATIC_URL = '/health/static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
 # Login URLs
-LOGIN_REDIRECT_URL = '/health/'
-LOGIN_URL = '/health/login/'
-LOGOUT_REDIRECT_URL = '/health/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = '/login/'
+LOGOUT_REDIRECT_URL = '/login/'
 
 # Environment variables for API configuration
 from dotenv import load_dotenv

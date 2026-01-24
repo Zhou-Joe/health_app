@@ -1,21 +1,41 @@
 <!--pages/complete-profile/complete-profile.wxml-->
 <view class="profile-container">
-  <view class="profile-header">
-    <text class="header-title">完善个人信息</text>
-    <text class="header-desc">首次登录，请完善以下信息</text>
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
   </view>
 
-  <view class="profile-form">
+  <!-- 页面头部 -->
+  <view class="profile-header">
+    <text class="header-emoji">👋</text>
+    <view class="header-text">
+      <text class="header-title">欢迎!</text>
+      <text class="header-desc">完善个人信息获得更好体验</text>
+    </view>
+  </view>
+
+  <!-- 表单卡片 -->
+  <view class="form-card">
+    <!-- 昵称 -->
     <view class="form-item">
-      <text class="label">昵称</text>
-      <input class="input"
+      <view class="form-label">
+        <text class="label-icon">👤</text>
+        <text class="label-text">昵称</text>
+      </view>
+      <input class="form-input"
              placeholder="请输入昵称"
+             placeholder-class="input-placeholder"
              value="{{nickname}}"
              bindinput="onNicknameInput" />
     </view>
 
+    <!-- 性别 -->
     <view class="form-item">
-      <text class="label">性别</text>
+      <view class="form-label">
+        <text class="label-icon">⚥</text>
+        <text class="label-text">性别</text>
+      </view>
       <view class="gender-group">
         <view class="gender-option {{gender === 'male' ? 'active' : ''}}"
               bindtap="selectGender"
@@ -32,27 +52,37 @@
       </view>
     </view>
 
+    <!-- 出生日期 -->
     <view class="form-item">
-      <text class="label">出生日期</text>
+      <view class="form-label">
+        <text class="label-icon">📅</text>
+        <text class="label-text">出生日期</text>
+      </view>
       <picker mode="date"
               value="{{birthDate}}"
               end="{{today}}"
               bindchange="onBirthDateChange">
-        <view class="picker-value">
-          {{birthDate || '请选择出生日期'}}
+        <view class="form-picker {{birthDate ? 'has-value' : ''}}">
+          <text class="picker-text">{{birthDate || '请选择出生日期'}}</text>
+          <text class="picker-arrow">↓</text>
         </view>
       </picker>
     </view>
-
-    <view class="tip-box">
-      <text class="tip-icon">💡</text>
-      <text class="tip-text">完善个人信息有助于提供更精准的健康建议</text>
-    </view>
   </view>
 
-  <button class="submit-btn"
-          bindtap="handleSubmit"
-          loading="{{submitting}}">
-    {{submitting ? '提交中...' : '完成'}}
-  </button>
+  <!-- 提示 -->
+  <view class="tip-card">
+    <text class="tip-emoji">💡</text>
+    <text class="tip-text">完善信息有助于AI提供更精准的健康建议</text>
+  </view>
+
+  <!-- 提交按钮 -->
+  <view class="submit-section">
+    <button class="submit-btn"
+            bindtap="handleSubmit"
+            loading="{{submitting}}"
+            disabled="{{!nickname || !gender || !birthDate || submitting}}">
+      {{submitting ? '提交中...' : '完成设置'}}
+    </button>
+  </view>
 </view>

@@ -1,167 +1,175 @@
 <!--pages/dashboard/dashboard.wxml-->
 <view class="dashboard-container">
-  <!-- 用户信息卡片 -->
-  <view class="user-card card">
-    <view class="user-info">
-      <text class="user-name">{{userInfo.first_name || userInfo.username || '用户'}}</text>
-      <text class="user-greeting">欢迎使用健康档案管理系统</text>
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
+    <view class="blob blob-3"></view>
+  </view>
+
+  <!-- 顶部：不对称布局 -->
+  <view class="top-section">
+    <view class="welcome-card">
+      <view class="date-badge">
+        <text class="day-text">{{currentDay}}</text>
+        <text class="month-text">{{currentMonth}}</text>
+      </view>
+      <view class="welcome-text">
+        <text class="greeting-main">Hi~</text>
+        <text class="greeting-sub">{{userInfo.first_name || userInfo.username || '用户'}}</text>
+      </view>
     </view>
-    <view class="user-actions" bindtap="goToSettings">
-      <text class="settings-icon">⚙️</text>
+
+    <view class="avatar-section" bindtap="goToSettings">
+      <view class="avatar-ring">
+        <text class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
+      </view>
+      <view class="settings-dot"></view>
     </view>
   </view>
 
-  <!-- 统计数据 -->
-  <view class="stats-grid">
-    <view class="stat-item" bindtap="goToCheckups">
-      <text class="stat-value">{{stats.checkupCount}}</text>
-      <text class="stat-label">体检报告</text>
+  <!-- 健康评分大卡片 - 视觉焦点 -->
+  <view class="health-score-card" bindtap="goToCheckups">
+    <view class="score-header">
+      <view class="score-title-group">
+        <text class="score-emoji">💓</text>
+        <text class="score-title">健康指数</text>
+      </view>
+      <view class="score-trend">
+        <text class="trend-icon">{{healthTrend === 'up' ? '↗' : '→'}}</text>
+      </view>
     </view>
-    <view class="stat-item" bindtap="goToCheckups">
-      <text class="stat-value">{{stats.indicatorCount}}</text>
-      <text class="stat-label">健康指标</text>
+
+    <view class="score-display">
+      <view class="score-circle">
+        <text class="score-value">{{healthScore}}</text>
+        <text class="score-max">/100</text>
+      </view>
     </view>
-    <view class="stat-item abnormal-stat" bindtap="goToCheckups" wx:if="{{stats.abnormalCount > 0}}">
-      <text class="stat-value stat-danger">{{stats.abnormalCount}}</text>
-      <text class="stat-label">异常指标</text>
-    </view>
-    <view class="stat-item" bindtap="goToConversations" wx:else>
-      <text class="stat-value">{{stats.conversationCount}}</text>
-      <text class="stat-label">AI咨询</text>
+
+    <view class="score-details">
+      <view class="detail-item">
+        <text class="detail-dot"></text>
+        <text class="detail-text">{{scoreComment}}</text>
+      </view>
     </view>
   </view>
 
-  <!-- 异常指标提醒 -->
-  <view class="abnormal-alert card" wx:if="{{abnormalIndicators.length > 0}}">
-    <view class="alert-header">
-      <text class="alert-icon">⚠️</text>
-      <text class="alert-title">异常指标提醒</text>
+  <!-- 数据卡片 - 横向滚动，打破网格 -->
+  <view class="stats-scroll">
+    <view class="stat-card stat-primary" bindtap="goToCheckups">
+      <view class="stat-inner">
+        <text class="stat-number">{{stats.checkupCount}}</text>
+        <text class="stat-label">份报告</text>
+        <view class="stat-icon-bg">📋</view>
+      </view>
     </view>
-    <scroll-view class="abnormal-list" scroll-y="{{abnormalIndicators.length > 3}}">
-      <view class="abnormal-item"
-            wx:for="{{abnormalIndicators}}"
+
+    <view class="stat-card stat-secondary" bindtap="goToCheckups">
+      <view class="stat-inner">
+        <text class="stat-number">{{stats.indicatorCount}}</text>
+        <text class="stat-label">项指标</text>
+        <view class="stat-icon-bg">📊</view>
+      </view>
+    </view>
+
+    <view class="stat-card stat-accent" bindtap="goToConversations">
+      <view class="stat-inner">
+        <text class="stat-number">{{stats.conversationCount}}</text>
+        <text class="stat-label">次咨询</text>
+        <view class="stat-icon-bg">💬</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 异常提醒 - 卡片重叠设计 -->
+  <view class="alert-section" wx:if="{{abnormalIndicators.length > 0}}">
+    <view class="alert-card-main"
+          bindtap="goToAbnormalIndicator"
+          data-id="{{abnormalIndicators[0].id}}"
+          data-checkup="{{abnormalIndicators[0].checkup_id}}">
+      <view class="alert-left">
+        <view class="alert-emoji-wrapper">
+          <text class="alert-emoji">⚠️</text>
+        </view>
+      </view>
+      <view class="alert-content">
+        <text class="alert-title">需要关注</text>
+        <text class="alert-item">{{abnormalIndicators[0].indicator_name}}</text>
+        <text class="alert-value">{{abnormalIndicators[0].value_display}} {{abnormalIndicators[0].unit}}</text>
+      </view>
+      <view class="alert-arrow">→</view>
+    </view>
+
+    <view class="alert-card-sub" wx:if="{{abnormalIndicators.length > 1}}" bindtap="goToCheckups">
+      <text class="more-alert-text">还有 {{abnormalIndicators.length - 1}} 项异常</text>
+    </view>
+  </view>
+
+  <!-- 快捷操作 - 大按钮网格 -->
+  <view class="actions-grid">
+    <view class="action-card action-upload" bindtap="goToUpload">
+      <view class="action-bg-circle"></view>
+      <text class="action-emoji">📄</text>
+      <text class="action-title">上传</text>
+    </view>
+
+    <view class="action-card action-ai" bindtap="goToAIAdvice">
+      <view class="action-bg-circle"></view>
+      <text class="action-emoji">🤖</text>
+      <text class="action-title">AI医生</text>
+    </view>
+
+    <view class="action-card action-meds" bindtap="goToMedications">
+      <view class="action-bg-circle"></view>
+      <text class="action-emoji">💊</text>
+      <text class="action-title">药单</text>
+    </view>
+
+    <view class="action-card action-integration" bindtap="goToIntegration">
+      <view class="action-bg-circle"></view>
+      <text class="action-emoji">🔄</text>
+      <text class="action-title">整合</text>
+    </view>
+
+    <view class="action-card action-trends" bindtap="goToTrends">
+      <view class="action-bg-circle"></view>
+      <text class="action-emoji">📈</text>
+      <text class="action-title">趋势</text>
+    </view>
+  </view>
+
+  <!-- 最新报告 - 时间轴设计 -->
+  <view class="reports-section">
+    <view class="section-header">
+      <text class="section-title">最近</text>
+      <view class="section-line"></view>
+      <text class="section-more" bindtap="goToCheckups">全部 →</text>
+    </view>
+
+    <view class="report-timeline" wx:if="{{recentCheckups.length > 0}}">
+      <view class="timeline-item"
+            wx:for="{{recentCheckups}}"
             wx:key="id"
-            bindtap="goToAbnormalIndicator"
-            data-id="{{item.id}}"
-            data-checkup="{{item.checkup}}">
-        <view class="abnormal-name">{{item.indicator_name}}</view>
-        <view class="abnormal-info">
-          <text class="abnormal-value">{{item.value_display || item.value}} {{item.unit}}</text>
-          <text class="abnormal-range" wx:if="{{item.reference_range}}">参考: {{item.reference_range}}</text>
-        </view>
-        <text class="abnormal-date">{{item.checkup_date}}</text>
-      </view>
-    </scroll-view>
-    <view class="alert-footer">
-      <text class="alert-action" bindtap="goToAIAdvice">咨询AI医生 ></text>
-    </view>
-  </view>
-
-  <!-- 快捷操作 -->
-  <view class="quick-actions card">
-    <view class="card-title">快捷操作</view>
-    <view class="action-grid action-grid-4">
-      <view class="action-item" bindtap="goToUpload">
-        <view class="action-icon upload-icon">📄</view>
-        <text class="action-text">上传报告</text>
-        <text class="action-desc">智能解析，自动归档</text>
-      </view>
-      <view class="action-item" bindtap="goToIntegration">
-        <view class="action-icon integrate-icon">🔄</view>
-        <text class="action-text">数据整合</text>
-        <text class="action-desc">智能整合，横向对比</text>
-      </view>
-      <view class="action-item" bindtap="goToMedications">
-        <view class="action-icon medication-icon">💊</view>
-        <text class="action-text">我的药单</text>
-        <text class="action-desc">服药管理，健康跟踪</text>
-      </view>
-      <view class="action-item" bindtap="goToAIAdvice">
-        <view class="action-icon ai-icon">💬</view>
-        <text class="action-text">AI咨询</text>
-        <text class="action-desc">健康咨询，就医先导</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 健康趋势 -->
-  <view class="health-trends card" wx:if="{{trendTypes.length > 0}}">
-    <view class="card-title">健康趋势</view>
-    <scroll-view class="trend-types" scroll-x>
-      <view class="trend-type-item {{currentTrendType === item.type ? 'active' : ''}}"
-            wx:for="{{trendTypes}}"
-            wx:key="type"
-            bindtap="switchTrendType"
-            data-type="{{item.type}}">
-        <text class="trend-name">{{item.name}}</text>
-        <text class="trend-count">({{item.count}})</text>
-      </view>
-    </scroll-view>
-
-    <scroll-view class="trend-list" scroll-y wx:if="{{trendData.length > 0}}">
-      <view class="trend-item"
-            wx:for="{{trendData}}"
-            wx:key="name"
-            bindtap="viewTrendDetail"
-            data-index="{{index}}">
-        <view class="trend-header">
-          <text class="trend-name">{{item.name}}</text>
-          <text class="trend-unit">{{item.unit}}</text>
-        </view>
-        <scroll-view class="trend-values" scroll-x>
-          <view class="trend-value-item {{value.status}}"
-                wx:for="{{item.values}}"
-                wx:for-item="value"
-                wx:key="date">
-            <text class="trend-value-date">{{value.date}}</text>
-            <text class="trend-value-num">{{value.value_display}}</text>
-          </view>
-        </scroll-view>
-      </view>
-    </scroll-view>
-    <view class="empty-container" wx:else>
-      <text class="empty-text">暂无{{currentTrendTypeName}}数据</text>
-    </view>
-  </view>
-
-  <!-- 无健康数据提示 -->
-  <view class="health-trends card" wx:else>
-    <view class="card-title">健康趋势</view>
-    <view class="empty-container">
-      <text class="empty-text">暂无健康数据，请先上传体检报告</text>
-      <button class="btn-primary mt-20" bindtap="goToUpload">上传报告</button>
-    </view>
-  </view>
-
-  <!-- 最新报告 -->
-  <view class="recent-checkups card">
-    <view class="card-title flex-between">
-      <text>最新报告</text>
-      <text class="more-link" bindtap="goToCheckups">更多 ></text>
-    </view>
-    <view class="checkup-list">
-      <block wx:if="{{recentCheckups.length > 0}}">
-        <view class="checkup-item"
-              wx:for="{{recentCheckups}}"
-              wx:key="id"
-              bindtap="goToCheckupDetail"
-              data-id="{{item.id}}">
-          <view class="checkup-header">
-            <text class="checkup-hospital">{{item.hospital || '未知医院'}}</text>
-            <text class="checkup-date">{{item.checkup_date}}</text>
-          </view>
-          <view class="checkup-info" wx:if="{{item.indicators_count}}">
-            <text class="indicator-count">{{item.indicators_count}}项指标</text>
-            <view class="status-badge status-{{item.status || 'completed'}}">
-              {{item.status === 'completed' ? '已完成' : '处理中'}}
+            bindtap="goToCheckupDetail"
+            data-id="{{item.id}}">
+        <view class="timeline-dot"></view>
+        <view class="timeline-content">
+          <text class="report-name">{{item.hospital || '体检报告'}}</text>
+          <view class="report-meta">
+            <text class="report-date">{{item.checkup_date}}</text>
+            <view class="report-badge">
+              <text class="badge-count">{{item.indicators_count}}</text>
+              <text class="badge-unit">项</text>
             </view>
           </view>
         </view>
-      </block>
-      <view class="empty-container" wx:else>
-        <text class="empty-text">暂无体检报告</text>
-        <button class="btn-primary mt-20" bindtap="goToUpload">上传第一份报告</button>
       </view>
+    </view>
+
+    <view class="empty-reports" wx:else>
+      <text class="empty-emoji">🌱</text>
+      <text class="empty-text">开始记录健康</text>
     </view>
   </view>
 </view>

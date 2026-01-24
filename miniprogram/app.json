@@ -13,7 +13,8 @@
     "pages/integration-result/integration-result",
     "pages/settings/settings",
     "pages/complete-profile/complete-profile",
-    "pages/medications/medications"
+    "pages/medications/medications",
+    "pages/trends/trends"
   ],
   "window": {
     "backgroundTextStyle": "light",

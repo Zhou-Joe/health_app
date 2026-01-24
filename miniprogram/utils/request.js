@@ -183,8 +183,6 @@ class Request {
         header,
         timeout: options.timeout || 60000, // 上传超时时间更长
         success: (res) => {
-          console.log('上传响应状态码:', res.statusCode)
-          console.log('上传响应数据:', res.data)
 
           if (res.statusCode === 200 || res.statusCode === 201) {
             try {

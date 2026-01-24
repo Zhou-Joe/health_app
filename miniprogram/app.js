@@ -14,17 +14,14 @@ App({
   },
 
   onLaunch() {
-    console.log('小程序启动')
     this.checkLogin()
     this.checkUpdate()
   },
 
   onShow() {
-    console.log('小程序显示')
   },
 
   onHide() {
-    console.log('小程序隐藏')
   },
 
   /**
@@ -74,7 +71,6 @@ App({
 
       updateManager.onCheckForUpdate((res) => {
         if (res.hasUpdate) {
-          console.log('发现新版本')
         }
       })
 

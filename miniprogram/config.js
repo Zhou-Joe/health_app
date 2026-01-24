@@ -7,7 +7,7 @@ module.exports = {
   // 服务器配置
   server: {
     // 生产环境URL
-    baseUrl: 'https://www.zctestbench.asia/health', // 生产环境
+    baseUrl: 'https://www.zctestbench.asia', // 生产环境
     // 开发时在微信开发者工具中：
     // 1. 点击右上角"详情"
     // 2. 本地设置 -> 勾选"不校验合法域名"
@@ -32,7 +32,7 @@ module.exports = {
     // 健康指标
     indicators: (params) => {
       // 支持两种路径：/api/miniprogram/indicators/ 和 /api/miniprogram/checkups/<id>/indicators/
-      if (params && params.checkup_id) {
+      if (params && params.checkup_id !== undefined && params.checkup_id !== null) {
         return `/api/miniprogram/checkups/${params.checkup_id}/indicators/`
       }
       return '/api/miniprogram/indicators/'

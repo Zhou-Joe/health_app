@@ -97,8 +97,10 @@ Page({
           nickname: userProfile.userInfo.nickName,
           avatarUrl: userProfile.userInfo.avatarUrl
         }
+
+        // 保存微信头像到本地存储
+        wx.setStorageSync('wechat_avatar', userProfile.userInfo.avatarUrl)
       } catch (err) {
-        console.log('用户拒绝授权，使用默认信息')
         userInfo = {
           nickname: '微信用户'
         }

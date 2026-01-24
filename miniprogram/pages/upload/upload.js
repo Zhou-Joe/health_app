@@ -47,14 +47,12 @@ Page({
   onShow() {
     // 页面显示时，如果有正在处理的上传，恢复轮询
     if (this.data.processingId && !this.data.progressTimer) {
-      console.log('恢复轮询处理进度')
       this.pollProgress()
     }
   },
 
   onHide() {
     // 页面隐藏时，不停止轮询，让它在后台继续运行
-    console.log('页面隐藏，轮询继续，当前状态:', this.data.statusText)
     // 关闭loading提示，避免阻塞用户操作
     wx.hideLoading()
   },
@@ -122,6 +120,10 @@ Page({
   selectHospital(e) {
     const name = e.currentTarget.dataset.name
     this.setData({ hospital: name })
+  },
+
+  doNothing() {
+    // 空方法，用于阻止点击事件
   },
 
   async handleSubmit() {
@@ -194,8 +196,6 @@ Page({
   },
 
   pollProgress() {
-    console.log('开始轮询处理进度，processingId:', this.data.processingId)
-
     // 立即执行一次
     this.checkProgress()
 
@@ -215,10 +215,7 @@ Page({
     }
 
     try {
-      console.log('查询处理状态，processingId:', this.data.processingId)
       const res = await api.getProcessingStatus(this.data.processingId)
-
-      console.log('处理状态响应:', res)
 
       const statusText = this.getStatusText(res.status)
       const oldStatus = this.data.statusText
@@ -228,15 +225,12 @@ Page({
         statusText: statusText
       })
 
-      console.log('当前进度:', this.data.progress, '状态:', this.data.statusText)
-
       // 状态变化时显示对应的toast
       if (oldStatus !== statusText && statusText !== '处理完成' && statusText !== '处理失败') {
         util.showToast(statusText + '...')
       }
 
       if (res.status === 'completed') {
-        console.log('处理完成！')
         // 停止轮询
         if (this.data.progressTimer) {
           clearInterval(this.data.progressTimer)
@@ -277,7 +271,6 @@ Page({
     } catch (err) {
       console.error('获取状态失败:', err)
       // 不要立即停止轮询，可能是网络波动
-      console.log('继续轮询...')
     }
   },
 

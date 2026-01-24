@@ -1,30 +1,49 @@
 <!--pages/login/login.wxml-->
 <view class="login-container">
+  <!-- 温暖的氛围装饰 -->
+  <view class="warm-glow glow-1"></view>
+  <view class="warm-glow glow-2"></view>
+  <view class="warm-glow glow-3"></view>
+
   <view class="login-header">
+    <view class="logo-wrapper">
+      <view class="logo-icon">💝</view>
+    </view>
     <text class="app-name">我的健康档案</text>
-    <text class="app-desc">AI驱动健康管理及咨询平台</text>
+    <text class="app-desc">温暖的陪伴，贴心的关怀</text>
+    <view class="subtitle-tag">AI驱动健康管理</view>
   </view>
 
   <view class="login-form">
     <!-- 账号密码登录 -->
     <view class="form-item">
-      <input class="input-field"
-             placeholder="请输入用户名"
-             value="{{username}}"
-             bindinput="onUsernameInput" />
+      <view class="input-wrapper">
+        <text class="input-icon">👤</text>
+        <input class="input-field"
+               placeholder="请输入用户名"
+               placeholder-class="input-placeholder"
+               value="{{username}}"
+               bindinput="onUsernameInput" />
+      </view>
     </view>
 
     <view class="form-item">
-      <input class="input-field"
-             placeholder="请输入密码"
-             password
-             value="{{password}}"
-             bindinput="onPasswordInput" />
+      <view class="input-wrapper">
+        <text class="input-icon">🔒</text>
+        <input class="input-field"
+               placeholder="请输入密码"
+               password
+               placeholder-class="input-placeholder"
+               value="{{password}}"
+               bindinput="onPasswordInput" />
+      </view>
     </view>
 
     <view class="agreement-check">
       <label class="checkbox-label" bindtap="toggleAgreement">
-        <checkbox class="agreement-checkbox" value="agreed" checked="{{agreed}}" catchtap="stopCheckboxEvent" />
+        <view class="custom-checkbox {{agreed ? 'checked' : ''}}">
+          <text class="checkmark" wx:if="{{agreed}}">✓</text>
+        </view>
         <view class="check-content">
           <text class="check-text">我已阅读并同意</text>
           <text class="link-text" catchtap="showUserAgreement">《用户协议》</text>
@@ -34,37 +53,55 @@
       </label>
     </view>
 
-    <button class="login-btn"
+    <button class="login-btn warm-btn-primary"
             bindtap="handleLogin"
-            loading="{{loading}}">
-      {{loading ? '登录中...' : '登录'}}
+            loading="{{loading}}"
+            disabled="{{loading || !agreed}}">
+      <view wx:if="{{!loading}}" class="btn-content">
+        <text class="btn-icon">✨</text>
+        <text>开始健康之旅</text>
+      </view>
+      <text wx:else>登录中...</text>
     </button>
 
     <view class="divider">
       <view class="divider-line"></view>
-      <text class="divider-text">或</text>
+      <view class="divider-or">或</view>
       <view class="divider-line"></view>
     </view>
 
     <!-- 微信一键登录 -->
-    <button class="wechat-login-btn"
+    <button class="wechat-login-btn warm-btn-wechat"
             bindtap="handleWechatLogin"
-            loading="{{wechatLoading}}">
-      {{wechatLoading ? '登录中...' : '微信一键登录'}}
+            loading="{{wechatLoading}}"
+            disabled="{{wechatLoading}}">
+      <view class="btn-content" wx:if="{{!wechatLoading}}">
+        <text class="wechat-icon">💬</text>
+        <text>微信一键登录</text>
+      </view>
+      <text wx:else>登录中...</text>
     </button>
   </view>
 
+  <!-- 底部装饰 -->
+  <view class="bottom-decoration">
+    <view class="decoration-circle circle-1"></view>
+    <view class="decoration-circle circle-2"></view>
+    <view class="decoration-circle circle-3"></view>
+  </view>
+
   <!-- 自定义弹窗 -->
-  <view class="custom-modal" wx:if="{{showModal}}" bindtap="hideModal">
+  <view class="custom-modal {{showModal ? 'show' : ''}}" bindtap="hideModal">
     <view class="modal-content" catchtap="stopPropagation">
       <view class="modal-header">
         <text class="modal-title">{{modalTitle}}</text>
+        <view class="modal-close" bindtap="hideModal">✕</view>
       </view>
       <scroll-view class="modal-body" scroll-y>
         <text class="modal-text">{{modalContent}}</text>
       </scroll-view>
       <view class="modal-footer">
-        <button class="modal-btn" bindtap="hideModal">我知道了</button>
+        <button class="modal-btn warm-btn-primary" bindtap="hideModal">我知道了</button>
       </view>
     </view>
   </view>

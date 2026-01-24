@@ -21,7 +21,6 @@ Page({
       return
     }
 
-    console.log('整合结果:', result)
 
     // 使用 all_indicators 或 changes
     const changes = result.all_indicators || result.changes || []
@@ -66,7 +65,6 @@ Page({
 
     try {
       const res = await api.applyIntegration({ changes: changes })
-      console.log('应用更改结果:', res)
 
       util.hideLoading()
 

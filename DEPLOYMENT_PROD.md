@@ -2,8 +2,7 @@
 
 ## 🌐 访问地址
 
-- **生产环境**: https://www.zctestbench.asia/health
-- **旧项目**: https://www.zctestbench.asia/
+- **生产环境**: https://www.zctestbench.asia/
 
 ## 📋 已更新的配置
 
@@ -13,23 +12,6 @@
 ```python
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', 'testserver',
                  'www.zctestbench.asia', 'zctestbench.asia']
-```
-
-#### 子路径部署配置
-```python
-# /health 子路径部署
-FORCE_SCRIPT_NAME = '/health'
-USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-# 静态文件和媒体文件
-STATIC_URL = '/health/static/'
-MEDIA_URL = '/health/media/'
-
-# 登录URL
-LOGIN_REDIRECT_URL = '/health/'
-LOGIN_URL = '/health/login/'
-LOGOUT_REDIRECT_URL = '/health/login/'
 ```
 
 #### CORS配置
@@ -43,6 +25,12 @@ CORS_ALLOWED_ORIGINS = [
 ]
 ```
 
+#### 静态文件和媒体文件
+```python
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+```
+
 #### AI服务配置
 ```python
 MINERU_API_URL = 'http://localhost:8001'  # 通过frp隧道访问本地GPU
@@ -52,7 +40,7 @@ MINERU_API_URL = 'http://localhost:8001'  # 通过frp隧道访问本地GPU
 
 ```javascript
 server: {
-  baseUrl: 'https://www.zctestbench.asia/health', // 生产环境
+  baseUrl: 'https://www.zctestbench.asia', // 生产环境
   timeout: 60000
 }
 ```
@@ -168,50 +156,27 @@ server {
 
     client_max_body_size 20M;
 
-    # ========== 新项目：健康管理 ==========
-    # 健康管理静态文件
-    location /health/static/ {
+    # ========== 健康管理项目 ==========
+    # 静态文件
+    location /static/ {
         alias /root/health/staticfiles/;
         expires 30d;
         add_header Cache-Control "public";
     }
 
-    # 健康管理媒体文件
-    location /health/media/ {
+    # 媒体文件
+    location /media/ {
         alias /root/health/media/;
     }
 
-    # 健康管理应用
-    location /health {
+    # 应用
+    location / {
         proxy_pass http://127.0.0.1:8001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 300;
-
-        # 重写路径
-        rewrite ^/health/?(.*) /$1 break;
-    }
-
-    # ========== 旧项目配置保持不变 ==========
-    location /static/ {
-        alias /home/projects/homework/staticfiles/;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
-
-    location /media/ {
-        alias /home/projects/homework/media/;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120;
     }
 }
 ```
@@ -236,7 +201,7 @@ sudo systemctl status nginx
 curl http://localhost:8001/
 
 # 测试域名
-curl https://www.zctestbench.asia/health/api/check-services/
+curl https://www.zctestbench.asia/api/check-services/
 ```
 
 ### 3. 检查日志
@@ -280,8 +245,7 @@ cd C:\Users\ZC\VSProject\health\frp
 Internet
     ↓
 阿里云 Nginx (443)
-    ├─→ /          → Gunicorn :8000 (旧项目)
-    └─→ /health    → Gunicorn :8001 (新项目)
+    └─→ /          → Gunicorn :8001 (健康管理项目)
                       ↓
                   MinerU (localhost:8001)
                       ↓ frp隧道
@@ -290,10 +254,9 @@ Internet
 
 ## 🎯 访问地址
 
-- **旧项目**: https://www.zctestbench.asia/
-- **新项目**: https://www.zctestbench.asia/health
-- **API文档**: https://www.zctestbench.asia/health/api/schema/
-- **管理后台**: https://www.zctestbench.asia/health/admin/
+- **项目主页**: https://www.zctestbench.asia/
+- **API文档**: https://www.zctestbench.asia/api/schema/
+- **管理后台**: https://www.zctestbench.asia/admin/
 
 ## 🔄 更新部署
 

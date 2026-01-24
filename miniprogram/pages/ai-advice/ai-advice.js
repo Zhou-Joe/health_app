@@ -26,7 +26,12 @@ Page({
 
     // 输入
     question: '',
-    submitting: false
+    submitting: false,
+
+    // 弹窗状态
+    showModeModal: false,
+    showReportModal: false,
+    showMedicationModal: false
   },
 
   onLoad() {
@@ -252,6 +257,45 @@ Page({
    */
   onQuestionInput(e) {
     this.setData({ question: e.detail.value })
+  },
+
+  /**
+   * 显示对话模式弹窗
+   */
+  showModeModal() {
+    this.setData({ showModeModal: true })
+  },
+
+  /**
+   * 显示报告弹窗
+   */
+  showReportModal() {
+    this.setData({ showReportModal: true })
+  },
+
+  /**
+   * 显示药单弹窗
+   */
+  showMedicationModal() {
+    this.setData({ showMedicationModal: true })
+  },
+
+  /**
+   * 隐藏所有弹窗
+   */
+  hideModals() {
+    this.setData({
+      showModeModal: false,
+      showReportModal: false,
+      showMedicationModal: false
+    })
+  },
+
+  /**
+   * 阻止事件冒泡
+   */
+  stopPropagation() {
+    // 空方法，用于阻止点击事件冒泡
   },
 
   /**

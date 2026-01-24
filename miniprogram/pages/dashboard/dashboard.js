@@ -10,6 +10,13 @@ const util = require('../../utils/util.js')
 Page({
   data: {
     userInfo: {},
+    // 日期显示
+    currentDay: '',
+    currentMonth: '',
+    // 健康评分
+    healthScore: 85,
+    healthTrend: 'up',
+    scoreComment: '健康状况良好',
     // 统计数据
     stats: {
       checkupCount: 0,
@@ -34,13 +41,65 @@ Page({
   },
 
   onLoad() {
+    this.initDateDisplay()
+    this.calculateHealthScore()
     this.checkLogin()
     this.loadData()
   },
 
   onShow() {
     // 从其他页面返回时刷新数据
+    this.initDateDisplay()
+    this.calculateHealthScore()
     this.loadData()
+  },
+
+  /**
+   * 初始化日期显示
+   */
+  initDateDisplay() {
+    const now = new Date()
+    const day = now.getDate()
+    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    const month = months[now.getMonth()]
+
+    this.setData({
+      currentDay: day,
+      currentMonth: month
+    })
+  },
+
+  /**
+   * 计算健康评分
+   */
+  calculateHealthScore() {
+    // 基于异常指标数量计算评分
+    const abnormalCount = this.data.abnormalIndicators.length || 0
+    const baseScore = 95
+    const score = Math.max(60, baseScore - abnormalCount * 5)
+
+    let trend = 'stable'
+    let comment = '健康状况良好'
+
+    if (score >= 90) {
+      comment = '非常健康，继续保持'
+      trend = 'up'
+    } else if (score >= 80) {
+      comment = '健康状况良好'
+      trend = 'stable'
+    } else if (score >= 70) {
+      comment = '需要关注一些指标'
+      trend = 'stable'
+    } else {
+      comment = '建议咨询医生'
+      trend = 'down'
+    }
+
+    this.setData({
+      healthScore: score,
+      healthTrend: trend,
+      scoreComment: comment
+    })
   },
 
   /**
@@ -111,6 +170,9 @@ Page({
         currentTrendTypeName: currentTypeName
       })
 
+      // 计算健康评分
+      this.calculateHealthScore()
+
       // 加载第一个趋势类型的数据
       if (currentTrendType) {
         await this.loadTrendData()
@@ -144,6 +206,7 @@ Page({
       this.setData({
         abnormalIndicators: indicators.map(item => ({
           ...item,
+          checkup_id: item.checkup?.id || item.checkup_id,
           checkup_date: util.formatDate(item.checkup_date, 'MM-DD')
         }))
       })
@@ -159,7 +222,6 @@ Page({
   async loadIndicatorTypes() {
     try {
       const res = await api.getIndicatorTypes()
-      console.log('加载指标类型:', res.data)
       return { data: res.data || [] }
     } catch (err) {
       console.error('加载指标类型失败:', err)
@@ -239,7 +301,6 @@ Page({
     const index = e.currentTarget.dataset.index
     const trend = this.data.trendData[index]
     // 可以导航到详细趋势页面
-    console.log('查看趋势:', trend)
   },
 
   // ==================== 页面跳转 ====================
@@ -262,6 +323,10 @@ Page({
 
   goToMedications() {
     wx.navigateTo({ url: '/pages/medications/medications' })
+  },
+
+  goToTrends() {
+    wx.navigateTo({ url: '/pages/trends/trends' })
   },
 
   goToAIAdvice() {

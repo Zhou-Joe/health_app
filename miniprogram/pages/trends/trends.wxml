@@ -1,0 +1,92 @@
+<!--pages/trends/trends.wxml-->
+<view class="trends-container">
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
+  </view>
+
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-left">
+      <text class="header-emoji">📈</text>
+      <view class="header-text">
+        <text class="header-title">健康趋势</text>
+        <text class="header-subtitle">追踪您的健康变化</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-section" wx:if="{{loading}}">
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!loading && trendGroups.length === 0}}">
+    <text class="empty-emoji">📊</text>
+    <text class="empty-text">暂无趋势数据</text>
+    <text class="empty-hint">需要至少2次体检记录才能显示趋势</text>
+  </view>
+
+  <!-- 趋势分组列表 -->
+  <view class="trends-list" wx:if="{{!loading}}">
+    <view class="type-group"
+          wx:for="{{trendGroups}}"
+          wx:key="typeName">
+
+      <!-- 类型标题（可点击展开/折叠） -->
+      <view class="type-header" bindtap="toggleGroup" data-index="{{index}}">
+        <view class="type-info">
+          <text class="type-icon">{{item.typeIcon}}</text>
+          <text class="type-name">{{item.typeName}}</text>
+          <text class="type-count">({{item.indicators.length}}项)</text>
+        </view>
+        <view class="expand-icon {{item.expanded ? 'expanded' : ''}}">▼</view>
+      </view>
+
+      <!-- 指标列表（展开时显示） -->
+      <view class="indicators-list {{item.expanded ? 'expanded' : ''}}" wx:if="{{item.expanded}}">
+        <view class="trend-card"
+              wx:for="{{item.indicators}}"
+              wx:for-item="indicator"
+              wx:key="name">
+          <view class="card-header">
+            <text class="indicator-name">{{indicator.name}}</text>
+            <view class="latest-value {{indicator.latestStatus}}">
+              <text class="value-text">{{indicator.latestValue}}</text>
+              <text class="value-unit">{{indicator.unit}}</text>
+            </view>
+          </view>
+
+          <!-- 迷你趋势图 -->
+          <view class="mini-chart">
+            <view class="chart-bar"
+                  wx:for="{{indicator.data}}"
+                  wx:for-item="point"
+                  wx:for-index="pointIndex"
+                  wx:key="id"
+                  style="height: {{point.height}}%; background: {{point.color}};">
+            </view>
+          </view>
+
+          <!-- 趋势统计 -->
+          <view class="trend-stats">
+            <view class="stat-item">
+              <text class="stat-label">参考值</text>
+              <text class="stat-value stat-reference">{{indicator.reference || '-'}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">趋势</text>
+              <text class="stat-value {{indicator.trendDirection}}">{{indicator.trendText}}</text>
+            </view>
+            <view class="stat-item">
+              <text class="stat-label">次数</text>
+              <text class="stat-value">{{indicator.count}}次</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

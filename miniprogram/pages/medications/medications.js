@@ -108,7 +108,6 @@ Page({
         notes
       })
 
-      console.log('保存结果:', result)
 
       if (result && result.success) {
         util.showToast('添加成功')
@@ -139,7 +138,6 @@ Page({
         frequency: 'daily'
       })
 
-      console.log('签到结果:', res)
 
       if (res && res.success) {
         const progress = res.medication_progress
@@ -166,7 +164,6 @@ Page({
       util.showLoading('加载中...')
       const res = await api.getMedicationRecords(medicationId)
 
-      console.log('服药记录:', res)
 
       if (res && res.success) {
         this.setData({
@@ -203,7 +200,6 @@ Page({
             util.showLoading('删除中...')
             const result = await api.deleteMedication(medicationId)
 
-            console.log('删除结果:', result)
 
             if (result && result.success) {
               util.showToast('删除成功')
@@ -242,7 +238,6 @@ Page({
         frequency: 'daily'
       })
 
-      console.log('补签结果:', res)
 
       if (res && res.success) {
         const progress = res.medication_progress

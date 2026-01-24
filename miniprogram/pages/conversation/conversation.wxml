@@ -1,80 +1,160 @@
 <!--pages/conversation/conversation.wxml-->
-<view class="chat-container" id="chat-container">
-  <!-- 顶部工具栏 -->
+<view class="chat-container">
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="organic-shape shape-1"></view>
+    <view class="organic-shape shape-2"></view>
+    <view class="organic-shape shape-3"></view>
+  </view>
+
+  <!-- 顶部导航 -->
   <view class="chat-header">
-    <view class="header-left">
-      <text class="back-btn" bindtap="goBack">‹ 返回</text>
+    <view class="header-back" bindtap="goBack">
+      <text class="back-icon">←</text>
     </view>
     <view class="header-center">
+      <view class="ai-avatar-wrapper">
+        <view class="ai-avatar-pulse"></view>
+        <text class="ai-avatar">🤖</text>
+      </view>
       <text class="header-title">AI健康助手</text>
     </view>
     <view class="header-right">
+      <view class="header-btn" bindtap="toggleReportSelector">
+        <text class="btn-icon">📋</text>
+      </view>
+      <view class="header-btn" bindtap="toggleMedicationSelector">
+        <text class="btn-icon">💊</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 消息列表 -->
+  <scroll-view class="message-list" scroll-y scroll-into-view="{{scrollToView}}" scroll-with-animation>
+    <view class="message-wrapper"
+          wx:for="{{messages}}"
+          wx:key="id">
+
+      <!-- 用户消息 -->
+      <view class="message-bubble user-message" wx:if="{{item.role === 'user'}}">
+        <view class="bubble-content {{item.expanded ? 'expanded' : ''}}" bindtap="toggleExpand" data-index="{{index}}">
+          <text class="message-text">{{item.content}}</text>
+          <view class="bubble-tail"></view>
+        </view>
+      </view>
+
+      <!-- AI消息 -->
+      <view class="message-bubble ai-message" wx:else>
+        <view class="ai-indicator"></view>
+        <view class="bubble-content {{item.expanded ? 'expanded' : ''}}" bindtap="toggleExpand" data-index="{{index}}">
+          <text class="message-text">{{item.content}}</text>
+          <view class="bubble-tail"></view>
+          <view class="expand-hint" wx:if="{{!item.expanded && item.content && item.content.length > 100}}">
+            <text>点击展开</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="message-time">
+        <text>{{item.created_at}}</text>
+      </view>
+    </view>
+
+    <!-- AI思考中 -->
+    <view class="thinking-indicator" wx:if="{{isGenerating}}">
+      <view class="thinking-dots">
+        <view class="dot dot-1"></view>
+        <view class="dot dot-2"></view>
+        <view class="dot dot-3"></view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 底部输入区 -->
+  <view class="input-area">
+    <!-- 附件按钮 -->
+    <view class="attach-btn" bindtap="showAttachmentMenu">
+      <text class="attach-icon">+</text>
+    </view>
+
+    <!-- 输入框 -->
+    <view class="input-wrapper">
+      <textarea class="message-input"
+                value="{{inputText}}"
+                bindinput="onInputChange"
+                bindfocus="onInputFocus"
+                bindblur="onInputBlur"
+                placeholder="描述您的健康问题..."
+                maxlength="1000"
+                auto-height
+                adjust-position="{{true}}"
+                show-confirm-bar="{{false}}"
+                cursor-spacing="20" />
+    </view>
+
+    <!-- 发送按钮 -->
+    <view class="send-btn {{inputText.trim().length > 0 ? 'active' : ''}}" bindtap="sendMessage">
+      <text class="send-icon">➤</text>
+    </view>
+  </view>
+
+  <!-- 附件菜单 -->
+  <view class="attachment-menu" wx:if="{{showAttachmentMenu}}" bindtap="hideAttachmentMenu">
+    <view class="menu-mask" bindtap="hideAttachmentMenu"></view>
+    <view class="menu-content" catchtap="stopPropagation">
+      <view class="menu-item" bindtap="openReportSelector">
+        <view class="menu-icon">📋</view>
+        <text class="menu-text">体检报告</text>
+        <text class="menu-badge" wx:if="{{selectedReportIds.length > 0}}">{{selectedReportIds.length}}</text>
+      </view>
+      <view class="menu-item" bindtap="openMedicationSelector">
+        <view class="menu-icon">💊</view>
+        <text class="menu-text">药单信息</text>
+        <text class="menu-badge" wx:if="{{selectedMedicationIds.length > 0}}">{{selectedMedicationIds.length}}</text>
+      </view>
     </view>
   </view>
 
   <!-- 报告选择器 -->
-  <view class="report-selector" wx:if="{{showReportSelector}}">
-    <view class="selector-mask" bindtap="toggleReportSelector"></view>
-    <view class="selector-content">
-      <view class="selector-header">
-        <text class="selector-title">选择体检报告</text>
-        <view class="selector-actions">
-          <text class="selected-hint" wx:if="{{selectedReportIds.length > 0}}">已选{{selectedReportIds.length}}份</text>
-          <text class="action-btn" bindtap="toggleSelectAll" wx:if="{{reports.length > 0}}">{{selectedReportIds.length === reports.length ? '取消全选' : '全选'}}</text>
-          <text class="action-btn primary" bindtap="toggleReportSelector">完成</text>
+  <view class="bottom-sheet" wx:if="{{showReportSelector}}">
+    <view class="sheet-mask" bindtap="toggleReportSelector"></view>
+    <view class="sheet-content" catchtap="stopPropagation">
+      <view class="sheet-handle"></view>
+      <view class="sheet-header">
+        <text class="sheet-title">选择体检报告</text>
+        <view class="sheet-actions">
+          <text class="sheet-btn" bindtap="toggleSelectAllReports">全选</text>
+          <text class="sheet-btn primary" bindtap="toggleReportSelector">完成</text>
         </view>
-      </view>
-
-      <!-- 加载状态 -->
-      <view class="loading-state" wx:if="{{reportsLoading}}">
-        <text class="loading-spinner"></text>
-        <text class="loading-text">加载中...</text>
-      </view>
-
-      <!-- 错误状态 -->
-      <view class="error-state" wx:elif="{{reportsError}}">
-        <text class="error-icon">⚠️</text>
-        <text class="error-text">{{reportsError}}</text>
-        <text class="error-action" bindtap="loadReports">重新加载</text>
-      </view>
-
-      <!-- 空状态 -->
-      <view class="empty-state" wx:elif="{{reports.length === 0}}">
-        <text class="empty-icon">📋</text>
-        <text class="empty-text">暂无体检报告</text>
-        <text class="empty-desc">请先上传体检报告后再进行咨询</text>
       </view>
 
       <!-- 报告列表 -->
-      <scroll-view class="report-list" scroll-y wx:else>
-        <!-- 不使用任何报告选项 -->
-        <view class="list-item special-option {{selectedReportIds.length === 0 && reportsNoSelection ? 'selected' : ''}}"
+      <scroll-view class="sheet-list" scroll-y>
+        <view class="sheet-item {{selectedReportIds.length === 0 && reportsNoSelection ? 'selected' : ''}}"
               bindtap="selectNoReports">
-          <view class="item-check {{selectedReportIds.length === 0 && reportsNoSelection ? 'checked' : ''}}">
-            <text wx:if="{{selectedReportIds.length === 0 && reportsNoSelection}}">✓</text>
-          </view>
+          <view class="item-icon">💬</view>
           <view class="item-content">
-            <text class="item-title">💬 不使用任何报告</text>
-            <text class="item-subtitle">仅基于问题提供一般性健康建议</text>
+            <text class="item-title">不使用报告</text>
+            <text class="item-desc">仅基于问题咨询</text>
+          </view>
+          <view class="item-check {{selectedReportIds.length === 0 && reportsNoSelection ? 'checked' : ''}}">
+            <text class="check-icon">✓</text>
           </view>
         </view>
 
-        <!-- 报告列表 -->
-        <view class="list-item {{item.selected ? 'selected' : ''}}"
+        <view class="sheet-item {{item.selected ? 'selected' : ''}}"
               wx:for="{{reports}}"
               wx:key="id"
+              wx:for-item="report"
               bindtap="toggleReport"
-              data-id="{{item.id}}">
-          <view class="item-check {{item.selected ? 'checked' : ''}}">
-            <text wx:if="{{item.selected}}">✓</text>
-          </view>
+              data-id="{{report.id}}">
+          <view class="item-icon">📋</view>
           <view class="item-content">
-            <text class="item-title">{{item.hospital}}</text>
-            <view class="item-meta">
-              <text class="meta-text">{{item.checkup_date}}</text>
-              <text class="meta-dot">·</text>
-              <text class="meta-text">{{item.indicators_count || 0}}项指标</text>
-            </view>
+            <text class="item-title">{{report.hospital}}</text>
+            <text class="item-desc">{{report.checkup_date}} · {{report.indicators_count}}项指标</text>
+          </view>
+          <view class="item-check {{report.selected ? 'checked' : ''}}">
+            <text class="check-icon">✓</text>
           </view>
         </view>
       </scroll-view>
@@ -82,198 +162,48 @@
   </view>
 
   <!-- 药单选择器 -->
-  <view class="medication-selector" wx:if="{{showMedicationSelector}}">
-    <view class="selector-mask" bindtap="toggleMedicationSelector"></view>
-    <view class="selector-content">
-      <view class="selector-header">
-        <text class="selector-title">选择药单</text>
-        <view class="selector-actions">
-          <text class="selected-hint" wx:if="{{selectedMedicationIds.length > 0}}">已选{{selectedMedicationIds.length}}份</text>
-          <text class="action-btn" bindtap="toggleSelectAllMedications" wx:if="{{medications.length > 0}}">{{selectedMedicationIds.length === medications.length ? '取消全选' : '全选'}}</text>
-          <text class="action-btn primary" bindtap="toggleMedicationSelector">完成</text>
+  <view class="bottom-sheet" wx:if="{{showMedicationSelector}}">
+    <view class="sheet-mask" bindtap="toggleMedicationSelector"></view>
+    <view class="sheet-content" catchtap="stopPropagation">
+      <view class="sheet-handle"></view>
+      <view class="sheet-header">
+        <text class="sheet-title">选择药单</text>
+        <view class="sheet-actions">
+          <text class="sheet-btn" bindtap="toggleSelectAllMedications">全选</text>
+          <text class="sheet-btn primary" bindtap="toggleMedicationSelector">完成</text>
         </view>
-      </view>
-
-      <!-- 加载状态 -->
-      <view class="loading-state" wx:if="{{medicationsLoading}}">
-        <text class="loading-spinner"></text>
-        <text class="loading-text">加载中...</text>
-      </view>
-
-      <!-- 错误状态 -->
-      <view class="error-state" wx:elif="{{medicationsError}}">
-        <text class="error-icon">⚠️</text>
-        <text class="error-text">{{medicationsError}}</text>
-        <text class="error-action" bindtap="loadMedications">重新加载</text>
-      </view>
-
-      <!-- 空状态 -->
-      <view class="empty-state" wx:elif="{{medications.length === 0}}">
-        <text class="empty-icon">💊</text>
-        <text class="empty-text">暂无药单</text>
-        <text class="empty-desc">您还没有添加任何药单</text>
       </view>
 
       <!-- 药单列表 -->
-      <scroll-view class="medication-list" scroll-y wx:else>
-        <!-- 不使用任何药单选项 -->
-        <view class="list-item special-option {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'selected' : ''}}"
+      <scroll-view class="sheet-list" scroll-y>
+        <view class="sheet-item {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'selected' : ''}}"
               bindtap="selectNoMedications">
-          <view class="item-check {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'checked' : ''}}">
-            <text wx:if="{{selectedMedicationIds.length === 0 && medicationsNoSelection}}">✓</text>
-          </view>
+          <view class="item-icon">💬</view>
           <view class="item-content">
-            <text class="item-title">💬 不使用任何药单</text>
-            <text class="item-subtitle">不包含药单信息进行咨询</text>
+            <text class="item-title">不使用药单</text>
+            <text class="item-desc">仅咨询健康问题</text>
+          </view>
+          <view class="item-check {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'checked' : ''}}">
+            <text class="check-icon">✓</text>
           </view>
         </view>
 
-        <!-- 药单列表 -->
-        <view class="list-item {{item.selected ? 'selected' : ''}}"
+        <view class="sheet-item {{item.selected ? 'selected' : ''}}"
               wx:for="{{medications}}"
               wx:key="id"
+              wx:for-item="medication"
               bindtap="toggleMedication"
-              data-id="{{item.id}}">
-          <view class="item-check {{item.selected ? 'checked' : ''}}">
-            <text wx:if="{{item.selected}}">✓</text>
-          </view>
+              data-id="{{medication.id}}">
+          <view class="item-icon">💊</view>
           <view class="item-content">
-            <text class="item-title">{{item.medicine_name}}</text>
-            <view class="item-meta">
-              <text class="meta-text">{{item.dosage}}</text>
-            </view>
-            <view class="item-meta">
-              <text class="meta-text">{{item.start_date}} 至 {{item.end_date}}</text>
-              <text class="meta-dot">·</text>
-              <text class="meta-text">已服药{{item.days_taken || 0}}/{{item.total_days || 0}}天</text>
-            </view>
+            <text class="item-title">{{medication.medicine_name}}</text>
+            <text class="item-desc">{{medication.dosage}}</text>
+          </view>
+          <view class="item-check {{medication.selected ? 'checked' : ''}}">
+            <text class="check-icon">✓</text>
           </view>
         </view>
       </scroll-view>
     </view>
-  </view>
-
-  <!-- 消息列表 -->
-  <scroll-view class="message-list" scroll-y scroll-into-view="msg-{{lastMessageId}}" scroll-with-animation="{{true}}" scroll-into-view-align="bottom">
-    <block wx:for="{{messages}}" wx:key="id">
-      <!-- 用户消息 -->
-      <view class="message-row user" wx:if="{{item.role === 'user'}}" id="msg-{{item.id}}">
-        <view class="message-bubble user-bubble">
-          <text class="message-text">{{item.content}}</text>
-          <view class="message-meta">
-            <text class="message-time">{{item.created_at}}</text>
-            <text class="meta-action" bindtap="copyContent" data-content="{{item.content}}">复制</text>
-          </view>
-        </view>
-        <view class="avatar user-avatar">👤</view>
-      </view>
-
-      <!-- AI消息 -->
-      <view class="message-row ai" wx:else id="msg-{{item.id}}">
-        <view class="avatar ai-avatar">💬</view>
-        <view class="message-bubble ai-bubble">
-          <!-- 如果是思考状态，显示加载动画 -->
-          <view class="ai-typing" wx:if="{{item.isThinking}}">
-            <view class="typing-indicator">
-              <view class="dot"></view>
-              <view class="dot"></view>
-              <view class="dot"></view>
-            </view>
-            <text class="typing-text">AI正在思考中...</text>
-          </view>
-          <!-- 否则显示内容 -->
-          <block wx:else>
-            <!-- 折叠状态：只显示前100字 -->
-            <view wx:if="{{!item.expanded && item.previewText && item.previewText.length > 100}}">
-              <text class="message-text ai-text">{{item.previewShort}}...</text>
-              <text class="expand-btn" bindtap="toggleExpand" data-index="{{index}}">展开全文</text>
-            </view>
-            <!-- 展开状态或短消息：显示全部 -->
-            <view wx:else>
-              <rich-text wx:if="{{item.markdownData}}" nodes="{{item.markdownData}}" />
-              <text class="message-text ai-text" wx:else>{{item.content}}</text>
-              <text class="expand-btn" wx:if="{{item.previewText && item.previewText.length > 100}}" bindtap="toggleExpand" data-index="{{index}}">收起</text>
-            </view>
-            <view class="message-meta" wx:if="{{item.created_at}}">
-              <text class="message-time">{{item.created_at}}</text>
-              <text class="meta-action" bindtap="copyContent" data-content="{{item.content}}">复制</text>
-              <text class="meta-action" bindtap="viewPrompt" data-index="{{index}}" wx:if="{{item.prompt_sent}}">查看提示</text>
-            </view>
-          </block>
-        </view>
-      </view>
-    </block>
-
-    <!-- 列表底部留白 -->
-    <view class="list-footer"></view>
-  </scroll-view>
-
-  <!-- 输入区域 -->
-  <view class="input-area">
-    <!-- 已选报告提示 -->
-    <view class="selected-reports-tip" wx:if="{{selectedReportIds.length > 0 && !showReportSelector}}">
-      <scroll-view class="reports-scroll" scroll-x>
-        <text class="tip-text">已选择 {{selectedReportIds.length}} 份报告</text>
-        <text class="tip-action" bindtap="toggleReportSelector">修改</text>
-      </scroll-view>
-    </view>
-
-    <!-- 已选药单提示 -->
-    <view class="selected-medications-tip" wx:if="{{selectedMedicationIds.length > 0 && !showMedicationSelector}}">
-      <scroll-view class="medications-scroll" scroll-x>
-        <text class="tip-text">已选择 {{selectedMedicationIds.length}} 份药单</text>
-        <text class="tip-action" bindtap="toggleMedicationSelector">修改</text>
-      </scroll-view>
-    </view>
-
-    <view class="input-wrapper">
-      <!-- 选择按钮组 -->
-      <view class="select-buttons">
-        <button class="select-btn report-btn" bindtap="toggleReportSelector">
-          <text class="select-icon">📋</text>
-          <text class="select-text">报告{{selectedReportIds.length > 0 ? '(' + selectedReportIds.length + ')' : ''}}</text>
-        </button>
-        <button class="select-btn medication-btn" bindtap="toggleMedicationSelector">
-          <text class="select-icon">💊</text>
-          <text class="select-text">药单{{selectedMedicationIds.length > 0 ? '(' + selectedMedicationIds.length + ')' : ''}}</text>
-        </button>
-      </view>
-
-      <textarea
-        class="message-input"
-        value="{{inputText}}"
-        bindinput="onInputChange"
-        placeholder="请继续提问..."
-        maxlength="1000"
-        auto-height
-        disable-default-padding
-        adjust-position="{{true}}"
-        show-confirm-bar="{{false}}"
-        cursor-spacing="10" />
-      <view class="action-buttons">
-        <button
-          class="send-btn {{inputText.trim() ? 'active' : ''}}"
-          bindtap="handleSendTap">
-          <text class="btn-text" wx:if="{{!sending}}">发送</text>
-          <text class="btn-text" wx:if="{{sending}}">...</text>
-        </button>
-      </view>
-    </view>
-
-    <!-- 快捷问题建议 -->
-    <scroll-view class="quick-questions" scroll-x wx:if="{{conversationMode === 'new' && messages.length <= 1}}">
-      <view class="quick-question-item" bindtap="setQuickQuestion" data-question="最近体检发现血压偏高，需要注意什么？">
-        <text class="quick-text">血压偏高怎么办？</text>
-      </view>
-      <view class="quick-question-item" bindtap="setQuickQuestion" data-question="我的血糖值正常吗？如何控制血糖？">
-        <text class="quick-text">如何控制血糖？</text>
-      </view>
-      <view class="quick-question-item" bindtap="setQuickQuestion" data-question="根据我的体检报告，有什么健康建议？">
-        <text class="quick-text">健康建议</text>
-      </view>
-      <view class="quick-question-item" bindtap="setQuickQuestion" data-question="我的胆固醇偏高，应该如何调整饮食？">
-        <text class="quick-text">胆固醇偏高饮食建议</text>
-      </view>
-    </scroll-view>
   </view>
 </view>

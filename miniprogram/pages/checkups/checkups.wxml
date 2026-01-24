@@ -1,34 +1,74 @@
+<!--pages/checkups/checkups.wxml-->
 <view class="checkups-container">
-  <view class="checkup-list">
-    <block wx:if="{{checkups.length > 0}}">
-      <view class="checkup-item card" wx:for="{{checkups}}" wx:key="id">
-        <view class="checkup-header" bindtap="goToDetail" data-id="{{item.id}}">
-          <text class="main-title">{{item.notes || item.checkup_date}}</text>
-          <view class="header-right">
-            <view class="status-badge status-{{item.status}}">
-              {{item.status === 'completed' ? '已完成' : '处理中'}}
-            </view>
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
+  </view>
+
+  <!-- 页面头部 -->
+  <view class="page-header">
+    <view class="header-left">
+      <text class="header-emoji">📋</text>
+      <view class="header-text">
+        <text class="header-title">体检报告</text>
+        <text class="header-subtitle">{{checkups.length}} 份报告</text>
+      </view>
+    </view>
+    <view class="header-action" bindtap="goToUpload">
+      <text class="add-icon">+</text>
+    </view>
+  </view>
+
+  <!-- 报告列表 -->
+  <view class="reports-list" wx:if="{{checkups.length > 0}}">
+    <view class="report-card"
+          wx:for="{{checkups}}"
+          wx:key="id"
+          bindtap="goToDetail"
+          data-id="{{item.id}}">
+      <!-- 卡片头部 -->
+      <view class="card-top">
+        <view class="hospital-info">
+          <text class="hospital-emoji">🏥</text>
+          <view class="hospital-text">
+            <text class="hospital-name">{{item.hospital || '体检报告'}}</text>
+            <text class="report-date">{{item.checkup_date}}</text>
           </view>
         </view>
-        <view class="checkup-body" bindtap="goToDetail" data-id="{{item.id}}">
-          <text class="checkup-date">{{item.checkup_date}}</text>
-          <text class="hospital">{{item.hospital || '未知机构'}}</text>
-          <text class="indicator-count">{{item.indicators_count}}项指标</text>
+        <view class="status-dot status-{{item.status}}"></view>
+      </view>
+
+      <!-- 卡片内容 -->
+      <view class="card-middle">
+        <view class="stat-item">
+          <text class="stat-number">{{item.indicators_count}}</text>
+          <text class="stat-label">项指标</text>
         </view>
-        <view class="checkup-footer">
-          <view class="footer-left" bindtap="goToDetail" data-id="{{item.id}}">
-            <text class="view-detail">查看详情 ></text>
-          </view>
-          <view class="footer-right">
-            <text class="delete-btn" catchtap="deleteCheckup" data-id="{{item.id}}">删除</text>
-          </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-number {{item.abnormal_count > 0 ? 'stat-warning' : 'stat-success'}}">{{item.abnormal_count || 0}}</text>
+          <text class="stat-label">异常</text>
         </view>
       </view>
-    </block>
-    <view class="empty-container" wx:else>
-      <image class="empty-icon" src="/images/empty.png"></image>
-      <text class="empty-text">暂无体检报告</text>
-      <button class="btn-primary mt-20" bindtap="goToUpload">上传第一份报告</button>
+
+      <!-- 卡片底部 -->
+      <view class="card-bottom">
+        <text class="card-note">{{item.notes || '常规体检'}}</text>
+        <text class="card-arrow">→</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:else>
+    <view class="empty-content">
+      <text class="empty-emoji">📄</text>
+      <text class="empty-title">还没有报告</text>
+      <text class="empty-desc">上传第一份体检报告开始记录</text>
+      <view class="empty-btn" bindtap="goToUpload">
+        <text class="empty-btn-text">立即上传</text>
+      </view>
     </view>
   </view>
 </view>

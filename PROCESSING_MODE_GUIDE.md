@@ -247,7 +247,7 @@ sudo systemctl restart health-project
 
 ```bash
 # 测试API
-curl https://www.zctestbench.asia/health/api/processing-mode/
+curl https://www.zctestbench.asia/api/processing-mode/
 ```
 
 ---
