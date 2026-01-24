@@ -297,7 +297,7 @@ p {
 }
 
 .indicator-table thead th {
-    background: #000;
+    background: linear-gradient(135deg, #4C8BF5, #7C9FFF);
     color: #FFF;
     font-weight: 800;
     font-size: 0.75rem;
@@ -305,6 +305,17 @@ p {
     letter-spacing: 0.1em;
     padding: 0.875rem;
     border: none;
+    position: relative;
+}
+
+.indicator-table thead th::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brutal-cyan), var(--brutal-green), var(--brutal-yellow));
 }
 
 .indicator-table tbody td {
