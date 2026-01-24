@@ -25,14 +25,31 @@ def register_chinese_font():
     """注册中文字体"""
     font_registered = False
 
-    # 尝试多个常见的中文字体路径
+    # 尝试多个常见的中文字体路径（按优先级排序）
     font_paths = [
+        # RHEL/CentOS/Alibaba Cloud Linux 字体路径
+        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc',  # Noto Sans CJK (正确路径)
+        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Medium.ttc',  # Noto Sans CJK Medium
+        '/usr/share/fonts/google-noto-cjk/NotoSansCJK-Bold.ttc',  # Noto Sans CJK Bold
+        '/usr/share/fonts/google-noto-sans-cjk/NotoSansCJK-Regular.ttc',  # 备选路径
+        '/usr/share/fonts/noto/NotoSansCJK-Regular.ttc',  # 备选路径
+        '/usr/share/fonts/cjk/NotoSansCJK-Regular.ttc',  # 备选路径
+        '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',  # OpenType
+
+        # Ubuntu/Debian 字体路径
         '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',  # Linux WQY
         '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',  # Linux Droid
+        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',  # Linux Liberation
+
+        # macOS 字体路径
         '/System/Library/Fonts/PingFang.ttc',  # macOS
+
+        # Windows 字体路径
         'C:/Windows/Fonts/msyh.ttc',  # Windows 微软雅黑
         'C:/Windows/Fonts/simhei.ttf',  # Windows 黑体
-        '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',  # Linux Liberation
+
+        # 其他常见路径
+        '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',  # DejaVu Sans
     ]
 
     for font_path in font_paths:
@@ -41,10 +58,17 @@ def register_chinese_font():
                 # 注册字体，使用别名
                 pdfmetrics.registerFont(TTFont('ChineseFont', font_path))
                 font_registered = True
-                print(f"Successfully registered Chinese font: {font_path}")
+                print(f"✓ Successfully registered Chinese font: {font_path}")
                 break
         except Exception as e:
+            print(f"✗ Failed to register font {font_path}: {str(e)}")
             continue
+
+    if not font_registered:
+        print("⚠ Warning: No Chinese font found. Chinese characters may display as squares.")
+        print("To fix this, install Chinese fonts:")
+        print("  - RHEL/CentOS/Alibaba Cloud: sudo yum install -y google-noto-sans-cjk-fonts")
+        print("  - Ubuntu/Debian: sudo apt install -y fonts-wqy-zenhei")
 
     return font_registered
 

@@ -189,9 +189,14 @@ module.exports = {
   exportHealthTrendsWord: () =>
     request.downloadFile(config.api.exportHealthTrendsWord),
 
-  exportCheckupsPDF: () =>
-    request.downloadFile(config.api.exportCheckupsPDF),
+  // 导出体检报告（单个或批量）
+  exportCheckupsPDF: (checkupIds) => {
+    const url = `${config.api.exportCheckupsPDF}?checkup_ids=${Array.isArray(checkupIds) ? checkupIds.join(',') : checkupIds}`
+    return request.downloadFile(url)
+  },
 
-  exportCheckupsWord: () =>
-    request.downloadFile(config.api.exportCheckupsWord)
+  exportCheckupsWord: (checkupIds) => {
+    const url = `${config.api.exportCheckupsWord}?checkup_ids=${Array.isArray(checkupIds) ? checkupIds.join(',') : checkupIds}`
+    return request.downloadFile(url)
+  }
 }

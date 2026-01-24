@@ -2,7 +2,14 @@ const api = require('../../utils/api.js')
 const util = require('../../utils/util.js')
 
 Page({
-  data: { checkups: [], page: 1, hasMore: true },
+  data: {
+    checkups: [],
+    page: 1,
+    hasMore: true,
+    isSelectMode: false, // 是否处于选择模式
+    selectedIds: [], // 已选择的报告ID
+    selectAll: false // 是否全选
+  },
 
   onLoad() { this.loadCheckups() },
 
@@ -30,14 +37,16 @@ Page({
           return {
             ...checkup,
             abnormal_count: abnormalCount,
-            indicators_count: indicators.length
+            indicators_count: indicators.length,
+            selected: false // 添加选中状态
           }
         } catch (err) {
           console.error('获取报告指标失败:', err)
           return {
             ...checkup,
             abnormal_count: 0,
-            indicators_count: checkup.indicator_count || checkup.indicators_count || 0
+            indicators_count: checkup.indicator_count || checkup.indicators_count || 0,
+            selected: false
           }
         }
       }))
@@ -56,7 +65,107 @@ Page({
   },
 
   goToDetail(e) {
+    // 如果在选择模式，不跳转
+    if (this.data.isSelectMode) return
     wx.navigateTo({ url: `/pages/checkup-detail/checkup-detail?id=${e.currentTarget.dataset.id}` })
+  },
+
+  /**
+   * 切换选择模式
+   */
+  toggleSelectMode() {
+    const isSelectMode = !this.data.isSelectMode
+    this.setData({
+      isSelectMode,
+      selectedIds: [],
+      selectAll: false
+    })
+
+    // 清除所有选中状态
+    const checkups = this.data.checkups.map(c => ({ ...c, selected: false }))
+    this.setData({ checkups })
+  },
+
+  /**
+   * 选择/取消选择单个报告
+   */
+  toggleSelect(e) {
+    const { id } = e.currentTarget.dataset
+    const checkups = this.data.checkups.map(c => {
+      if (c.id === id) {
+        return { ...c, selected: !c.selected }
+      }
+      return c
+    })
+
+    const selectedIds = checkups.filter(c => c.selected).map(c => c.id)
+    const selectAll = selectedIds.length === checkups.length && checkups.length > 0
+
+    this.setData({ checkups, selectedIds, selectAll })
+  },
+
+  /**
+   * 全选/取消全选
+   */
+  toggleSelectAll() {
+    const selectAll = !this.data.selectAll
+    const checkups = this.data.checkups.map(c => ({ ...c, selected: selectAll }))
+    const selectedIds = selectAll ? checkups.map(c => c.id) : []
+
+    this.setData({ checkups, selectedIds, selectAll })
+  },
+
+  /**
+   * 下载单个报告
+   */
+  async downloadSingle(e) {
+    const { id, format } = e.currentTarget.dataset
+    await this.downloadReport([id], format)
+  },
+
+  /**
+   * 批量下载选中的报告
+   */
+  async downloadSelected(format) {
+    if (this.data.selectedIds.length === 0) {
+      util.showToast('请先选择要下载的报告')
+      return
+    }
+    await this.downloadReport(this.data.selectedIds, format)
+  },
+
+  /**
+   * 下载报告
+   */
+  async downloadReport(checkupIds, format) {
+    const formatText = format === 'pdf' ? 'PDF' : 'Word'
+    util.showLoading(`生成${formatText}中...`)
+
+    try {
+      const downloadFunc = format === 'pdf' ? api.exportCheckupsPDF : api.exportCheckupsWord
+      const tempFilePath = await downloadFunc(checkupIds)
+
+      util.hideLoading()
+
+      // 打开文件
+      wx.openDocument({
+        filePath: tempFilePath,
+        fileType: format,
+        showMenu: true,
+        success: () => {
+          console.log('文件打开成功')
+        },
+        fail: (err) => {
+          console.error('打开文件失败:', err)
+          util.showToast('打开文件失败')
+        }
+      })
+    } catch (err) {
+      console.error('下载失败:', err)
+      util.showToast(err.message || '下载失败')
+    } finally {
+      util.hideLoading()
+    }
   },
 
   /**

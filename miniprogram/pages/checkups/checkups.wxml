@@ -15,18 +15,50 @@
         <text class="header-subtitle">{{checkups.length}} 份报告</text>
       </view>
     </view>
-    <view class="header-action" bindtap="goToUpload">
-      <text class="add-icon">+</text>
+    <view class="header-actions">
+      <view class="header-action select-btn" bindtap="toggleSelectMode" wx:if="{{checkups.length > 0}}">
+        <text class="select-icon">{{isSelectMode ? '✕' : '☑'}}</text>
+      </view>
+      <view class="header-action" bindtap="goToUpload">
+        <text class="add-icon">+</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 批量操作栏（选择模式时显示） -->
+  <view class="batch-actions" wx:if="{{isSelectMode}}">
+    <view class="batch-info">
+      <text class="selected-count">已选择 {{selectedIds.length}} 份</text>
+    </view>
+    <view class="batch-buttons">
+      <view class="batch-btn select-all-btn" bindtap="toggleSelectAll">
+        <text>{{selectAll ? '✓' : ''}} 全选</text>
+      </view>
+      <view class="batch-btn download-pdf-btn" bindtap="downloadSelected" data-format="pdf">
+        <text class="btn-icon">📄</text>
+        <text>下载PDF</text>
+      </view>
+      <view class="batch-btn download-word-btn" bindtap="downloadSelected" data-format="word">
+        <text class="btn-icon">📝</text>
+        <text>下载Word</text>
+      </view>
     </view>
   </view>
 
   <!-- 报告列表 -->
   <view class="reports-list" wx:if="{{checkups.length > 0}}">
-    <view class="report-card"
+    <view class="report-card {{isSelectMode ? 'select-mode' : ''}} {{item.selected ? 'selected' : ''}}"
           wx:for="{{checkups}}"
           wx:key="id"
           bindtap="goToDetail"
           data-id="{{item.id}}">
+      <!-- 选择复选框（选择模式显示） -->
+      <view class="checkbox-wrapper" wx:if="{{isSelectMode}}" catchtap="toggleSelect" data-id="{{item.id}}">
+        <view class="checkbox {{item.selected ? 'checked' : ''}}">
+          <text class="check-icon" wx:if="{{item.selected}}">✓</text>
+        </view>
+      </view>
+
       <!-- 卡片头部 -->
       <view class="card-top">
         <view class="hospital-info">
@@ -36,7 +68,15 @@
             <text class="report-date">{{item.checkup_date}}</text>
           </view>
         </view>
-        <view class="status-dot status-{{item.status}}"></view>
+        <view class="card-actions" wx:if="{{!isSelectMode}}">
+          <view class="download-btn" catchtap="downloadSingle" data-id="{{item.id}}" data-format="pdf">
+            <text>📄</text>
+          </view>
+          <view class="download-btn" catchtap="downloadSingle" data-id="{{item.id}}" data-format="word">
+            <text>📝</text>
+          </view>
+        </view>
+        <view class="status-dot status-{{item.status}}" wx:else></view>
       </view>
 
       <!-- 卡片内容 -->
@@ -55,7 +95,7 @@
       <!-- 卡片底部 -->
       <view class="card-bottom">
         <text class="card-note">{{item.notes || '常规体检'}}</text>
-        <text class="card-arrow">→</text>
+        <text class="card-arrow" wx:if="{{!isSelectMode}}">→</text>
       </view>
     </view>
   </view>
