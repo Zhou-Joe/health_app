@@ -233,20 +233,70 @@ class Request {
         header['Authorization'] = `Token ${token}`
       }
 
+      const fullUrl = this.getFullUrl(url)
+      console.log('[下载文件] URL:', fullUrl)
+
       wx.downloadFile({
-        url: this.getFullUrl(url),
+        url: fullUrl,
         header,
         timeout: options.timeout || 60000,
         success: (res) => {
+          console.log('[下载文件] 响应:', res)
           if (res.statusCode === 200) {
+            console.log('[下载文件] 成功:', res.tempFilePath)
             resolve(res.tempFilePath)
+          } else if (res.statusCode === 401) {
+            console.error('[下载文件] 未授权')
+            const app = getApp()
+            app.clearLoginInfo()
+            wx.reLaunch({ url: config.pages.login })
+            reject(new Error('登录已过期，请重新登录'))
+          } else if (res.statusCode === 403) {
+            console.error('[下载文件] 无权限')
+            reject(new Error('没有权限访问此文件'))
+          } else if (res.statusCode === 404) {
+            console.error('[下载文件] 文件不存在')
+            reject(new Error('文件不存在'))
           } else {
-            reject(new Error('下载失败'))
+            console.error('[下载文件] 状态码异常:', res.statusCode, res)
+            // 尝试读取错误信息
+            if (res.tempFilePath) {
+              wx.getFileSystemManager().readFile({
+                filePath: res.tempFilePath,
+                encoding: 'utf-8',
+                success: (fileRes) => {
+                  console.error('[下载文件] 错误响应内容:', fileRes.data)
+                  try {
+                    const errorData = JSON.parse(fileRes.data)
+                    reject(new Error(errorData.message || errorData.error || '下载失败'))
+                  } catch {
+                    reject(new Error(`下载失败 (状态码: ${res.statusCode})`))
+                  }
+                },
+                fail: () => {
+                  reject(new Error(`下载失败 (状态码: ${res.statusCode})`))
+                }
+              })
+            } else {
+              reject(new Error(`下载失败 (状态码: ${res.statusCode})`))
+            }
           }
         },
         fail: (err) => {
-          console.error('下载失败:', err)
-          reject(new Error('下载失败'))
+          console.error('[下载文件] 请求失败:', err)
+          let errorMsg = '下载失败'
+          if (err.errMsg) {
+            if (err.errMsg.includes('fail to connect')) {
+              errorMsg = '网络连接失败，请检查网络'
+            } else if (err.errMsg.includes('timeout')) {
+              errorMsg = '下载超时，请稍后重试'
+            } else if (err.errMsg.includes('url not in domain list')) {
+              errorMsg = '域名不在白名单中，请在开发设置中关闭域名校验'
+            } else {
+              errorMsg = `下载失败: ${err.errMsg}`
+            }
+          }
+          reject(new Error(errorMsg))
         }
       })
     })
