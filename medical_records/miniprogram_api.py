@@ -1384,7 +1384,9 @@ def miniprogram_merge_duplicate_checkups(request):
     try:
         from django.db import transaction
 
-        data = json.loads(request.body)
+        # 使用 request.data 而不是 json.loads(request.body)
+        # request.data 可以多次访问，而 request.body 只能读取一次
+        data = request.data
         target_checkup_id = data.get('target_checkup_id')
         source_checkup_ids = data.get('source_checkup_ids', [])
 
