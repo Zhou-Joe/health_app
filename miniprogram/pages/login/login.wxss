@@ -97,18 +97,19 @@ page {
 }
 
 .logo-icon {
-  width: 120rpx;
-  height: 120rpx;
+  width: 130rpx;
+  height: 130rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 68rpx;
+  font-size: 72rpx;
   background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
   border-radius: 50%;
   box-shadow:
-    0 10rpx 40rpx rgba(255, 138, 122, 0.3),
-    0 0 0 8rpx rgba(255, 255, 255, 0.5),
-    inset 0 -4rpx 12rpx rgba(0, 0, 0, 0.1);
+    0 14rpx 48rpx rgba(255, 138, 122, 0.38),
+    0 0 0 10rpx rgba(255, 255, 255, 0.6),
+    inset 0 -6rpx 16rpx rgba(0, 0, 0, 0.12);
+  border: 3rpx solid rgba(255, 255, 255, 0.4);
 }
 
 .app-name {
@@ -161,49 +162,54 @@ page {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(10rpx);
-  -webkit-backdrop-filter: blur(10rpx);
-  border-radius: 20rpx;
-  padding: 28rpx 16rpx;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16rpx);
+  -webkit-backdrop-filter: blur(16rpx);
+  border-radius: 24rpx;
+  padding: 32rpx 20rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-shadow:
-    0 4rpx 20rpx rgba(255, 138, 122, 0.08),
-    0 0 0 1rpx rgba(255, 255, 255, 0.6);
-  border: 2rpx solid rgba(255, 255, 255, 0.7);
+    0 6rpx 28rpx rgba(255, 138, 122, 0.12),
+    0 0 0 2rpx rgba(255, 255, 255, 0.8);
+  border: 3rpx solid rgba(255, 138, 122, 0.12);
   transition: all 0.3s ease;
-  min-height: 240rpx;
+  min-height: 250rpx;
 }
 
 .feature-icon {
-  width: 80rpx;
-  height: 80rpx;
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
-  margin-bottom: 12rpx;
-  box-shadow: 0 6rpx 16rpx rgba(0, 0, 0, 0.08);
+  font-size: 44rpx;
+  margin-bottom: 14rpx;
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.12);
+  border: 2rpx solid rgba(255, 255, 255, 0.6);
 }
 
 .feature-icon-upload {
   background: linear-gradient(135deg, #FFE5E0, #FFD4CC);
+  border-color: rgba(255, 138, 122, 0.2);
 }
 
 .feature-icon-ai {
   background: linear-gradient(135deg, #E5F0FF, #D4E4FF);
+  border-color: rgba(100, 149, 237, 0.2);
 }
 
 .feature-icon-integration {
   background: linear-gradient(135deg, #E0FFE5, #CCFFD4);
+  border-color: rgba(168, 230, 207, 0.3);
 }
 
 .feature-icon-trends {
   background: linear-gradient(135deg, #FFF5E0, #FFEACC);
+  border-color: rgba(255, 200, 100, 0.2);
 }
 
 .feature-title {
@@ -223,17 +229,18 @@ page {
 
 /* ==================== 登录表单 ==================== */
 .login-form {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 48rpx;
-  padding: 50rpx 40rpx;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(30rpx);
+  -webkit-backdrop-filter: blur(30rpx);
+  border-radius: 56rpx;
+  padding: 56rpx 44rpx;
   box-shadow:
-    0 8rpx 32rpx rgba(255, 138, 122, 0.12),
-    0 0 0 1rpx rgba(255, 255, 255, 0.8);
+    0 12rpx 48rpx rgba(255, 138, 122, 0.18),
+    0 0 0 2rpx rgba(255, 255, 255, 0.95),
+    inset 0 2rpx 8rpx rgba(255, 255, 255, 0.8);
   position: relative;
   z-index: 2;
-  border: 2rpx solid rgba(255, 255, 255, 0.9);
+  border: 3rpx solid rgba(255, 138, 122, 0.15);
 }
 
 /* 表单项 */
@@ -245,21 +252,22 @@ page {
   display: flex;
   align-items: center;
   background: var(--warm-white);
-  border-radius: 24rpx;
-  padding: 0 24rpx;
+  border-radius: 28rpx;
+  padding: 0 28rpx;
   box-shadow:
-    0 4rpx 16rpx rgba(255, 138, 122, 0.08),
-    inset 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
-  border: 2rpx solid rgba(255, 138, 122, 0.1);
+    0 6rpx 20rpx rgba(255, 138, 122, 0.12),
+    inset 0 2rpx 6rpx rgba(0, 0, 0, 0.03);
+  border: 3rpx solid rgba(255, 138, 122, 0.15);
   transition: all 0.3s ease;
 }
 
 .input-wrapper:focus-within {
   box-shadow:
-    0 6rpx 24rpx rgba(255, 138, 122, 0.15),
-    inset 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
+    0 8rpx 32rpx rgba(255, 138, 122, 0.22),
+    inset 0 2rpx 6rpx rgba(0, 0, 0, 0.03);
   border-color: var(--warm-coral);
-  transform: translateY(-2rpx);
+  border-width: 3rpx;
+  transform: translateY(-3rpx);
 }
 
 .input-icon {
@@ -358,18 +366,19 @@ page {
 .warm-btn-primary,
 .warm-btn-wechat {
   width: 100%;
-  height: 96rpx;
-  border-radius: 28rpx;
+  height: 104rpx;
+  border-radius: 32rpx;
   border: none;
-  font-size: 30rpx;
-  font-weight: 600;
+  font-size: 32rpx;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  box-shadow: 0 8rpx 24rpx rgba(255, 138, 122, 0.25);
+  box-shadow: 0 10rpx 32rpx rgba(255, 138, 122, 0.32);
   position: relative;
   overflow: hidden;
+  letter-spacing: 2rpx;
 }
 
 .warm-btn-primary::before,
@@ -380,7 +389,7 @@ page {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   transition: left 0.5s;
 }
 
@@ -392,12 +401,13 @@ page {
 .warm-btn-primary {
   background: linear-gradient(135deg, var(--warm-coral) 0%, var(--warm-peach) 100%);
   color: white;
-  margin-top: 28rpx;
+  margin-top: 32rpx;
+  border: 3rpx solid rgba(255, 255, 255, 0.3);
 }
 
 .warm-btn-primary:active {
-  transform: scale(0.96);
-  box-shadow: 0 4rpx 12rpx rgba(255, 138, 122, 0.2);
+  transform: scale(0.95);
+  box-shadow: 0 5rpx 16rpx rgba(255, 138, 122, 0.25);
 }
 
 .warm-btn-primary[disabled] {
@@ -407,26 +417,27 @@ page {
 .btn-content {
   display: flex;
   align-items: center;
-  gap: 10rpx;
+  gap: 12rpx;
 }
 
 .btn-icon {
-  font-size: 32rpx;
+  font-size: 36rpx;
 }
 
 .warm-btn-wechat {
   background: linear-gradient(135deg, #A8E6CF 0%, #C8F7DC 100%);
   color: #3A7A5C;
-  box-shadow: 0 8rpx 24rpx rgba(168, 230, 207, 0.3);
+  box-shadow: 0 10rpx 32rpx rgba(168, 230, 207, 0.38);
+  border: 3rpx solid rgba(255, 255, 255, 0.4);
 }
 
 .warm-btn-wechat:active {
-  transform: scale(0.96);
-  box-shadow: 0 4rpx 12rpx rgba(168, 230, 207, 0.25);
+  transform: scale(0.95);
+  box-shadow: 0 5rpx 16rpx rgba(168, 230, 207, 0.3);
 }
 
 .wechat-icon {
-  font-size: 32rpx;
+  font-size: 36rpx;
 }
 
 /* ==================== 分隔线 ==================== */
