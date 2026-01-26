@@ -1168,6 +1168,31 @@ def generate_ai_advice(question, user, selected_reports=None, conversation=None,
     prompt_sent = ""
     conversation_context = None
 
+    # 尝试使用Agent模式（更智能的问答）
+    if api_url and model_name:
+        try:
+            from .ai_doctor_agent import create_ai_doctor_agent
+
+            print(f"[AI建议] 使用Agent模式生成建议")
+
+            # 创建Agent
+            agent = create_ai_doctor_agent(user, conversation)
+
+            # 执行Agent
+            result = agent.ask_question(question, selected_reports, selected_medications)
+
+            if result.get('success') and result.get('answer'):
+                print(f"[AI建议] Agent回答生成成功")
+                return result['answer'], result.get('prompt', ''), result.get('conversation_context')
+            else:
+                print(f"[AI建议] Agent执行失败，回退到传统模式: {result.get('error')}")
+                # 继续使用传统模式
+
+        except ImportError as e:
+            print(f"[AI建议] Agent模块导入失败，使用传统模式: {e}")
+        except Exception as e:
+            print(f"[AI建议] Agent执行异常，使用传统模式: {e}")
+
     if api_url and model_name:
         # 使用AI医生API
         if selected_reports is None:
