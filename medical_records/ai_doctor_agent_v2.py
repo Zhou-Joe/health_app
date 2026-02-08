@@ -367,10 +367,57 @@ class RealAIDoctorAgent:
             print(f"[Real Agent] 开始处理问题")
             print(f"[问题] {user_question}")
             print(f"[用户ID] {self.user.id}")
+            print(f"[对话ID] {self.conversation.id if self.conversation else '新对话'}")
 
-            # 构建初始消息，包含用户ID
-            initial_message = f"""
-用户ID: {self.user.id}
+            # 检测是否为继续对话
+            is_continuation = self.conversation is not None
+
+            # 获取对话历史（如果是继续对话）
+            conversation_history = []
+            if is_continuation:
+                from .models import HealthAdvice
+                recent_advices = HealthAdvice.get_conversation_messages(self.conversation.id)
+
+                # 获取最近3轮对话作为上下文
+                for advice in recent_advices[-3:]:
+                    if advice.question and advice.answer:
+                        conversation_history.append({
+                            'question': advice.question,
+                            'answer': advice.answer[:500]  # 限制历史回答长度
+                        })
+
+                print(f"[继续对话] 检测到继续对话，历史轮次: {len(conversation_history)}")
+
+            # 构建初始消息
+            if is_continuation and conversation_history:
+                # 继续对话的专用prompt
+                history_text = "\n\n".join([
+                    f"第{i+1}轮对话:\n用户: {ctx['question']}\nAI: {ctx['answer']}"
+                    for i, ctx in enumerate(conversation_history)
+                ])
+
+                initial_message = f"""用户ID: {self.user.id}
+
+【重要提示】这是一次继续对话，用户正在基于之前的对话提出后续问题。
+
+【对话历史】
+{history_text}
+
+【当前问题】
+用户现在提出新的问题: {user_question}
+
+【你的任务】
+1. 这是同一对话的延续，请结合之前的对话历史来理解用户的关注点
+2. 重点关注用户的新问题，不要重复之前的建议
+3. 如果用户的问题与之前的讨论相关，请参考历史回答并进一步深入
+4. 如果用户提出了新的健康担忧，请同时考虑历史背景
+5. 保持对话的连贯性和一致性
+
+请使用工具获取用户的健康信息，然后给出全面的建议。
+"""
+            else:
+                # 新对话的prompt
+                initial_message = f"""用户ID: {self.user.id}
 用户问题: {user_question}
 
 请使用工具获取用户的健康信息，然后给出全面的建议。
@@ -401,7 +448,9 @@ class RealAIDoctorAgent:
             return {
                 'answer': answer,
                 'prompt': initial_message,
-                'success': True
+                'success': True,
+                'is_continuation': is_continuation,
+                'conversation_history_count': len(conversation_history) if is_continuation else 0
             }
 
         except Exception as e:

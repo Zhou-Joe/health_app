@@ -1394,6 +1394,16 @@ def stream_ai_advice(request):
         from .views import get_conversation_context, format_health_data_for_prompt
         conversation_context = get_conversation_context(request.user, conversation)
 
+        # 检测并记录对话模式
+        is_continuation = conversation_mode != 'new_conversation' and conversation
+        if is_continuation:
+            print(f"[Web流式AI] ✓ 检测到继续对话模式")
+            print(f"[Web流式AI]   对话ID: {conversation.id}")
+            print(f"[Web流式AI]   对话标题: {conversation.title}")
+            print(f"[Web流式AI]   历史轮次: {len(conversation_context)}")
+        else:
+            print(f"[Web流式AI] → 新对话模式")
+
         # 继续对话时，如果未显式选择报告/药单，则复用该对话最近一次的选择
         if conversation_mode != 'new_conversation' and conversation:
             from .models import HealthAdvice
@@ -1443,10 +1453,25 @@ def stream_ai_advice(request):
         system_prompt = AI_DOCTOR_SYSTEM_PROMPT
 
         # 构建用户消息
-        user_message_parts = [f"当前问题：{question}"]
+        # 检测是否为继续对话
+        is_continuation = conversation_mode != 'new_conversation' and conversation
 
-        if conversation_mode != 'new_conversation' and conversation:
-            user_message_parts.append("\n提示：这是同一对话中的后续追问，请结合历史回答理解上下文。")
+        if is_continuation:
+            # 继续对话：强调这是后续问题，要求AI关注新问题
+            user_message_parts = [
+                f"【继续对话】用户提出后续问题",
+                f"当前问题：{question}",
+                "",
+                "【重要说明】",
+                "1. 这是同一对话的延续，用户正在基于之前的讨论提出新的问题",
+                "2. 请重点理解和回答用户的当前问题，不要重复之前的建议",
+                "3. 如果当前问题与之前的讨论相关，请简要回顾相关要点，然后深入回答新问题",
+                "4. 如果用户提出了新的健康担忧，请结合历史背景全面分析",
+                "5. 保持对话的连贯性，使用一致的语气和建议风格"
+            ]
+        else:
+            # 新对话
+            user_message_parts = [f"当前问题：{question}"]
 
         # 添加个人信息
         try:
@@ -1459,12 +1484,15 @@ def stream_ai_advice(request):
         except:
             pass
 
-        # 添加对话历史
-        if conversation_context:
-            user_message_parts.append("\n对话历史：")
-            for ctx in conversation_context:
-                user_message_parts.append(f"{ctx['time']} 问：{ctx['question']}")
-                user_message_parts.append(f"答：{ctx['answer']}")
+        # 添加对话历史（仅在继续对话时）
+        if is_continuation and conversation_context:
+            user_message_parts.append("\n【最近的对话历史（供参考）】")
+            for i, ctx in enumerate(conversation_context[-3:], 1):  # 只显示最近3轮
+                user_message_parts.append(f"\n第{i}轮对话:")
+                user_message_parts.append(f"  时间: {ctx['time']}")
+                user_message_parts.append(f"  用户问题: {ctx['question']}")
+                user_message_parts.append(f"  AI回答摘要: {ctx['answer']}")
+            user_message_parts.append("\n请基于以上历史，重点关注用户的新问题。")
 
         # 检查是否真的有健康数据
         has_health_data = False
@@ -1500,21 +1528,22 @@ def stream_ai_advice(request):
             if medication_data_text:
                 user_message_parts.append(medication_data_text)
 
-            # 添加指导性提示
-            user_message_parts.append("\n请基于以上信息：")
-            user_message_parts.append("1. 结合对话历史，理解用户的连续关注点")
-            user_message_parts.append("2. 分析用户的健康状况和趋势")
-            if medication_data_text:
-                user_message_parts.append("3. 结合用户的用药情况，分析药物与健康状况的关系")
-                user_message_parts.append("4. 针对用户的具体问题提供专业建议")
-                user_message_parts.append("5. 注意观察指标的历史变化趋势")
-                user_message_parts.append("6. 给出实用的生活方式和医疗建议")
-                user_message_parts.append("7. 如有异常指标，请特别说明并建议应对措施")
-            else:
-                user_message_parts.append("3. 针对用户的具体问题提供专业建议")
-                user_message_parts.append("4. 注意观察指标的历史变化趋势")
-                user_message_parts.append("5. 给出实用的生活方式和医疗建议")
-                user_message_parts.append("6. 如有异常指标，请特别说明并建议应对措施")
+            # 只有在非继续对话时才添加通用指导性提示
+            if not is_continuation:
+                user_message_parts.append("\n请基于以上信息：")
+                user_message_parts.append("1. 结合对话历史，理解用户的连续关注点")
+                user_message_parts.append("2. 分析用户的健康状况和趋势")
+                if medication_data_text:
+                    user_message_parts.append("3. 结合用户的用药情况，分析药物与健康状况的关系")
+                    user_message_parts.append("4. 针对用户的具体问题提供专业建议")
+                    user_message_parts.append("5. 注意观察指标的历史变化趋势")
+                    user_message_parts.append("6. 给出实用的生活方式和医疗建议")
+                    user_message_parts.append("7. 如有异常指标，请特别说明并建议应对措施")
+                else:
+                    user_message_parts.append("3. 针对用户的具体问题提供专业建议")
+                    user_message_parts.append("4. 注意观察指标的历史变化趋势")
+                    user_message_parts.append("5. 给出实用的生活方式和医疗建议")
+                    user_message_parts.append("6. 如有异常指标，请特别说明并建议应对措施")
         else:
             # 没有提供健康数据和药单信息
             notice_parts = ["\n注意："]
@@ -1527,15 +1556,18 @@ def stream_ai_advice(request):
                     notice_parts.append("用户选择不提供用药信息")
             notice_parts.append("，请仅基于问题提供一般性健康建议。")
 
-            user_message_parts.extend([
-                "".join(notice_parts),
-                "\n请基于以上问题：",
-                "1. 结合对话历史，理解用户的关注点",
-                "2. 提供一般性的健康建议和知识",
-                "3. 针对用户的具体问题给出专业建议",
-                "4. 建议何时需要就医或专业咨询",
-                "5. 给出实用的生活方式和预防措施"
-            ])
+            user_message_parts.append("".join(notice_parts))
+
+            # 只有在非继续对话时才添加通用指导性提示
+            if not is_continuation:
+                user_message_parts.extend([
+                    "\n请基于以上问题：",
+                    "1. 结合对话历史，理解用户的关注点",
+                    "2. 提供一般性的健康建议和知识",
+                    "3. 针对用户的具体问题给出专业建议",
+                    "4. 建议何时需要就医或专业咨询",
+                    "5. 给出实用的生活方式和预防措施"
+                ])
 
         user_message = "\n".join(user_message_parts)
 
@@ -1550,6 +1582,7 @@ def stream_ai_advice(request):
         # 生成流式响应
         def generate():
             """生成流式响应"""
+            from .models import HealthAdvice as HA  # Import locally to avoid closure issues
             nonlocal conversation
             full_response = ""
             error_msg = None
@@ -1670,15 +1703,15 @@ def stream_ai_advice(request):
             try:
                 if full_response and not error_msg:
                     # 创建或获取对话
-                    from .models import Conversation
+                    from .models import Conversation as Conv
                     if not conversation:
                         question_text = question[:50]
                         if len(question) > 50:
                             question_text += '...'
-                        conversation = Conversation.create_new_conversation(request.user, f"健康咨询: {question_text}")
+                        conversation = Conv.create_new_conversation(request.user, f"健康咨询: {question_text}")
 
                     # 保存AI建议
-                    advice = HealthAdvice.objects.create(
+                    advice = HA.objects.create(
                         user=request.user,
                         conversation=conversation,
                         question=question,

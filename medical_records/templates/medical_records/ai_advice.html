@@ -932,12 +932,14 @@ let reportSelectionState = {
 };
 
 function openReportModal() {
-    // 恢复之前的选择状态
-    document.getElementById('noReportsCheckbox').checked = reportSelectionState.noReports;
-    document.querySelectorAll('.report-checkbox').forEach(cb => {
-        cb.checked = reportSelectionState.selectedIds.includes(cb.value);
-    });
-    updateSelectedReportsInModal();
+    const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+    if (noReportsCheckbox) {
+        noReportsCheckbox.checked = reportSelectionState.noReports;
+        document.querySelectorAll('.report-checkbox').forEach(cb => {
+            cb.checked = reportSelectionState.selectedIds.includes(cb.value);
+        });
+        updateSelectedReportsInModal();
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('reportModal'));
     modal.show();
@@ -946,6 +948,8 @@ function openReportModal() {
 function handleNoReportsChange() {
     reportSelectionState.userOverride = true;
     const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+
+    if (!noReportsCheckbox) return;
 
     if (noReportsCheckbox.checked) {
         // 不使用报告：清空所有报告选择
@@ -956,10 +960,12 @@ function handleNoReportsChange() {
 
 function handleReportCheckboxChange() {
     reportSelectionState.userOverride = true;
+    const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+
     // 当勾选任何报告时，自动取消"不使用报告"
     const checkedReports = document.querySelectorAll('.report-checkbox:checked');
-    if (checkedReports.length > 0) {
-        document.getElementById('noReportsCheckbox').checked = false;
+    if (checkedReports.length > 0 && noReportsCheckbox) {
+        noReportsCheckbox.checked = false;
     }
     updateSelectedReportsInModal();
 }
@@ -967,31 +973,49 @@ function handleReportCheckboxChange() {
 function updateSelectedReportsInModal() {
     const noReportsCheckbox = document.getElementById('noReportsCheckbox');
 
+    // 检查元素是否存在
+    if (!noReportsCheckbox) {
+        console.warn('noReportsCheckbox element not found');
+        return;
+    }
+
     if (noReportsCheckbox.checked) {
-        document.getElementById('reportSelectionCount').textContent = '当前不选择提供报告';
+        const countElement = document.getElementById('reportSelectionCount');
+        if (countElement) {
+            countElement.textContent = '当前不选择提供报告';
+        }
         return;
     }
 
     const checkboxes = document.querySelectorAll('.report-checkbox:checked');
     const count = checkboxes.length;
 
-    if (count === 0) {
-        document.getElementById('reportSelectionCount').textContent = '请选择至少一份报告';
-    } else {
-        document.getElementById('reportSelectionCount').textContent = `已选择 ${count} 份报告`;
+    const countElement = document.getElementById('reportSelectionCount');
+    if (countElement) {
+        if (count === 0) {
+            countElement.textContent = '请选择至少一份报告';
+        } else {
+            countElement.textContent = `已选择 ${count} 份报告`;
+        }
     }
 }
 
 function selectAllReports() {
     reportSelectionState.userOverride = true;
-    document.getElementById('noReportsCheckbox').checked = false;
+    const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+    if (noReportsCheckbox) {
+        noReportsCheckbox.checked = false;
+    }
     document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = true);
     updateSelectedReportsInModal();
 }
 
 function selectRecentReports() {
     reportSelectionState.userOverride = true;
-    document.getElementById('noReportsCheckbox').checked = false;
+    const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+    if (noReportsCheckbox) {
+        noReportsCheckbox.checked = false;
+    }
     const checkboxes = document.querySelectorAll('.report-checkbox');
     checkboxes.forEach(cb => cb.checked = false);
     for (let i = 0; i < Math.min(2, checkboxes.length); i++) {
@@ -1002,7 +1026,10 @@ function selectRecentReports() {
 
 function selectAbnormalReports() {
     reportSelectionState.userOverride = true;
-    document.getElementById('noReportsCheckbox').checked = false;
+    const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+    if (noReportsCheckbox) {
+        noReportsCheckbox.checked = false;
+    }
     const checkboxes = document.querySelectorAll('.report-checkbox');
     checkboxes.forEach(cb => cb.checked = false);
     checkboxes.forEach(cb => {
@@ -1016,14 +1043,23 @@ function selectAbnormalReports() {
 
 function clearAllReports() {
     reportSelectionState.userOverride = true;
-    document.getElementById('noReportsCheckbox').checked = true;
+    const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+    if (noReportsCheckbox) {
+        noReportsCheckbox.checked = true;
+    }
     document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = false);
     updateSelectedReportsInModal();
 }
 
 function confirmReportSelection() {
-    // 保存选择状态
     const noReportsCheckbox = document.getElementById('noReportsCheckbox');
+
+    // 检查元素是否存在
+    if (!noReportsCheckbox) {
+        console.warn('noReportsCheckbox not found, skipping report selection');
+        return;
+    }
+
     const checkedReports = document.querySelectorAll('.report-checkbox:checked');
 
     console.log('确认报告选择:');
@@ -1115,12 +1151,14 @@ let medicationSelectionState = {
 };
 
 function openMedicationModal() {
-    // 恢复之前的选择状态
-    document.getElementById('noMedicationsCheckbox').checked = medicationSelectionState.noMedications;
-    document.querySelectorAll('.medication-checkbox').forEach(cb => {
-        cb.checked = medicationSelectionState.selectedIds.includes(cb.value);
-    });
-    updateSelectedMedicationsInModal();
+    const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
+    if (noMedicationsCheckbox) {
+        noMedicationsCheckbox.checked = medicationSelectionState.noMedications;
+        document.querySelectorAll('.medication-checkbox').forEach(cb => {
+            cb.checked = medicationSelectionState.selectedIds.includes(cb.value);
+        });
+        updateSelectedMedicationsInModal();
+    }
 
     const modal = new bootstrap.Modal(document.getElementById('medicationModal'));
     modal.show();
@@ -1129,6 +1167,8 @@ function openMedicationModal() {
 function handleNoMedicationsChange() {
     medicationSelectionState.userOverride = true;
     const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
+
+    if (!noMedicationsCheckbox) return;
 
     if (noMedicationsCheckbox.checked) {
         document.querySelectorAll('.medication-checkbox').forEach(cb => cb.checked = false);
@@ -1139,9 +1179,11 @@ function handleNoMedicationsChange() {
 function handleMedicationCheckboxChange() {
     medicationSelectionState.userOverride = true;
     // 当勾选任何药单时，自动取消"不使用药单"
+    const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
+
     const checkedMedications = document.querySelectorAll('.medication-checkbox:checked');
-    if (checkedMedications.length > 0) {
-        document.getElementById('noMedicationsCheckbox').checked = false;
+    if (checkedMedications.length > 0 && noMedicationsCheckbox) {
+        noMedicationsCheckbox.checked = false;
     }
     updateSelectedMedicationsInModal();
 }
@@ -1149,38 +1191,63 @@ function handleMedicationCheckboxChange() {
 function updateSelectedMedicationsInModal() {
     const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
 
+    // 检查元素是否存在
+    if (!noMedicationsCheckbox) {
+        console.warn('noMedicationsCheckbox element not found');
+        return;
+    }
+
     if (noMedicationsCheckbox.checked) {
-        document.getElementById('medicationSelectionCount').textContent = '当前不选择提供药单';
+        const countElement = document.getElementById('medicationSelectionCount');
+        if (countElement) {
+            countElement.textContent = '当前不选择提供药单';
+        }
         return;
     }
 
     const checkboxes = document.querySelectorAll('.medication-checkbox:checked');
     const count = checkboxes.length;
 
-    if (count === 0) {
-        document.getElementById('medicationSelectionCount').textContent = '请选择药单';
-    } else {
-        document.getElementById('medicationSelectionCount').textContent = `已选择 ${count} 份药单`;
+    const countElement = document.getElementById('medicationSelectionCount');
+    if (countElement) {
+        if (count === 0) {
+            countElement.textContent = '请选择药单';
+        } else {
+            countElement.textContent = `已选择 ${count} 份药单`;
+        }
     }
 }
 
 function selectAllMedications() {
     medicationSelectionState.userOverride = true;
-    document.getElementById('noMedicationsCheckbox').checked = false;
+    const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
+    if (noMedicationsCheckbox) {
+        noMedicationsCheckbox.checked = false;
+    }
     document.querySelectorAll('.medication-checkbox').forEach(cb => cb.checked = true);
     updateSelectedMedicationsInModal();
 }
 
 function clearAllMedications() {
     medicationSelectionState.userOverride = true;
-    document.getElementById('noMedicationsCheckbox').checked = true;
+    const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
+    if (noMedicationsCheckbox) {
+        noMedicationsCheckbox.checked = true;
+    }
     document.querySelectorAll('.medication-checkbox').forEach(cb => cb.checked = false);
     updateSelectedMedicationsInModal();
 }
 
 function confirmMedicationSelection() {
-    // 保存选择状态
     const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
+
+    // 如果元素不存在，直接返回
+    if (!noMedicationsCheckbox) {
+        console.warn('noMedicationsCheckbox not found, skipping medication selection');
+        return;
+    }
+
+    // 保存选择状态
     const checkedMedications = document.querySelectorAll('.medication-checkbox:checked');
 
     medicationSelectionState.noMedications = noMedicationsCheckbox.checked;

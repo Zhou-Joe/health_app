@@ -982,22 +982,40 @@ def miniprogram_create_conversation(request):
         # 在后台线程中异步生成AI响应（流式更新）
         def generate_ai_response_stream():
             from .views import generate_ai_advice
-            print(f"[后台线程] 开始生成AI响应，advice_id: {health_advice.id}")
-            try:
-                # 处理报告选择
-                report_mode = data.get('report_mode', 'none')
+            from .models import HealthAdvice as HA  # Import locally to avoid closure issues
+            from django.db import connection
+            # 保存ID，避免闭包问题
+            advice_id = health_advice.id
+            conversation_id = conversation.id
+            user_id = request.user.id
+            question_text = question
+            report_mode_data = data.get('report_mode', 'none')
 
-                if report_mode == 'none':
+            print(f"[后台线程] 开始生成AI响应，advice_id: {advice_id}")
+
+            # 关闭旧的数据库连接，避免线程间共享连接
+            connection.close()
+
+            try:
+                # 在新线程中重新获取对象
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                health_advice = HA.objects.get(id=advice_id)
+                conv = Conversation.objects.get(id=conversation_id)
+                user = User.objects.get(id=user_id)
+
+                # 处理报告选择
+                if report_mode_data == 'none':
                     selected_reports = None
-                elif report_mode == 'select' and len(selected_reports_ids) > 0:
+                elif report_mode_data == 'select' and len(selected_reports_ids) > 0:
                     selected_reports = HealthCheckup.objects.filter(
                         id__in=selected_reports_ids,
-                        user=request.user
+                        user=user
                     )
                 else:
                     selected_reports = None
 
-                print(f"[后台线程] 报告模式: {report_mode}, 报告数量: {len(selected_reports) if selected_reports else 0}")
+                print(f"[后台线程] 报告模式: {report_mode_data}, 报告数量: {len(selected_reports) if selected_reports else 0}")
 
                 # 处理药单选择
                 selected_medications = None
@@ -1005,16 +1023,16 @@ def miniprogram_create_conversation(request):
                     from .models import Medication
                     selected_medications = Medication.objects.filter(
                         id__in=selected_medications_ids,
-                        user=request.user
+                        user=user
                     )
                     print(f"[后台线程] 药单数量: {len(selected_medications)}")
 
                 # 生成AI响应
                 answer, prompt_sent, conversation_context = generate_ai_advice(
-                    question,
-                    request.user,
+                    question_text,
+                    user,
                     selected_reports,
-                    conversation,
+                    conv,
                     selected_medications
                 )
 
@@ -1026,21 +1044,28 @@ def miniprogram_create_conversation(request):
                 health_advice.conversation_context = json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
                 health_advice.save()
 
-                print(f"[后台线程] 数据库更新完成，advice_id: {health_advice.id}")
+                print(f"[后台线程] 数据库更新完成，advice_id: {advice_id}")
             except Exception as e:
                 import traceback
                 print(f"[后台线程] AI响应生成失败: {str(e)}")
                 traceback.print_exc()
                 # 即使失败也更新状态
                 try:
+                    health_advice = HA.objects.get(id=advice_id)
                     health_advice.answer = f"抱歉，生成回复时出现错误：{str(e)}"
                     health_advice.save()
+                except Exception as save_error:
+                    print(f"[后台线程] 保存失败信息时出错: {str(save_error)}")
+            finally:
+                # 确保关闭数据库连接
+                try:
+                    connection.close()
                 except:
                     pass
 
-        # 启动后台线程
+        # 启动后台线程（非daemon，确保线程能完成）
         thread = threading.Thread(target=generate_ai_response_stream)
-        thread.daemon = True
+        thread.daemon = False  # ← 改为非daemon，确保线程能完成
         thread.start()
         print(f"[小程序] 后台线程已启动，advice_id: {health_advice.id}")
 

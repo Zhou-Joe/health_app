@@ -476,11 +476,15 @@ def ai_health_advice(request):
                 # 生成AI响应，传入选择的报告、药单和对话上下文
                 # 注意：conversation 用于关联消息到对话，conversation_for_context 用于决定是否包含历史上下文
                 question = advice.question
+                print(f"[Web AI] 开始生成AI响应，问题: {question[:50]}...")
                 answer, prompt_sent, conversation_context = generate_ai_advice(question, request.user, selected_reports, conversation_for_context, selected_medications)
+
+                print(f"[Web AI] AI响应生成完成，长度: {len(answer) if answer else 0}")
 
                 # 如果AI生成失败，返回错误信息
                 if not answer:
                     error_msg = "AI医生服务暂时不可用，请稍后再试"
+                    print(f"[Web AI] AI生成失败或返回空")
                     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                         return JsonResponse({
                             'success': False,
@@ -505,7 +509,14 @@ def ai_health_advice(request):
                     medication_ids = [str(m.id) for m in selected_medications]
                     advice.selected_medications = json.dumps(medication_ids, ensure_ascii=False)
 
+                print(f"[Web AI] 准备保存HealthAdvice到数据库...")
+                print(f"[Web AI] advice.id: {advice.id if advice.id else 'None (尚未保存)'}")
+                print(f"[Web AI] answer长度: {len(advice.answer)}")
+                print(f"[Web AI] conversation: {advice.conversation}")
+
                 advice.save()
+
+                print(f"[Web AI] HealthAdvice保存成功，ID: {advice.id}")
 
                 # 如果是AJAX请求，返回JSON响应
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
