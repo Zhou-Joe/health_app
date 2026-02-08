@@ -983,6 +983,10 @@ def miniprogram_create_conversation(request):
         def generate_ai_response_stream():
             from .models import HealthAdvice as HA  # Import locally to avoid closure issues
             from django.db import connection
+            from .models import SystemSettings
+
+            print(f"[小程序后台线程] 线程启动，advice_id: {health_advice.id}")
+            from django.db import connection
             from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
             from .views import get_conversation_context, format_health_data_for_prompt, get_selected_reports_health_data
             # 保存ID，避免闭包问题
@@ -992,7 +996,7 @@ def miniprogram_create_conversation(request):
             question_text = question
             report_mode_data = data.get('report_mode', 'none')
 
-            print(f"[小程序后台线程] 开始生成AI响应（Agent模式），advice_id: {advice_id}")
+            print(f"[小程序后台线程] 开始生成AI响应（Agent模式），advice_id: {advice_id}, question: {question_text[:30]}...")
 
             # 关闭旧的数据库连接，避免线程间共享连接
             connection.close()
@@ -1001,9 +1005,13 @@ def miniprogram_create_conversation(request):
                 # 在新线程中重新获取对象
                 from django.contrib.auth import get_user_model
                 User = get_user_model()
+
+                print(f"[小程序后台线程] 重新获取数据库对象...")
                 health_advice = HA.objects.get(id=advice_id)
                 conv = Conversation.objects.get(id=conversation_id)
                 user = User.objects.get(id=user_id)
+
+                print(f"[小程序后台线程] 数据库对象获取成功")
 
                 # 处理报告选择
                 if report_mode_data == 'none':
@@ -1027,6 +1035,16 @@ def miniprogram_create_conversation(request):
                         user=user
                     )
                     print(f"[小程序后台线程] 药单数量: {len(selected_medications)}")
+
+                # 检查AI医生配置
+                api_url = SystemSettings.get_setting('ai_doctor_api_url')
+                api_key = SystemSettings.get_setting('ai_doctor_api_key')
+                model_name = SystemSettings.get_setting('ai_doctor_model_name')
+
+                print(f"[小程序后台线程] AI医生配置 - URL: {api_url}, Model: {model_name}, API Key: {'已配置' if api_key else '未配置'}")
+
+                if not api_url or not api_key or not model_name:
+                    raise Exception("AI医生未配置，请在系统设置中配置API URL、API Key和模型名称")
 
                 # ========== 使用与网页版一致的Agent模式 ==========
                 print(f"[小程序后台线程] 开始创建Agent...")
@@ -1077,23 +1095,28 @@ def miniprogram_create_conversation(request):
                         raise fallback_error
 
                 # 更新HealthAdvice记录
+                print(f"[小程序后台线程] 开始更新数据库...")
                 health_advice.answer = answer
                 health_advice.prompt_sent = prompt_sent
                 health_advice.conversation_context = json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
                 health_advice.save()
 
-                print(f"[小程序后台线程] 数据库更新完成，advice_id: {advice_id}")
+                print(f"[小程序后台线程] ✓ 数据库更新完成，advice_id: {advice_id}, answer长度: {len(answer)}")
             except Exception as e:
                 import traceback
-                print(f"[后台线程] AI响应生成失败: {str(e)}")
+                print(f"[小程序后台线程] ✗ AI响应生成失败: {str(e)}")
+                print(f"[小程序后台线程] 错误类型: {type(e).__name__}")
                 traceback.print_exc()
-                # 即使失败也更新状态
+
+                # 即使失败也更新状态，记录错误信息
                 try:
                     health_advice = HA.objects.get(id=advice_id)
                     health_advice.answer = f"抱歉，生成回复时出现错误：{str(e)}"
                     health_advice.save()
+                    print(f"[小程序后台线程] 已将错误信息保存到数据库")
                 except Exception as save_error:
-                    print(f"[后台线程] 保存失败信息时出错: {str(save_error)}")
+                    print(f"[小程序后台线程] ✗ 保存失败信息时出错: {str(save_error)}")
+                    traceback.print_exc()
             finally:
                 # 确保关闭数据库连接
                 try:
@@ -1102,10 +1125,11 @@ def miniprogram_create_conversation(request):
                     pass
 
         # 启动后台线程（非daemon，确保线程能完成）
+        print(f"[小程序] 准备启动后台线程，advice_id: {health_advice.id}")
         thread = threading.Thread(target=generate_ai_response_stream)
         thread.daemon = False  # ← 改为非daemon，确保线程能完成
         thread.start()
-        print(f"[小程序] 后台线程已启动，advice_id: {health_advice.id}")
+        print(f"[小程序] ✓ 后台线程已启动，advice_id: {health_advice.id}, thread_id: {thread.ident}, is_alive: {thread.is_alive()}")
 
         return Response(response_data, status=status.HTTP_201_CREATED)
 
