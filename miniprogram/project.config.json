@@ -47,7 +47,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "3.5.5",
+  "libVersion": "3.13.0",
   "appid": "wx33e0d4aea2ca6064",
   "projectname": "health-miniprogram",
   "condition": {},

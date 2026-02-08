@@ -1,6 +1,6 @@
 {
-  "libVersion": "3.13.0",
-  "projectname": "health-miniprogram",
+  "libVersion": "3.14.2",
+  "projectname": "miniprogram",
   "condition": {},
   "setting": {
     "urlCheck": false,

@@ -135,7 +135,7 @@ Page({
    */
   startStreamingPoll() {
     let pollCount = 0
-    const maxPolls = 120 // 最多轮询120次（120次 * 0.5秒 = 60秒）
+    const maxPolls = 600 // 最多轮询600次（600次 * 0.5秒 = 300秒 = 5分钟）
 
     this.data.streamTimer = setInterval(async () => {
       pollCount++
@@ -191,7 +191,7 @@ Page({
    */
   startPolling() {
     let pollCount = 0
-    const maxPolls = 40 // 最多轮询40次（40秒 * 2 = 80秒）
+    const maxPolls = 150 // 最多轮询150次（150次 * 2秒 = 300秒 = 5分钟）
 
     this.data.pollTimer = setInterval(async () => {
       pollCount++
@@ -242,16 +242,33 @@ Page({
    * 加载对话历史
    */
   async loadConversation(conversationId) {
+    console.log('[loadConversation] 开始加载对话, conversationId:', conversationId)
     util.showLoading('加载中...')
+
+    // 设置超时保护
+    const timeout = setTimeout(() => {
+      console.error('[loadConversation] 加载超时')
+      util.hideLoading()
+      util.showToast('加载超时，请重试')
+    }, 15000) // 15秒超时
+
     try {
+      console.log('[loadConversation] 调用API获取对话消息...')
       const res = await api.getConversationMessages(conversationId)
+      console.log('[loadConversation] API返回:', res)
+
+      clearTimeout(timeout)
+
       const messages = []
 
       // 将消息转换为聊天格式
       // 后端返回结构: { success: true, data: { messages: [...] } }
       const messageList = res.data?.messages || []
+      console.log('[loadConversation] 消息列表长度:', messageList.length)
 
-      messageList.forEach(msg => {
+      messageList.forEach((msg, index) => {
+        console.log(`[loadConversation] 处理消息 ${index + 1}/${messageList.length}, answer长度:`, msg.answer?.length || 0)
+
         // 格式化时间，去掉毫秒
         const formattedTime = util.formatDate(new Date(msg.created_at), 'YYYY-MM-DD HH:mm:ss')
 
@@ -261,31 +278,59 @@ Page({
           content: msg.question,
           created_at: formattedTime
         })
-        // AI消息转换为Markdown
+
+        // AI消息转换为Markdown（延迟处理，避免阻塞）
         const aiContent = msg.answer || ''
-        messages.push({
+        const aiMsg = {
           id: msg.id + 1000,
           role: 'ai',
           content: aiContent,
           previewText: this.stripMarkdown(aiContent),
           previewShort: this.generatePreviewText(aiContent),
-          markdownData: this.convertMarkdown(aiContent),
           created_at: formattedTime,
           prompt_sent: msg.prompt_sent,
           expanded: false
-        })
+        }
+
+        // 如果内容不太长，立即转换markdown
+        if (aiContent.length < 5000) {
+          aiMsg.markdownData = this.convertMarkdown(aiContent)
+        }
+
+        messages.push(aiMsg)
       })
 
       // 获取对话中最后一条消息使用的报告ID
       const lastSelectedReports = res.data?.last_selected_reports || []
+
+      console.log('[loadConversation] 设置数据，消息数量:', messages.length)
 
       this.setData({
         messages,
         selectedReportIds: lastSelectedReports,
         lastMessageId: messages.length > 0 ? messages[messages.length - 1].id : null
       })
+
+      console.log('[loadConversation] 加载完成')
+
+      // 延迟处理长文本的markdown转换
+      setTimeout(() => {
+        const updatedMessages = this.data.messages.map(msg => {
+          if (msg.role === 'ai' && !msg.markdownData && msg.content) {
+            return {
+              ...msg,
+              markdownData: this.convertMarkdown(msg.content)
+            }
+          }
+          return msg
+        })
+        this.setData({ messages: updatedMessages })
+        console.log('[loadConversation] Markdown转换完成（延迟处理）')
+      }, 100)
+
     } catch (err) {
-      console.error('加载对话失败:', err)
+      clearTimeout(timeout)
+      console.error('[loadConversation] 加载对话失败:', err)
       util.showToast(err.message || '加载失败')
     } finally {
       util.hideLoading()
@@ -302,79 +347,66 @@ Page({
     }
 
     try {
-      let html = content
+      console.log('[convertMarkdown] 开始转换，内容长度:', content.length)
 
-      // 先处理代码块（保留内容）
-      const codeBlocks = []
-      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-        codeBlocks.push(`<div class="code-block"><pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre></div>`)
-        return `__CODE_BLOCK_${codeBlocks.length - 1}__`
-      })
-
-      // 转义HTML特殊字符
-      html = html
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-
-      // 恢复代码块
-      codeBlocks.forEach((code, i) => {
-        html = html.replace(`__CODE_BLOCK_${i}__`, code)
-      })
-
-      // 处理段落（双换行）
-      const paragraphs = html.split('\n\n')
-      const processedParagraphs = []
-
-      for (let para of paragraphs) {
-        if (!para.trim()) {
-          processedParagraphs.push('<p></p>')
-          continue
-        }
-
-        // 处理行内代码
-        para = para.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-        // 处理标题
-        para = para.replace(/^#### (.*)$/gm, '<h4>$1</h4>')
-        para = para.replace(/^### (.*)$/gm, '<h3>$1</h3>')
-        para = para.replace(/^## (.*)$/gm, '<h2>$1</h2>')
-        para = para.replace(/^# (.*)$/gm, '<h1>$1</h1>')
-
-        // 如果该段落不包含任何HTML标签，将其作为段落处理
-        if (!para.includes('<')) {
-          // 处理粗体
-          para = para.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-          // 处理斜体
-          para = para.replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          // 处理列表
-          para = para.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>')
-
-          // 如果有列表项，包裹在ul中
-          if (para.includes('<li>')) {
-            para = `<ul>${para}</ul>`
-          }
-
-          processedParagraphs.push(`<p>${para}</p>`)
-        } else {
-          processedParagraphs.push(para)
-        }
+      // 限制处理长度，避免性能问题
+      const maxLength = 10000 // 最大处理10万字符
+      if (content.length > maxLength) {
+        console.warn('[convertMarkdown] 内容过长，截断处理:', content.length, '->', maxLength)
+        content = content.substring(0, maxLength) + '\n\n...(内容过长，已截断)'
       }
 
-      html = processedParagraphs.join('')
+      let html = content
 
-      // 处理引用块
-      html = html.replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>')
+      // 简化处理：只处理常用的markdown格式
+      // 1. 代码块
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code>${this.escapeHtml(code.trim())}</code></pre>`
+      })
 
-      // 处理换行
-      html = html.replace(/\n\n/g, '</p><p>')
+      // 2. 转义HTML特殊字符
+      html = this.escapeHtml(html)
+
+      // 3. 标题（h1-h6）
+      html = html.replace(/^######\s+(.*)$/gm, '<h6>$1</h6>')
+      html = html.replace(/^#####\s+(.*)$/gm, '<h5>$1</h5>')
+      html = html.replace(/^####\s+(.*)$/gm, '<h4>$1</h4>')
+      html = html.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
+      html = html.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
+      html = html.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
+
+      // 4. 粗体和斜体
+      html = html.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>')
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+
+      // 5. 行内代码
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+
+      // 6. 换行处理
+      html = html.replace(/\n\n+/g, '</p><p>')
       html = html.replace(/\n/g, '<br>')
 
+      // 包裹在段落中
+      html = `<p>${html}</p>`
+
+      console.log('[convertMarkdown] 转换完成')
       return html
     } catch (e) {
-      console.error('Markdown转换失败:', e)
+      console.error('[convertMarkdown] 转换失败:', e)
       return null
     }
+  },
+
+  escapeHtml(text) {
+    const map = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }
+    return text.replace(/[&<>"']/g, m => map[m])
   },
 
   /**

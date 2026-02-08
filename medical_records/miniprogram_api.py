@@ -979,11 +979,12 @@ def miniprogram_create_conversation(request):
             }
         }
 
-        # 在后台线程中异步生成AI响应（流式更新）
+        # 在后台线程中异步生成AI响应（使用与网页版一致的Agent模式）
         def generate_ai_response_stream():
-            from .views import generate_ai_advice
             from .models import HealthAdvice as HA  # Import locally to avoid closure issues
             from django.db import connection
+            from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
+            from .views import get_conversation_context, format_health_data_for_prompt, get_selected_reports_health_data
             # 保存ID，避免闭包问题
             advice_id = health_advice.id
             conversation_id = conversation.id
@@ -991,7 +992,7 @@ def miniprogram_create_conversation(request):
             question_text = question
             report_mode_data = data.get('report_mode', 'none')
 
-            print(f"[后台线程] 开始生成AI响应，advice_id: {advice_id}")
+            print(f"[小程序后台线程] 开始生成AI响应（Agent模式），advice_id: {advice_id}")
 
             # 关闭旧的数据库连接，避免线程间共享连接
             connection.close()
@@ -1015,7 +1016,7 @@ def miniprogram_create_conversation(request):
                 else:
                     selected_reports = None
 
-                print(f"[后台线程] 报告模式: {report_mode_data}, 报告数量: {len(selected_reports) if selected_reports else 0}")
+                print(f"[小程序后台线程] 报告模式: {report_mode_data}, 报告数量: {len(selected_reports) if selected_reports else 0}")
 
                 # 处理药单选择
                 selected_medications = None
@@ -1025,18 +1026,55 @@ def miniprogram_create_conversation(request):
                         id__in=selected_medications_ids,
                         user=user
                     )
-                    print(f"[后台线程] 药单数量: {len(selected_medications)}")
+                    print(f"[小程序后台线程] 药单数量: {len(selected_medications)}")
 
-                # 生成AI响应
-                answer, prompt_sent, conversation_context = generate_ai_advice(
-                    question_text,
-                    user,
-                    selected_reports,
-                    conv,
-                    selected_medications
-                )
+                # ========== 使用与网页版一致的Agent模式 ==========
+                print(f"[小程序后台线程] 开始创建Agent...")
+                from .ai_doctor_agent_v2 import create_real_ai_doctor_agent
 
-                print(f"[后台线程] AI响应生成成功，长度: {len(answer)} 字符")
+                try:
+                    # 创建Agent
+                    agent = create_real_ai_doctor_agent(user, conv)
+                    print(f"[小程序后台线程] Agent创建成功，开始执行ask_question...")
+
+                    # 执行Agent（ask_question会自动构建prompt并返回conversation_context）
+                    result = agent.ask_question(question_text, selected_reports, selected_medications)
+
+                    print(f"[小程序后台线程] Agent执行完成，result keys: {list(result.keys())}")
+
+                    if result.get('success') and result.get('answer'):
+                        answer = result['answer']
+                        prompt_sent = result.get('prompt', '')
+                        conversation_context = result.get('conversation_context')
+                        print(f"[小程序后台线程] ✓ Agent响应生成成功，长度: {len(answer)} 字符")
+                    else:
+                        # Agent失败，尝试回退到简化模式
+                        error_msg = result.get('error', '未知错误')
+                        print(f"[小程序后台线程] ⚠ Agent执行失败: {error_msg}，尝试回退到简化模式...")
+                        raise Exception(f"Agent执行失败: {error_msg}")
+
+                except Exception as agent_error:
+                    print(f"[小程序后台线程] ⚠ Agent异常: {str(agent_error)}")
+                    print(f"[小程序后台线程] 尝试使用views.generate_ai_advice作为回退...")
+
+                    import traceback
+                    traceback.print_exc()
+
+                    # 回退到原来的generate_ai_advice函数
+                    try:
+                        from .views import generate_ai_advice
+                        answer, prompt_sent, conversation_context = generate_ai_advice(
+                            question_text,
+                            user,
+                            selected_reports,
+                            conv,
+                            selected_medications
+                        )
+                        print(f"[小程序后台线程] ✓ 回退模式响应生成成功，长度: {len(answer)} 字符")
+                    except Exception as fallback_error:
+                        print(f"[小程序后台线程] ✗ 回退模式也失败: {str(fallback_error)}")
+                        traceback.print_exc()
+                        raise fallback_error
 
                 # 更新HealthAdvice记录
                 health_advice.answer = answer
@@ -1044,7 +1082,7 @@ def miniprogram_create_conversation(request):
                 health_advice.conversation_context = json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
                 health_advice.save()
 
-                print(f"[后台线程] 数据库更新完成，advice_id: {advice_id}")
+                print(f"[小程序后台线程] 数据库更新完成，advice_id: {advice_id}")
             except Exception as e:
                 import traceback
                 print(f"[后台线程] AI响应生成失败: {str(e)}")
@@ -1124,18 +1162,24 @@ def miniprogram_conversation_detail(request, conversation_id):
     try:
         from .models import Conversation, HealthAdvice
 
+        print(f"[小程序对话详情] 查询对话, conversation_id: {conversation_id}, user: {request.user.username}")
+
         conversation = Conversation.objects.get(
             id=conversation_id,
             user=request.user
         )
 
+        print(f"[小程序对话详情] 找到对话: {conversation.title}")
+
         # 获取对话中的所有消息
         messages = HealthAdvice.get_conversation_messages(conversation_id)
+
+        print(f"[小程序对话详情] 获取到 {len(messages)} 条消息")
 
         message_list = []
         last_selected_reports = []
 
-        for msg in messages:
+        for index, msg in enumerate(messages):
             # 解析selected_reports
             msg_selected_reports = []
             if msg.selected_reports:
@@ -1144,9 +1188,12 @@ def miniprogram_conversation_detail(request, conversation_id):
                 except:
                     pass
 
+            print(f"[小程序对话详情] 消息 {index + 1}: question={msg.question[:30] if msg.question else 'None'}..., answer长度={len(msg.answer) if msg.answer else 0}")
+
             message_list.append({
                 'id': msg.id,
                 'question': msg.question,
+                'answer': msg.answer or '',  # 确保answer不为None
                 'answer': msg.answer,
                 'created_at': msg.created_at.isoformat(),
                 'selected_reports': msg_selected_reports
