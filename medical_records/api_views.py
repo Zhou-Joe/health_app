@@ -1323,6 +1323,8 @@ def stream_ai_advice(request):
         # 获取对话ID（可选）
         conversation_id = data.get('conversation_id')
         conversation_mode = data.get('conversation_mode', 'new_conversation')
+        report_mode = data.get('report_mode')
+        medication_mode = data.get('medication_mode')
         conversation = None
 
         # 只在非新对话模式下才加载历史对话
@@ -1392,6 +1394,44 @@ def stream_ai_advice(request):
         from .views import get_conversation_context, format_health_data_for_prompt
         conversation_context = get_conversation_context(request.user, conversation)
 
+        # 继续对话时，如果未显式选择报告/药单，则复用该对话最近一次的选择
+        if conversation_mode != 'new_conversation' and conversation:
+            from .models import HealthAdvice
+            latest_advice = HealthAdvice.objects.filter(
+                conversation=conversation,
+                user=request.user
+            ).order_by('-created_at').first()
+
+            if latest_advice:
+                # 报告：仅在用户未选择且未明确表示“不使用报告”时复用
+                if (not selected_report_ids) and report_mode != 'no_reports':
+                    try:
+                        selected_report_ids = json.loads(latest_advice.selected_reports) if latest_advice.selected_reports else []
+                    except json.JSONDecodeError:
+                        selected_report_ids = []
+
+                # 药单：仅在用户未选择且未明确表示“不使用药单”时复用
+                if (not selected_medication_ids) and medication_mode != 'no_medications':
+                    try:
+                        selected_medication_ids = json.loads(latest_advice.selected_medications) if latest_advice.selected_medications else []
+                    except json.JSONDecodeError:
+                        selected_medication_ids = []
+
+                # 复用后重建查询集
+                if selected_report_ids:
+                    from .models import HealthCheckup
+                    selected_reports = HealthCheckup.objects.filter(
+                        id__in=selected_report_ids,
+                        user=request.user
+                    )
+                if selected_medication_ids:
+                    from .models import Medication
+                    selected_medications = Medication.objects.filter(
+                        id__in=selected_medication_ids,
+                        user=request.user,
+                        is_active=True
+                    )
+
         # 判断是否为百川API（支持system角色）
         is_baichuan = (
             provider == 'baichuan' or
@@ -1404,6 +1444,9 @@ def stream_ai_advice(request):
 
         # 构建用户消息
         user_message_parts = [f"当前问题：{question}"]
+
+        if conversation_mode != 'new_conversation' and conversation:
+            user_message_parts.append("\n提示：这是同一对话中的后续追问，请结合历史回答理解上下文。")
 
         # 添加个人信息
         try:
@@ -2850,4 +2893,3 @@ def api_conversation_resources(request, conversation_id):
             'success': False,
             'error': f'获取对话资源失败: {str(e)}'
         }, status=500)
-

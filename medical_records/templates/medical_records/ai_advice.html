@@ -879,12 +879,14 @@ function loadConversationResources(conversationId) {
                     hospital: r.hospital,
                     date: r.checkup_date
                 }));
+                reportSelectionState.userOverride = true;
                 updateSelectedReportsDisplay();
             } else {
                 // 没有关联报告，重置为不使用
                 reportSelectionState.noReports = true;
                 reportSelectionState.selectedIds = [];
                 reportSelectionState.reportsInfo = [];
+                reportSelectionState.userOverride = true;
                 updateSelectedReportsDisplay();
             }
 
@@ -900,12 +902,14 @@ function loadConversationResources(conversationId) {
                     daysTaken: m.days_taken,
                     progress: m.progress_percentage
                 }));
+                medicationSelectionState.userOverride = true;
                 updateSelectedMedicationsDisplay();
             } else {
                 // 没有关联药单，重置为不使用
                 medicationSelectionState.noMedications = true;
                 medicationSelectionState.selectedIds = [];
                 medicationSelectionState.medicationsInfo = [];
+                medicationSelectionState.userOverride = true;
                 updateSelectedMedicationsDisplay();
             }
         } else {
@@ -923,7 +927,8 @@ function loadConversationResources(conversationId) {
 let reportSelectionState = {
     noReports: true,
     selectedIds: [],
-    reportsInfo: []  // 保存报告详细信息
+    reportsInfo: [],  // 保存报告详细信息
+    userOverride: false
 };
 
 function openReportModal() {
@@ -939,6 +944,7 @@ function openReportModal() {
 }
 
 function handleNoReportsChange() {
+    reportSelectionState.userOverride = true;
     const noReportsCheckbox = document.getElementById('noReportsCheckbox');
 
     if (noReportsCheckbox.checked) {
@@ -949,6 +955,7 @@ function handleNoReportsChange() {
 }
 
 function handleReportCheckboxChange() {
+    reportSelectionState.userOverride = true;
     // 当勾选任何报告时，自动取消"不使用报告"
     const checkedReports = document.querySelectorAll('.report-checkbox:checked');
     if (checkedReports.length > 0) {
@@ -976,12 +983,14 @@ function updateSelectedReportsInModal() {
 }
 
 function selectAllReports() {
+    reportSelectionState.userOverride = true;
     document.getElementById('noReportsCheckbox').checked = false;
     document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = true);
     updateSelectedReportsInModal();
 }
 
 function selectRecentReports() {
+    reportSelectionState.userOverride = true;
     document.getElementById('noReportsCheckbox').checked = false;
     const checkboxes = document.querySelectorAll('.report-checkbox');
     checkboxes.forEach(cb => cb.checked = false);
@@ -992,6 +1001,7 @@ function selectRecentReports() {
 }
 
 function selectAbnormalReports() {
+    reportSelectionState.userOverride = true;
     document.getElementById('noReportsCheckbox').checked = false;
     const checkboxes = document.querySelectorAll('.report-checkbox');
     checkboxes.forEach(cb => cb.checked = false);
@@ -1005,6 +1015,7 @@ function selectAbnormalReports() {
 }
 
 function clearAllReports() {
+    reportSelectionState.userOverride = true;
     document.getElementById('noReportsCheckbox').checked = true;
     document.querySelectorAll('.report-checkbox').forEach(cb => cb.checked = false);
     updateSelectedReportsInModal();
@@ -1022,6 +1033,7 @@ function confirmReportSelection() {
     reportSelectionState.noReports = noReportsCheckbox.checked;
     reportSelectionState.selectedIds = [];
     reportSelectionState.reportsInfo = [];  // 清空并重新收集报告信息
+    reportSelectionState.userOverride = true;
 
     checkedReports.forEach(cb => {
         reportSelectionState.selectedIds.push(cb.value);
@@ -1098,7 +1110,8 @@ function updateSelectedReportsDisplay() {
 let medicationSelectionState = {
     noMedications: true,
     selectedIds: [],
-    medicationsInfo: []  // 保存药单详细信息
+    medicationsInfo: [],  // 保存药单详细信息
+    userOverride: false
 };
 
 function openMedicationModal() {
@@ -1114,6 +1127,7 @@ function openMedicationModal() {
 }
 
 function handleNoMedicationsChange() {
+    medicationSelectionState.userOverride = true;
     const noMedicationsCheckbox = document.getElementById('noMedicationsCheckbox');
 
     if (noMedicationsCheckbox.checked) {
@@ -1123,6 +1137,7 @@ function handleNoMedicationsChange() {
 }
 
 function handleMedicationCheckboxChange() {
+    medicationSelectionState.userOverride = true;
     // 当勾选任何药单时，自动取消"不使用药单"
     const checkedMedications = document.querySelectorAll('.medication-checkbox:checked');
     if (checkedMedications.length > 0) {
@@ -1150,12 +1165,14 @@ function updateSelectedMedicationsInModal() {
 }
 
 function selectAllMedications() {
+    medicationSelectionState.userOverride = true;
     document.getElementById('noMedicationsCheckbox').checked = false;
     document.querySelectorAll('.medication-checkbox').forEach(cb => cb.checked = true);
     updateSelectedMedicationsInModal();
 }
 
 function clearAllMedications() {
+    medicationSelectionState.userOverride = true;
     document.getElementById('noMedicationsCheckbox').checked = true;
     document.querySelectorAll('.medication-checkbox').forEach(cb => cb.checked = false);
     updateSelectedMedicationsInModal();
@@ -1169,6 +1186,7 @@ function confirmMedicationSelection() {
     medicationSelectionState.noMedications = noMedicationsCheckbox.checked;
     medicationSelectionState.selectedIds = [];
     medicationSelectionState.medicationsInfo = [];  // 清空并重新收集药单信息
+    medicationSelectionState.userOverride = true;
 
     checkedMedications.forEach(cb => {
         medicationSelectionState.selectedIds.push(cb.value);
@@ -1512,12 +1530,14 @@ function continueConsultation() {
     // 恢复报告选择
     if (lastConsultationSettings.reportSelectionState) {
         reportSelectionState = {...lastConsultationSettings.reportSelectionState};
+        reportSelectionState.userOverride = true;
     }
     updateSelectedReportsDisplay();
 
     // 恢复药单选择
     if (lastConsultationSettings.medicationSelectionState) {
         medicationSelectionState = {...lastConsultationSettings.medicationSelectionState};
+        medicationSelectionState.userOverride = true;
     }
     updateSelectedMedicationsDisplay();
 
@@ -1587,16 +1607,40 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
 
     const conversationMode = document.querySelector('input[name="conversation_mode"]:checked');
 
+    const isContinueConversation = conversationMode && conversationMode.value === 'continue_conversation' && selectedConversation.id;
+
+    let reportMode = reportSelectionState.noReports ? 'no_reports' : 'select_reports';
+    let selectedReportIds = reportSelectionState.selectedIds;
+    let medicationMode = medicationSelectionState.noMedications ? 'no_medications' : 'select_medications';
+    let selectedMedicationIds = medicationSelectionState.selectedIds;
+
+    // 继续对话且用户未主动修改选择时：不发送“no_reports/no_medications”，让后端复用上次选择
+    if (isContinueConversation) {
+        if (!reportSelectionState.userOverride && (!selectedReportIds || selectedReportIds.length === 0)) {
+            reportMode = null;
+            selectedReportIds = [];
+        }
+        if (!medicationSelectionState.userOverride && (!selectedMedicationIds || selectedMedicationIds.length === 0)) {
+            medicationMode = null;
+            selectedMedicationIds = [];
+        }
+    }
+
     const requestData = {
         question: question,
         conversation_mode: conversationMode ? conversationMode.value : 'new_conversation',
-        report_mode: reportSelectionState.noReports ? 'no_reports' : 'select_reports',
-        selected_report_ids: reportSelectionState.selectedIds,
-        medication_mode: medicationSelectionState.noMedications ? 'no_medications' : 'select_medications',
-        selected_medication_ids: medicationSelectionState.selectedIds
+        selected_report_ids: selectedReportIds,
+        selected_medication_ids: selectedMedicationIds
     };
 
-    if (conversationMode && conversationMode.value === 'continue_conversation' && selectedConversation.id) {
+    if (reportMode) {
+        requestData.report_mode = reportMode;
+    }
+    if (medicationMode) {
+        requestData.medication_mode = medicationMode;
+    }
+
+    if (isContinueConversation) {
         requestData.conversation_id = selectedConversation.id;
     }
 
