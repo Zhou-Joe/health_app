@@ -1743,6 +1743,310 @@ def stream_ai_advice(request):
 
 
 @login_required
+def stream_advice_sync(request):
+    """非流式版本的AI健康建议（小程序专用，复用stream_ai_advice的逻辑）"""
+    import json
+    import traceback
+    from django.http import JsonResponse
+    from .models import SystemSettings, Conversation as Conv
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    try:
+        # 获取请求数据（与stream_ai_advice相同）
+        data = json.loads(request.body)
+        question = data.get('question', '').strip()
+
+        if not question:
+            return JsonResponse({
+                'success': False,
+                'error': '问题不能为空'
+            }, status=400)
+
+        # 获取对话ID（可选）
+        conversation_id = data.get('conversation_id')
+        conversation_mode = data.get('conversation_mode', 'new_conversation')
+        report_mode = data.get('report_mode')
+        medication_mode = data.get('medication_mode')
+        conversation = None
+
+        # 只在非新对话模式下才加载历史对话
+        if conversation_mode != 'new_conversation' and conversation_id:
+            try:
+                conversation = Conv.objects.get(id=conversation_id, user=request.user, is_active=True)
+            except Conv.DoesNotExist:
+                pass
+
+        # 获取选择的报告ID
+        selected_report_ids = data.get('selected_report_ids', [])
+        selected_reports = None
+        if selected_report_ids:
+            from .models import HealthCheckup
+            selected_reports = HealthCheckup.objects.filter(
+                id__in=selected_report_ids,
+                user=request.user
+            )
+
+        # 获取选择的药单ID
+        selected_medication_ids = data.get('selected_medication_ids', [])
+        selected_medications = None
+        if selected_medication_ids:
+            from .models import Medication
+            selected_medications = Medication.objects.filter(
+                id__in=selected_medication_ids,
+                user=request.user,
+                is_active=True
+            )
+
+        # 获取AI医生设置
+        provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
+        api_url = SystemSettings.get_setting('ai_doctor_api_url')
+        api_key = SystemSettings.get_setting('ai_doctor_api_key')
+        model_name = SystemSettings.get_setting('ai_doctor_model_name')
+        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+        max_tokens = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
+
+        # 验证配置
+        if not api_url or not model_name or not api_key:
+            return JsonResponse({
+                'success': False,
+                'error': 'AI医生API未配置'
+            }, status=500)
+
+        # 获取对话上下文
+        from .views import get_conversation_context, format_health_data_for_prompt
+        conversation_context = get_conversation_context(request.user, conversation)
+
+        # 检测并记录对话模式
+        is_continuation = conversation_mode != 'new_conversation' and conversation
+        if is_continuation:
+            print(f"[小程序-同步AI] ✓ 检测到继续对话模式")
+        else:
+            print(f"[小程序-同步AI] → 新对话模式")
+
+        # 继续对话时，复用上次的选择
+        if conversation_mode != 'new_conversation' and conversation:
+            from .models import HealthAdvice
+            latest_advice = HealthAdvice.objects.filter(
+                conversation=conversation,
+                user=request.user
+            ).order_by('-created_at').first()
+
+            if latest_advice:
+                if not selected_report_ids and report_mode != 'no_reports':
+                    try:
+                        selected_report_ids = json.loads(latest_advice.selected_reports) if latest_advice.selected_reports else []
+                    except json.JSONDecodeError:
+                        selected_report_ids = []
+
+                if not selected_medication_ids and medication_mode != 'no_medications':
+                    try:
+                        selected_medication_ids = json.loads(latest_advice.selected_medications) if latest_advice.selected_medications else []
+                    except json.JSONDecodeError:
+                        selected_medication_ids = []
+
+                if selected_report_ids:
+                    from .models import HealthCheckup
+                    selected_reports = HealthCheckup.objects.filter(
+                        id__in=selected_report_ids,
+                        user=request.user
+                    )
+                if selected_medication_ids:
+                    from .models import Medication
+                    selected_medications = Medication.objects.filter(
+                        id__in=selected_medication_ids,
+                        user=request.user,
+                        is_active=True
+                    )
+
+        # 构建系统提示词和用户消息（与stream_ai_advice完全相同）
+        from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
+
+        system_prompt = AI_DOCTOR_SYSTEM_PROMPT
+        is_continuation = conversation_mode != 'new_conversation' and conversation
+
+        if is_continuation:
+            user_message_parts = [
+                f"【继续对话】用户提出后续问题",
+                f"当前问题：{question}",
+                "",
+                "【重要说明】",
+                "1. 这是同一对话的延续，用户正在基于之前的讨论提出新的问题",
+                "2. 请重点理解和回答用户的当前问题，不要重复之前的建议",
+                "3. 如果当前问题与之前的讨论相关，请简要回顾相关要点，然后深入回答新问题",
+                "4. 如果用户提出了新的健康担忧，请结合历史背景全面分析",
+                "5. 保持对话的连贯性，使用一致的语气和建议风格"
+            ]
+        else:
+            user_message_parts = [f"当前问题：{question}"]
+
+        # 添加个人信息
+        try:
+            user_profile = request.user.userprofile
+            if user_profile.birth_date or user_profile.gender:
+                user_message_parts.append("\n个人信息：")
+                user_message_parts.append(f"性别：{user_profile.get_gender_display()}")
+                if user_profile.age:
+                    user_message_parts.append(f"年龄：{user_profile.age}岁")
+        except:
+            pass
+
+        # 添加对话历史（仅在继续对话时）
+        if is_continuation and conversation_context:
+            user_message_parts.append("\n【最近的对话历史（供参考）】")
+            for i, ctx in enumerate(conversation_context[-3:], 1):
+                user_message_parts.append(f"\n第{i}轮对话:")
+                user_message_parts.append(f"  时间: {ctx['time']}")
+                user_message_parts.append(f"  用户问题: {ctx['question']}")
+                user_message_parts.append(f"  AI回答摘要: {ctx['answer']}")
+            user_message_parts.append("\n请基于以上历史，重点关注用户的新问题。")
+
+        # 添加健康数据和药单信息
+        has_health_data = False
+        if selected_reports is not None and selected_reports.exists():
+            from .views import get_selected_reports_health_data
+            health_data = get_selected_reports_health_data(request.user, selected_reports)
+
+            if health_data and health_data.get('checkups') and len(health_data['checkups']) > 0:
+                has_health_data = True
+                health_data_text = format_health_data_for_prompt(health_data) if health_data else ""
+
+        medication_data_text = ""
+        if selected_medications is not None and selected_medications.exists():
+            medication_parts = ["\n用药信息："]
+            for med in selected_medications:
+                medication_parts.append(f"- {med.medicine_name}")
+                medication_parts.append(f"  服药方式：{med.dosage}")
+                medication_parts.append(f"  疗程：{med.start_date} 至 {med.end_date} (共{med.total_days}天)")
+                medication_parts.append(f"  当前进度：已服药{med.days_taken}/{med.total_days}天 ({med.progress_percentage}%)")
+                if med.notes:
+                    medication_parts.append(f"  备注：{med.notes}")
+                medication_parts.append("")
+            medication_data_text = "\n".join(medication_parts)
+
+        # 构建用户消息的健康数据和药单信息部分
+        if has_health_data or medication_data_text:
+            if has_health_data:
+                user_message_parts.append(f"\n用户健康数据：\n{health_data_text}")
+
+            if medication_data_text:
+                user_message_parts.append(medication_data_text)
+
+            if not is_continuation:
+                user_message_parts.append("\n请基于以上信息：")
+                user_message_parts.append("1. 结合对话历史，理解用户的连续关注点")
+                user_message_parts.append("2. 分析用户的健康状况和趋势")
+                if medication_data_text:
+                    user_message_parts.append("3. 结合用户的用药情况，分析药物与健康状况的关系")
+                    user_message_parts.append("4. 针对用户的具体问题提供专业建议")
+                    user_message_parts.append("5. 注意观察指标的历史变化趋势")
+                    user_message_parts.append("6. 给出实用的生活方式和医疗建议")
+                    user_message_parts.append("7. 如有异常指标，请特别说明并建议应对措施")
+                else:
+                    user_message_parts.append("3. 针对用户的具体问题提供专业建议")
+                    user_message_parts.append("4. 注意观察指标的历史变化趋势")
+                    user_message_parts.append("5. 给出实用的生活方式和医疗建议")
+                    user_message_parts.append("6. 如有异常指标，请特别说明并建议应对措施")
+        else:
+            notice_parts = ["\n注意："]
+            if selected_reports is not None and not selected_reports.exists():
+                notice_parts.append("用户选择不提供任何体检报告数据")
+            if selected_medications is not None and not selected_medications.exists():
+                if len(notice_parts) > 1:
+                    notice_parts.append("，不提供用药信息")
+                else:
+                    notice_parts.append("用户选择不提供用药信息")
+            notice_parts.append("，请仅基于问题提供一般性健康建议。")
+
+            user_message_parts.append("".join(notice_parts))
+
+            if not is_continuation:
+                user_message_parts.extend([
+                    "\n请基于以上问题：",
+                    "1. 结合对话历史，理解用户的关注点",
+                    "2. 提供一般性的健康建议和知识",
+                    "3. 针对用户的具体问题给出专业建议",
+                    "4. 建议何时需要就医或专业咨询",
+                    "5. 给出实用的生活方式和预防措施"
+                ])
+
+        user_message = "\n".join(user_message_parts)
+        prompt = f"{system_prompt}\n\n{user_message}"
+
+        print(f"[小程序-同步AI] 开始调用LLM，问题长度: {len(question)}")
+
+        # 调用LLM（非流式）
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import HumanMessage
+
+        # 处理 API URL
+        base_url = api_url
+        if '/chat/completions' in base_url:
+            base_url = base_url.split('/chat/completions')[0].rstrip('/')
+        elif base_url.endswith('/'):
+            base_url = base_url.rstrip('/')
+
+        # 初始化LangChain LLM（非流式）
+        llm = ChatOpenAI(
+            model=model_name,
+            api_key=api_key,
+            base_url=base_url,
+            temperature=0.3,
+            max_tokens=max_tokens,
+            timeout=timeout,
+            streaming=False  # 非流式
+        )
+
+        # 调用LLM
+        messages = [HumanMessage(content=prompt)]
+        result = llm.invoke(messages)
+        full_response = result.content
+
+        print(f"[小程序-同步AI] LLM响应成功，长度: {len(full_response)}")
+
+        # 保存到数据库
+        if not conversation:
+            question_text = question[:50]
+            if len(question) > 50:
+                question_text += '...'
+            conversation = Conv.create_new_conversation(request.user, f"健康咨询: {question_text}")
+
+        from .models import HealthAdvice
+        advice = HealthAdvice.objects.create(
+            user=request.user,
+            conversation=conversation,
+            question=question,
+            answer=full_response,
+            prompt_sent=prompt,
+            conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
+            selected_reports=json.dumps(selected_report_ids, ensure_ascii=False) if selected_report_ids else None,
+            selected_medications=json.dumps(selected_medication_ids, ensure_ascii=False) if selected_medication_ids else None
+        )
+
+        print(f"[小程序-同步AI] 已保存到数据库，advice_id: {advice.id}, conversation_id: {conversation.id}")
+
+        return JsonResponse({
+            'success': True,
+            'answer': full_response,
+            'prompt': prompt,
+            'conversation_id': conversation.id,
+            'advice_id': advice.id
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }, status=500)
+
+
+@login_required
 def stream_upload_and_process(request):
     """流式上传并处理体检报告（带实时进度反馈）"""
     from django.http import StreamingHttpResponse

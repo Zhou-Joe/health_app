@@ -44,6 +44,7 @@ module.exports = {
     // AI健康建议
     advice: '/api/miniprogram/advice/',
     streamAdvice: '/api/stream-advice/', // 网页端的流式接口
+    streamAdviceSync: '/api/stream-advice-sync/', // 小程序专用的非流式接口
 
     // AI对话
     conversations: '/api/miniprogram/conversations/',

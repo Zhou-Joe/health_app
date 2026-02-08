@@ -312,29 +312,30 @@ Page({
       return util.showToast('请详细描述您的问题，至少5个字符')
     }
 
-    // 准备请求数据
+    // 准备请求数据（与网页端API格式一致）
     const requestData = {
       question: question.trim(),
-      report_mode: reportMode,
-      force_sync: true  // 临时测试：使用同步模式
+      conversation_mode: conversationMode === 'continue' ? 'continue_conversation' : 'new_conversation',
+      report_mode: reportMode === 'none' ? 'no_reports' : 'select',
+      medication_mode: medicationMode === 'none' ? 'no_medications' : 'select'
     }
 
-    // 处理报告选择 - 如果选择了报告，添加到请求数据
-    if (reportMode === 'select' && selectedReportIds.length > 0) {
-      requestData.selected_reports = selectedReportIds
-    }
-
-    // 处理药单选择 - 如果选择了药单，添加到请求数据
-    if (medicationMode === 'select' && selectedMedicationIds.length > 0) {
-      requestData.selected_medications = selectedMedicationIds
-    }
-
-    // 处理对话模式 - 如果是继续对话，添加conversation_id
+    // 处理对话ID
     if (conversationMode === 'continue' && selectedConversationId) {
       requestData.conversation_id = selectedConversationId
       console.log('[小程序] 继续对话模式 - conversation_id:', selectedConversationId)
     } else {
       console.log('[小程序] 新对话模式')
+    }
+
+    // 处理报告选择 - 使用selected_report_ids（与网页端一致）
+    if (reportMode === 'select' && selectedReportIds.length > 0) {
+      requestData.selected_report_ids = selectedReportIds
+    }
+
+    // 处理药单选择 - 使用selected_medication_ids（与网页端一致）
+    if (medicationMode === 'select' && selectedMedicationIds.length > 0) {
+      requestData.selected_medication_ids = selectedMedicationIds
     }
 
     console.log('[小程序] 提交咨询，请求数据:', JSON.stringify({
@@ -346,8 +347,8 @@ Page({
     util.showLoading('AI正在分析...')
 
     try {
-      // 使用对话创建API
-      const res = await api.createConversation(requestData)
+      // 直接使用网页端的API
+      const res = await api.streamAdviceSync(requestData)
 
       util.hideLoading()
 
