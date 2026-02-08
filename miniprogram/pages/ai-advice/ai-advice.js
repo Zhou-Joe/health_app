@@ -315,7 +315,8 @@ Page({
     // 准备请求数据
     const requestData = {
       question: question.trim(),
-      report_mode: reportMode
+      report_mode: reportMode,
+      force_sync: true  // 临时测试：使用同步模式
     }
 
     // 处理报告选择 - 如果选择了报告，添加到请求数据

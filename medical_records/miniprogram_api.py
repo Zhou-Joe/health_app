@@ -916,6 +916,9 @@ def miniprogram_create_conversation(request):
         selected_medications_ids = data.get('selected_medications', [])
         conversation_id = data.get('conversation_id')
 
+        # 临时测试：强制同步执行（阻塞）
+        force_sync = data.get('force_sync', False)  # 如果请求中包含force_sync=true，则同步执行
+
         # 验证问题
         if not question:
             return Response({
@@ -964,7 +967,7 @@ def miniprogram_create_conversation(request):
             selected_reports=selected_reports_json
         )
 
-        print(f"[小程序] 创建对话成功，conversation_id: {conversation.id}, advice_id: {health_advice.id}")
+        print(f"[小程序] 创建对话成功，conversation_id: {conversation.id}, advice_id: {health_advice.id}, force_sync: {force_sync}")
 
         # 立即返回对话ID和消息ID
         response_data = {
@@ -1125,11 +1128,32 @@ def miniprogram_create_conversation(request):
                     pass
 
         # 启动后台线程（非daemon，确保线程能完成）
-        print(f"[小程序] 准备启动后台线程，advice_id: {health_advice.id}")
-        thread = threading.Thread(target=generate_ai_response_stream)
-        thread.daemon = False  # ← 改为非daemon，确保线程能完成
-        thread.start()
-        print(f"[小程序] ✓ 后台线程已启动，advice_id: {health_advice.id}, thread_id: {thread.ident}, is_alive: {thread.is_alive()}")
+        print(f"[小程序] 准备启动后台线程，advice_id: {health_advice.id}, force_sync: {force_sync}")
+
+        if force_sync:
+            # 同步执行（用于测试）
+            print(f"[小程序] 使用同步模式执行AI生成")
+            try:
+                generate_ai_response_stream()
+                # 等待一下确保保存完成
+                import time
+                time.sleep(1)
+                # 重新获取health_advice，确认answer已保存
+                health_advice.refresh_from_db()
+                if health_advice.answer:
+                    print(f"[小程序] ✓ 同步模式执行成功，answer长度: {len(health_advice.answer)}")
+                else:
+                    print(f"[小程序] ⚠ 同步模式执行完成但answer为空")
+            except Exception as e:
+                print(f"[小程序] ✗ 同步模式执行失败: {str(e)}")
+                import traceback
+                traceback.print_exc()
+        else:
+            # 异步执行（后台线程）
+            thread = threading.Thread(target=generate_ai_response_stream)
+            thread.daemon = False  # ← 改为非daemon，确保线程能完成
+            thread.start()
+            print(f"[小程序] ✓ 后台线程已启动，advice_id: {health_advice.id}, thread_id: {thread.ident}, is_alive: {thread.is_alive()}")
 
         return Response(response_data, status=status.HTTP_201_CREATED)
 
