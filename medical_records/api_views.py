@@ -7,6 +7,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from .models import HealthCheckup, DocumentProcessing, HealthIndicator, Conversation, HealthAdvice, SystemSettings
 from .forms import HealthCheckupForm
 from .services import DocumentProcessingService
@@ -1742,7 +1744,8 @@ def stream_ai_advice(request):
         }, status=500)
 
 
-@login_required
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # 使用Token认证，兼容小程序
 def stream_advice_sync(request):
     """非流式版本的AI健康建议（小程序专用，复用stream_ai_advice的逻辑）"""
     import json
