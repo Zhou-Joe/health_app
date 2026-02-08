@@ -303,32 +303,72 @@ Page({
 
     try {
       let html = content
-        // 转义HTML特殊字符
+
+      // 先处理代码块（保留内容）
+      const codeBlocks = []
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        codeBlocks.push(`<div class="code-block"><pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre></div>`)
+        return `__CODE_BLOCK_${codeBlocks.length - 1}__`
+      })
+
+      // 转义HTML特殊字符
+      html = html
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        // 代码块（必须在行内代码之前处理）
-        .replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
-          return `<pre style="background:#282C34;color:#ABB2BF;padding:12px;border-radius:8px;margin:8px 0;overflow-x:auto;"><code style="font-family:monospace;font-size:14px;line-height:1.6;">${code.trim()}</code></pre>`
-        })
-        // 行内代码
-        .replace(/`([^`]+)`/g, '<code style="background:#F5F5F5;color:#E83E8C;padding:2px 6px;border-radius:4px;font-family:monospace;font-size:14px;">$1</code>')
-        // 粗体
-        .replace(/\*\*([^*]+)\*\*/g, '<strong style="font-weight:bold;color:#333;">$1</strong>')
-        // 斜体
-        .replace(/\*([^*]+)\*/g, '<em style="font-style:italic;color:#555;">$1</em>')
-        // 标题
-        .replace(/^### (.*$)/gim, '<h3 style="font-size:16px;font-weight:bold;margin:12px 0 8px;color:#333;">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 style="font-size:18px;font-weight:bold;margin:16px 0 10px;color:#333;">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 style="font-size:20px;font-weight:bold;margin:20px 0 12px;color:#333;">$1</h1>')
-        // 无序列表
-        .replace(/^\s*-\s+(.*$)/gim, '<li style="margin:4px 0;padding-left:16px;">$1</li>')
-        .replace(/(<li[^>]*>.*<\/li>)/s, '<ul style="margin:8px 0;padding-left:16px;">$1</ul>')
-        // 引用
-        .replace(/^>\s+(.*$)/gim, '<blockquote style="border-left:4px solid #667eea;padding-left:12px;margin:8px 0;color:#666;background:#F9F9F9;padding:8px 12px;">$1</blockquote>')
-        // 换行
-        .replace(/\n\n/g, '<br/><br/>')
-        .replace(/\n/g, '<br/>')
+
+      // 恢复代码块
+      codeBlocks.forEach((code, i) => {
+        html = html.replace(`__CODE_BLOCK_${i}__`, code)
+      })
+
+      // 处理段落（双换行）
+      const paragraphs = html.split('\n\n')
+      const processedParagraphs = []
+
+      for (let para of paragraphs) {
+        if (!para.trim()) {
+          processedParagraphs.push('<p></p>')
+          continue
+        }
+
+        // 处理行内代码
+        para = para.replace(/`([^`]+)`/g, '<code>$1</code>')
+
+        // 处理标题
+        para = para.replace(/^#### (.*)$/gm, '<h4>$1</h4>')
+        para = para.replace(/^### (.*)$/gm, '<h3>$1</h3>')
+        para = para.replace(/^## (.*)$/gm, '<h2>$1</h2>')
+        para = para.replace(/^# (.*)$/gm, '<h1>$1</h1>')
+
+        // 如果该段落不包含任何HTML标签，将其作为段落处理
+        if (!para.includes('<')) {
+          // 处理粗体
+          para = para.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          // 处理斜体
+          para = para.replace(/\*([^*]+)\*/g, '<em>$1</em>')
+          // 处理列表
+          para = para.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>')
+
+          // 如果有列表项，包裹在ul中
+          if (para.includes('<li>')) {
+            para = `<ul>${para}</ul>`
+          }
+
+          processedParagraphs.push(`<p>${para}</p>`)
+        } else {
+          processedParagraphs.push(para)
+        }
+      }
+
+      html = processedParagraphs.join('')
+
+      // 处理引用块
+      html = html.replace(/^> (.*)$/gm, '<blockquote>$1</blockquote>')
+
+      // 处理换行
+      html = html.replace(/\n\n/g, '</p><p>')
+      html = html.replace(/\n/g, '<br>')
 
       return html
     } catch (e) {

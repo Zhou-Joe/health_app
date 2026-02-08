@@ -47,7 +47,9 @@
       <view class="message-bubble ai-message" wx:else>
         <view class="ai-indicator"></view>
         <view class="bubble-content {{item.expanded ? 'expanded' : ''}}" bindtap="toggleExpand" data-index="{{index}}">
-          <text class="message-text">{{item.content}}</text>
+          <!-- 使用rich-text渲染HTML，折叠状态显示纯文本 -->
+          <text class="message-text" wx:if="{{!item.expanded}}">{{item.previewText}}</text>
+          <rich-text class="message-html" wx:else nodes="{{item.markdownData}}"></rich-text>
           <view class="bubble-tail"></view>
           <view class="expand-hint" wx:if="{{!item.expanded && item.content && item.content.length > 100}}">
             <text>点击展开</text>
