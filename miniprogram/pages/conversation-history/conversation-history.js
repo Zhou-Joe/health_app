@@ -169,6 +169,8 @@ Page({
    */
   goToConversation(e) {
     const id = e.currentTarget.dataset.id
+    const title = e.currentTarget.dataset.title || '对话'
+    console.log('[小程序] 继续对话 - conversation_id:', id, 'title:', title)
     wx.navigateTo({
       url: `/pages/conversation/conversation?id=${id}`
     })

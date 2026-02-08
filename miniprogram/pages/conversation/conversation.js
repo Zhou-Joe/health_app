@@ -57,6 +57,7 @@ Page({
 
     if (conversationId) {
       // 继续对话
+      console.log('[小程序对话页] 加载对话 - conversation_id:', conversationId, '继续对话模式')
       this.setData({
         conversationId: parseInt(conversationId),
         conversationMode: 'continue',
@@ -837,11 +838,16 @@ Page({
 
       if (this.data.conversationMode === 'continue' && this.data.conversationId) {
         requestData.conversation_id = this.data.conversationId
-
-        // 如果有使用报告，给用户提示
-        if (this.data.selectedReportIds.length > 0) {
-        }
+        console.log('[小程序对话页] 继续对话模式 - conversation_id:', this.data.conversationId)
+      } else {
+        console.log('[小程序对话页] 新对话模式')
       }
+
+      console.log('[小程序对话页] 发送消息请求数据:', JSON.stringify({
+        question: requestData.question.substring(0, 50) + '...',
+        conversation_id: requestData.conversation_id || '(none)',
+        has_reports: (this.data.selectedReportIds || []).length > 0
+      }))
 
       // 由于小程序不支持SSE，使用普通请求
       // 添加AI占位消息

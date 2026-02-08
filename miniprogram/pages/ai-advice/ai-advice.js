@@ -331,7 +331,15 @@ Page({
     // 处理对话模式 - 如果是继续对话，添加conversation_id
     if (conversationMode === 'continue' && selectedConversationId) {
       requestData.conversation_id = selectedConversationId
+      console.log('[小程序] 继续对话模式 - conversation_id:', selectedConversationId)
+    } else {
+      console.log('[小程序] 新对话模式')
     }
+
+    console.log('[小程序] 提交咨询，请求数据:', JSON.stringify({
+      ...requestData,
+      conversation_id: requestData.conversation_id || '(none)'
+    }))
 
     this.setData({ submitting: true })
     util.showLoading('AI正在分析...')
