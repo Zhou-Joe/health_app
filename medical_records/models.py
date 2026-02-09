@@ -123,6 +123,7 @@ class HealthAdvice(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
     question = models.TextField(verbose_name='用户问题')
     answer = models.TextField(verbose_name='AI建议')
+    is_generating = models.BooleanField(default=False, verbose_name='是否正在生成')
     prompt_sent = models.TextField(blank=True, null=True, verbose_name='发送的Prompt')
     conversation_context = models.TextField(blank=True, null=True, verbose_name='对话上下文')
     selected_reports = models.TextField(blank=True, null=True, verbose_name='选中的报告ID列表（JSON格式）')
