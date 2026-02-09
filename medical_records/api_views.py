@@ -1744,7 +1744,7 @@ def stream_ai_advice(request):
         }, status=500)
 
 
-@csrf_exempt
+@csrf_exempt  # 禁用CSRF检查（小程序使用Token认证）
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])  # 使用Token认证，兼容小程序
 def stream_advice_sync(request):
