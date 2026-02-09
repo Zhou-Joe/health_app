@@ -109,9 +109,9 @@ module.exports = {
   getConversations: () =>
     request.get(config.api.conversations),
 
-  // 直接调用网页端的流式API（非流式模式）
+  // 直接调用小程序专用的非流式API
   streamAdviceSync: (data) =>
-    request.post(config.api.streamAdvice, data, { timeout: 300000 }), // 5分钟超时
+    request.post(config.api.streamAdviceSync, data, { timeout: 300000 }), // 5分钟超时
 
   createConversation: (data) =>
     request.post(config.api.createConversation, data),
