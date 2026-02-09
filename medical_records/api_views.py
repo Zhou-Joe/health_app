@@ -1720,6 +1720,7 @@ def stream_ai_advice(request):
                         conversation=conversation,
                         question=question,
                         answer=full_response,
+                        is_generating=False,  # 流式输出完成，标记为已完成
                         prompt_sent=prompt,
                         conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
                         selected_reports=json.dumps(selected_report_ids, ensure_ascii=False) if selected_report_ids else None,
@@ -2027,6 +2028,7 @@ def stream_advice_sync(request):
             conversation=conversation,
             question=question,
             answer=full_response,
+            is_generating=False,  # 非流式接口，立即返回完整响应
             prompt_sent=prompt,
             conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
             selected_reports=json.dumps(selected_report_ids, ensure_ascii=False) if selected_report_ids else None,

@@ -560,6 +560,7 @@ def miniprogram_get_advice(request):
                 user=request.user,
                 question=question,
                 answer=answer,
+                is_generating=False,  # 已完成生成
                 prompt_sent=prompt_sent,
                 conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
                 conversation=conversation,
@@ -964,6 +965,7 @@ def miniprogram_create_conversation(request):
             user=request.user,
             question=question,
             answer='',  # 初始为空，后续更新
+            is_generating=True,  # 标记为正在生成中
             conversation=conversation,
             selected_reports=selected_reports_json
         )
