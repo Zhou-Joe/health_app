@@ -481,6 +481,7 @@ def miniprogram_indicators(request, checkup_id=None):
             'message': f'获取指标失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def miniprogram_get_advice(request):
