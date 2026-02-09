@@ -251,3 +251,10 @@ LOGGING = {
         },
     },
 }
+
+# 信任微信小程序的 Referer（修复 403 Forbidden）
+CSRF_TRUSTED_ORIGINS = [
+    'https://servicewechat.com',
+    'https://www.zctestbench.asia',
+    'https://zctestbench.asia',
+]
