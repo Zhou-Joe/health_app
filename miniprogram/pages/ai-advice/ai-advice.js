@@ -344,42 +344,39 @@ Page({
     }))
 
     this.setData({ submitting: true })
-    util.showLoading('AI正在分析...')
+    util.showLoading('正在创建对话...')
 
     try {
-      // 直接使用网页端的API
+      // 调用API获取对话ID（需要等待响应以获取conversationId）
       const res = await api.streamAdviceSync(requestData)
 
-      util.hideLoading()
-
-      // 立即跳转到对话详情页（AI在后台生成中）
+      // 立即跳转到对话页面，不显示额外提示
       const conversationId = res.conversation_id || res.data?.conversation_id || res.id || res.data?.id
       const adviceId = res.advice_id || res.data?.advice_id
 
       if (conversationId) {
-        util.showToast('已创建对话，AI正在思考中...')
-        setTimeout(() => {
-          const params = `id=${conversationId}&generating=true`
-          if (adviceId) {
-            wx.navigateTo({
-              url: `/pages/conversation/conversation?${params}&adviceId=${adviceId}`
-            })
-          } else {
-            wx.navigateTo({
-              url: `/pages/conversation/conversation?${params}`
-            })
-          }
-        }, 300)
+        // 立即跳转，不延迟
+        const params = `id=${conversationId}&generating=true`
+        if (adviceId) {
+          wx.redirectTo({
+            url: `/pages/conversation/conversation?${params}&adviceId=${adviceId}`
+          })
+        } else {
+          wx.redirectTo({
+            url: `/pages/conversation/conversation?${params}`
+          })
+        }
       } else {
+        util.hideLoading()
+        this.setData({ submitting: false })
         util.showToast('创建对话失败')
       }
 
     } catch (err) {
       console.error('提交失败:', err)
-      util.showToast(err.message || '提交失败，请重试')
-    } finally {
-      this.setData({ submitting: false })
       util.hideLoading()
+      this.setData({ submitting: false })
+      util.showToast(err.message || '提交失败，请重试')
     }
   }
 })
