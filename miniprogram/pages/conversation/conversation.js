@@ -51,9 +51,17 @@ Page({
     const conversationId = options.id
     const isGenerating = options.generating === 'true'
     const adviceId = options.adviceId ? parseInt(options.adviceId) : null
+    const isNewFromAdvice = options.new === 'true' && options.data === '1'
 
     // 恢复上次的选择
     this.restoreLastSelection()
+
+    // 从 ai-advice 页面跳转过来，需要调用 API
+    if (isNewFromAdvice) {
+      console.log('[小程序对话页] 从咨询页跳转，准备调用API')
+      this.handlePendingAdviceRequest()
+      return
+    }
 
     if (conversationId) {
       // 继续对话
@@ -1266,6 +1274,145 @@ Page({
    */
   onInputBlur() {
     // 可以在这里添加输入框失焦时的逻辑
+  },
+
+  /**
+   * 处理从 ai-advice 页面传递过来的请求
+   */
+  async handlePendingAdviceRequest() {
+    try {
+      // 从缓存中取出请求数据
+      const requestData = wx.getStorageSync('pendingAdviceRequest')
+      if (!requestData) {
+        console.error('[小程序对话页] 未找到缓存的请求数据')
+        util.showToast('请求数据丢失，请重新提交')
+        // 恢复到正常的新对话状态
+        const welcomeMessage = '您好！我是AI健康助手。请问有什么可以帮您？'
+        this.setData({
+          conversationMode: 'new',
+          messages: [{
+            id: 0,
+            role: 'ai',
+            content: welcomeMessage,
+            previewText: this.stripMarkdown(welcomeMessage),
+            previewShort: this.generatePreviewText(welcomeMessage),
+            expanded: false
+          }],
+          lastMessageId: 0
+        })
+        this.loadReports()
+        this.loadMedications()
+        return
+      }
+
+      // 清除缓存
+      wx.removeStorageSync('pendingAdviceRequest')
+
+      console.log('[小程序对话页] 从缓存获取请求数据:', JSON.stringify({
+        ...requestData,
+        conversation_id: requestData.conversation_id || '(none)'
+      }))
+
+      // 显示用户消息
+      const userMsg = {
+        id: Date.now(),
+        role: 'user',
+        content: requestData.question,
+        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss')
+      }
+
+      // 显示 AI 思考中提示
+      const thinkingMsg = 'AI正在分析您的健康数据，请稍候...'
+      const aiMsg = {
+        id: Date.now() + 1,
+        role: 'ai',
+        content: thinkingMsg,
+        previewText: thinkingMsg,
+        previewShort: thinkingMsg,
+        created_at: util.formatDate(new Date(), 'YYYY-MM-DD HH:mm:ss'),
+        isThinking: true,
+        expanded: false
+      }
+
+      this.setData({
+        messages: [userMsg, aiMsg],
+        lastMessageId: aiMsg.id,
+        sending: true,
+        conversationMode: requestData.conversation_mode === 'continue_conversation' ? 'continue' : 'new'
+      })
+
+      // 恢复选择状态
+      if (requestData.selected_report_ids && requestData.selected_report_ids.length > 0) {
+        this.setData({ selectedReportIds: requestData.selected_report_ids })
+      }
+      if (requestData.selected_medications && requestData.selected_medications.length > 0) {
+        this.setData({ selectedMedicationIds: requestData.selected_medications })
+      }
+
+      this.scrollToBottom()
+
+      // 调用 API
+      const res = await api.getAdvice(requestData)
+
+      // 更新 AI 消息
+      const aiAnswer = res.answer || res.data?.answer || '抱歉，AI医生暂时无法回复，请稍后重试。'
+      const updatedMessages = this.data.messages.map(msg => {
+        if (msg.id === aiMsg.id) {
+          return {
+            ...msg,
+            content: aiAnswer,
+            previewText: this.stripMarkdown(aiAnswer),
+            previewShort: this.generatePreviewText(aiAnswer),
+            markdownData: this.convertMarkdown(aiAnswer),
+            prompt_sent: res.prompt || res.data?.prompt,
+            isThinking: false
+          }
+        }
+        return msg
+      })
+
+      // 更新对话ID
+      const conversationId = res.conversation_id || res.data?.conversation_id
+
+      this.setData({
+        messages: updatedMessages,
+        sending: false,
+        conversationId: conversationId || null,
+        lastMessageId: aiMsg.id
+      })
+
+      this.scrollToBottom()
+
+      // 保存选择到缓存
+      this.saveLastSelection()
+
+    } catch (err) {
+      console.error('[小程序对话页] 处理请求失败:', err)
+      util.showToast(err.message || '请求失败，请重试')
+      // 移除思考中的消息
+      const messages = this.data.messages.filter(m => !m.isThinking)
+      this.setData({
+        messages,
+        sending: false
+      })
+    }
+  },
+
+  /**
+   * 保存选择到缓存
+   */
+  saveLastSelection() {
+    try {
+      const selection = {
+        selectedReportIds: this.data.selectedReportIds,
+        selectedMedicationIds: this.data.selectedMedicationIds,
+        reportsNoSelection: this.data.reportsNoSelection,
+        medicationsNoSelection: this.data.medicationsNoSelection
+      }
+      wx.setStorageSync('lastConsultationSelection', selection)
+    } catch (err) {
+      console.error('保存选择失败:', err)
+    }
   },
 
   /**

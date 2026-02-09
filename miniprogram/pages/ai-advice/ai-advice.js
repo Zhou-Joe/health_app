@@ -344,39 +344,24 @@ Page({
     }))
 
     this.setData({ submitting: true })
-    util.showLoading('正在创建对话...')
+    util.showLoading('正在跳转...')
 
     try {
-      // 调用API获取对话ID（需要等待响应以获取conversationId）
-      const res = await api.streamAdviceSync(requestData)
+      // 将请求数据保存到缓存，供对话页面使用
+      wx.setStorageSync('pendingAdviceRequest', requestData)
 
-      // 立即跳转到对话页面，不显示额外提示
-      const conversationId = res.conversation_id || res.data?.conversation_id || res.id || res.data?.id
-      const adviceId = res.advice_id || res.data?.advice_id
+      util.hideLoading()
 
-      if (conversationId) {
-        // 立即跳转，不延迟
-        const params = `id=${conversationId}&generating=true`
-        if (adviceId) {
-          wx.redirectTo({
-            url: `/pages/conversation/conversation?${params}&adviceId=${adviceId}`
-          })
-        } else {
-          wx.redirectTo({
-            url: `/pages/conversation/conversation?${params}`
-          })
-        }
-      } else {
-        util.hideLoading()
-        this.setData({ submitting: false })
-        util.showToast('创建对话失败')
-      }
+      // 立即跳转到对话页面（不带ID，让对话页面自己创建）
+      wx.redirectTo({
+        url: `/pages/conversation/conversation?new=true&data=1`
+      })
 
     } catch (err) {
-      console.error('提交失败:', err)
+      console.error('跳转失败:', err)
       util.hideLoading()
       this.setData({ submitting: false })
-      util.showToast(err.message || '提交失败，请重试')
+      util.showToast('跳转失败，请重试')
     }
   }
 })
