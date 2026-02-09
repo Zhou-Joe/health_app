@@ -1297,7 +1297,9 @@ def apply_integration(request):
             'traceback': traceback.format_exc()
         }, status=500)
 
-@login_required
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])  # 使用Token认证，兼容小程序
 def stream_ai_advice(request):
     """流式输出AI健康建议（使用LangChain）"""
     import json
