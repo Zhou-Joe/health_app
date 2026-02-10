@@ -829,11 +829,14 @@ function renderTimeline(events) {
     newWrapper.style.height = wrapperHeight + 'px';
 
     // Calculate timeline path
-    const wrapperWidth = newWrapper.offsetWidth;
+    const measuredWidth = newWrapper.getBoundingClientRect().width;
+    const wrapperWidth = measuredWidth > 0 ? measuredWidth : newWrapper.parentElement.clientWidth;
     const paddingX = 120;
     const endMargin = 80;
-    const availableWidth = wrapperWidth - paddingX - endMargin;
+    const availableWidth = Math.max(wrapperWidth - paddingX - endMargin, 320);
     const turnRadius = (rowHeight / 2);
+    const leftX = paddingX;
+    const rightX = paddingX + availableWidth;
 
     // Build year-by-year data for drawing
     const yearData = [];
@@ -855,16 +858,16 @@ function renderTimeline(events) {
             if (isLeftToRight) {
                 // Left to right: start from paddingX, spread across availableWidth
                 if (sortedYearEvents.length === 1) {
-                    x = paddingX + availableWidth / 2;
+                    x = leftX + availableWidth / 2;
                 } else {
-                    x = paddingX + (idx / (sortedYearEvents.length - 1)) * availableWidth;
+                    x = leftX + (idx / (sortedYearEvents.length - 1)) * availableWidth;
                 }
             } else {
                 // Right to left: start from paddingX + availableWidth, go backwards
                 if (sortedYearEvents.length === 1) {
-                    x = paddingX + availableWidth / 2;
+                    x = leftX + availableWidth / 2;
                 } else {
-                    x = paddingX + availableWidth - (idx / (sortedYearEvents.length - 1)) * availableWidth;
+                    x = rightX - (idx / (sortedYearEvents.length - 1)) * availableWidth;
                 }
             }
             eventPoints.push({ x, y, event: evt, year, yearIndex, isLeftToRight });
@@ -887,37 +890,33 @@ function renderTimeline(events) {
         // Build the S-shaped path
         // Start from the first point's row edge
         const firstYear = yearData[0];
-        if (firstYear.isLeftToRight) {
-            pathD = `M ${paddingX} ${firstYear.y}`;
-        } else {
-            pathD = `M ${paddingX + availableWidth} ${firstYear.y}`;
-        }
+        pathD = `M ${firstYear.isLeftToRight ? leftX : rightX} ${firstYear.y}`;
 
         // Draw path through all rows with semicircle transitions
         for (let i = 0; i < yearData.length; i++) {
             const yr = yearData[i];
+            const endX = yr.isLeftToRight ? rightX : leftX;
+            const sweepFlag = yr.isLeftToRight ? 1 : 0;
 
             if (yr.isLeftToRight) {
                 // Moving left to right on this row
-                // Draw line to right edge
-                pathD += ` L ${paddingX + availableWidth} ${yr.y}`;
+                pathD += ` L ${endX} ${yr.y}`;
 
                 // Draw semicircle to next row if not last
                 if (i < yearData.length - 1) {
                     const nextY = yearData[i + 1].y;
-                    // Arc from right edge to left edge of next row
-                    pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${paddingX} ${nextY}`;
+                    // Arc from right edge to right edge of next row
+                    pathD += ` A ${turnRadius} ${turnRadius} 0 0 ${sweepFlag} ${endX} ${nextY}`;
                 }
             } else {
                 // Moving right to left on this row
-                // Draw line to left edge
-                pathD += ` L ${paddingX} ${yr.y}`;
+                pathD += ` L ${endX} ${yr.y}`;
 
                 // Draw semicircle to next row if not last
                 if (i < yearData.length - 1) {
                     const nextY = yearData[i + 1].y;
-                    // Arc from left edge to right edge of next row
-                    pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${paddingX + availableWidth} ${nextY}`;
+                    // Arc from left edge to left edge of next row
+                    pathD += ` A ${turnRadius} ${turnRadius} 0 0 ${sweepFlag} ${endX} ${nextY}`;
                 }
             }
         }
@@ -931,7 +930,7 @@ function renderTimeline(events) {
     yearData.forEach(yr => {
         eventsHtml += `
             <div class="timeline-year-label" style="top: ${yr.y - 18}px;">
-                ${yr.year}
+                ${yr.year}:
             </div>
         `;
     });
