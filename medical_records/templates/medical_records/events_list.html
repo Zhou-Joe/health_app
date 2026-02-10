@@ -813,16 +813,16 @@ function renderTimeline(events) {
 
     // Set wrapper height based on number of years
     const rowHeight = 200;
-    const startY = 60; // Start from top with some margin
+    const startY = 60;
     const wrapperHeight = Math.max(startY + rowHeight * years.length, 300);
     newWrapper.style.height = wrapperHeight + 'px';
 
     // Calculate timeline path
     const wrapperWidth = newWrapper.offsetWidth;
     const paddingX = 80;
-    const endMargin = 60; // Margin at the end for semicircle
+    const endMargin = 60;
     const availableWidth = wrapperWidth - (paddingX * 2) - endMargin;
-    const turnRadius = 30; // Radius of semicircle turns
+    const turnRadius = 30;
 
     let pathD = '';
     let pathPoints = [];
@@ -831,33 +831,61 @@ function renderTimeline(events) {
         const y = startY + (yearIndex * rowHeight);
         const yearEvents = sortedEvents.filter(e => new Date(e.start_date).getFullYear() === year);
 
+        // Even years (0, 2, 4...): left to right
+        // Odd years (1, 3, 5...): right to left
+        const isLeftToRight = yearIndex % 2 === 0;
+
         yearEvents.forEach((event, eventIndex) => {
-            const x = paddingX + (eventIndex / (yearEvents.length - 1 || 1)) * availableWidth;
-            pathPoints.push({ x, y, event, year, yearIndex });
+            // Calculate x position based on direction
+            let x;
+            if (isLeftToRight) {
+                x = paddingX + (eventIndex / (yearEvents.length - 1 || 1)) * availableWidth;
+            } else {
+                x = paddingX + availableWidth - (eventIndex / (yearEvents.length - 1 || 1)) * availableWidth;
+            }
+            pathPoints.push({ x, y, event, year, yearIndex, isLeftToRight });
         });
     });
 
-    // Draw the continuous path with semicircle turns
-    if (pathPoints.length > 0) {
-        pathD = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+    // Sort pathPoints by position along the S-shaped path
+    // We need to reorder them to follow the S-curve
+    let orderedPathPoints = [];
+    years.forEach((year, yearIndex) => {
+        const yearPoints = pathPoints.filter(p => p.yearIndex === yearIndex);
+        const isLeftToRight = yearIndex % 2 === 0;
+        if (isLeftToRight) {
+            orderedPathPoints = orderedPathPoints.concat(yearPoints);
+        } else {
+            orderedPathPoints = orderedPathPoints.concat(yearPoints.reverse());
+        }
+    });
 
-        for (let i = 0; i < pathPoints.length - 1; i++) {
-            const current = pathPoints[i];
-            const next = pathPoints[i + 1];
+    // Draw the continuous S-shaped path with semicircle turns
+    if (orderedPathPoints.length > 0) {
+        pathD = `M ${orderedPathPoints[0].x} ${orderedPathPoints[0].y}`;
 
-            // Check if we're transitioning to a new year (different y)
+        for (let i = 0; i < orderedPathPoints.length - 1; i++) {
+            const current = orderedPathPoints[i];
+            const next = orderedPathPoints[i + 1];
+
+            // Check if we're transitioning to a new year
             if (next.yearIndex !== current.yearIndex) {
-                // End of current year line
-                const endX = current.x + turnRadius;
+                // Determine turn direction based on current year direction
+                const isCurrentLeftToRight = current.isLeftToRight;
 
-                // Draw semicircle turn: go from current.x to current.x + turnRadius
-                // Arc from (current.x + turnRadius, current.y) to (current.x + turnRadius, next.y)
-                const arcX = current.x + turnRadius;
+                // Draw semicircle turn at the end
+                const arcX = current.x + (isCurrentLeftToRight ? turnRadius : -turnRadius);
                 const arcEndY = next.y;
 
-                // Line to arc start, then semicircle arc
+                // Line to arc start point
                 pathD += ` L ${arcX} ${current.y}`;
-                pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${arcX} ${arcEndY}`;
+
+                // Draw semicircle arc
+                // sweep-flag: 1 for clockwise, 0 for counter-clockwise
+                const sweepFlag = isCurrentLeftToRight ? 1 : 0;
+                pathD += ` A ${turnRadius} ${turnRadius} 0 0 ${sweepFlag} ${arcX} ${arcEndY}`;
+
+                // Line to next point
                 pathD += ` L ${next.x} ${next.y}`;
             } else {
                 // Same year - horizontal line
@@ -870,7 +898,7 @@ function renderTimeline(events) {
 
     // Render event cards along the path
     let eventsHtml = '';
-    pathPoints.forEach((point, index) => {
+    orderedPathPoints.forEach((point, index) => {
         const event = point.event;
         const isAbove = index % 2 === 0;
         const cardOffset = isAbove ? -130 : 25;
