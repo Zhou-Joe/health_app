@@ -216,37 +216,68 @@ body {
 .timeline-container {
     position: relative;
     padding: 2rem 0;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
-.timeline-line {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, var(--brutal-cyan) 0%, var(--brutal-purple) 100%);
-    transform: translateX(-50%);
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 3rem;
+.timeline-year-group {
+    margin-bottom: 4rem;
     opacity: 0;
     animation: fadeIn 0.5s ease forwards;
 }
 
-.timeline-item:nth-child(1) { animation-delay: 0.1s; }
-.timeline-item:nth-child(2) { animation-delay: 0.2s; }
-.timeline-item:nth-child(3) { animation-delay: 0.3s; }
-.timeline-item:nth-child(4) { animation-delay: 0.4s; }
-.timeline-item:nth-child(5) { animation-delay: 0.5s; }
+.timeline-year-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 0 2rem;
+}
+
+.timeline-year-label {
+    font-size: 2rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: linear-gradient(135deg, var(--brutal-cyan) 0%, var(--brutal-purple) 100%);
+    color: #FFF;
+    padding: 0.75rem 2rem;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.timeline-year-line {
+    flex: 1;
+    height: 4px;
+    background: linear-gradient(90deg, var(--brutal-cyan) 0%, var(--brutal-purple) 100%);
+    margin-left: 1.5rem;
+}
+
+.timeline-events-row {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0 1rem;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+
+.timeline-item {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+    opacity: 0;
+    animation: slideIn 0.5s ease forwards;
+}
 
 @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(30px);
     }
     to {
         opacity: 1;
@@ -254,28 +285,16 @@ body {
     }
 }
 
-.timeline-item:nth-child(odd) .timeline-content {
-    margin-left: auto;
-    margin-right: calc(50% + 3rem);
-}
-
-.timeline-item:nth-child(even) .timeline-content {
-    margin-left: calc(50% + 3rem);
-    margin-right: auto;
-}
-
 .timeline-dot {
     position: absolute;
-    left: 50%;
+    left: -14px;
     top: 1.5rem;
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     background: #FFF;
     border: 4px solid #000;
     border-radius: 50%;
-    transform: translateX(-50%);
     z-index: 10;
-    transition: all 0.2s ease;
 }
 
 .timeline-dot.illness { background: var(--brutal-red); }
@@ -291,13 +310,27 @@ body {
     border: var(--border-thick);
     box-shadow: var(--shadow-hard-sm);
     padding: 1.5rem;
+    margin-left: 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
+    height: 100%;
+}
+
+.timeline-content::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #e2e8f0;
 }
 
 .timeline-content:hover {
-    transform: scale(1.02);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-hard);
+    border-color: var(--brutal-cyan);
 }
 
 .timeline-date-badge {
@@ -320,7 +353,7 @@ body {
 }
 
 .timeline-event-title {
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 900;
     margin: 0;
     text-transform: uppercase;
@@ -346,16 +379,17 @@ body {
 
 .timeline-description {
     color: #64748b;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     margin: 0.5rem 0;
     white-space: pre-wrap;
+    line-height: 1.4;
 }
 
 .timeline-dates {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: #475569;
     margin: 0.5rem 0;
@@ -375,7 +409,7 @@ body {
 }
 
 .timeline-stat-value {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     font-weight: 900;
     color: #000;
 }
@@ -418,19 +452,16 @@ body {
 }
 
 @media (max-width: 768px) {
-    .timeline-line {
-        left: 2rem;
+    .timeline-events-row {
+        flex-direction: column;
     }
 
-    .timeline-dot {
-        left: 2rem;
+    .timeline-item {
+        min-width: 100%;
     }
 
-    .timeline-item:nth-child(odd) .timeline-content,
-    .timeline-item:nth-child(even) .timeline-content {
-        margin-left: 4rem;
-        margin-right: 0;
-        max-width: calc(100% - 5rem);
+    .timeline-year-label {
+        font-size: 1.5rem;
     }
 }
 </style>
@@ -761,42 +792,67 @@ function renderTimeline(events) {
         return;
     }
 
-    // 按开始日期排序
-    const sortedEvents = [...events].sort((a, b) => {
-        return new Date(b.start_date) - new Date(a.start_date);
+    // 按年份分组
+    const eventsByYear = {};
+    events.forEach(event => {
+        const year = new Date(event.start_date).getFullYear();
+        if (!eventsByYear[year]) {
+            eventsByYear[year] = [];
+        }
+        eventsByYear[year].push(event);
     });
 
-    container.innerHTML = '<div class="timeline-line"></div>' + sortedEvents.map(event => `
-        <div class="timeline-item" onclick="viewEventDetail(${event.id})">
-            <div class="timeline-dot ${event.event_type}"></div>
-            <div class="timeline-content">
-                <div class="timeline-date-badge">
-                    ${formatDate(event.start_date)}
-                    ${event.end_date ? ' → ' + formatDate(event.end_date) : ''}
+    // 按年份排序（降序）
+    const sortedYears = Object.keys(eventsByYear).sort((a, b) => b - a);
+
+    container.innerHTML = sortedYears.map((year, index) => {
+        // 每年的事件按开始日期排序（降序）
+        const yearEvents = eventsByYear[year].sort((a, b) => {
+            return new Date(b.start_date) - new Date(a.start_date);
+        });
+
+        return `
+            <div class="timeline-year-group" style="animation-delay: ${index * 0.2}s">
+                <div class="timeline-year-header">
+                    <span class="timeline-year-label">${year}年</span>
+                    <div class="timeline-year-line"></div>
                 </div>
-                <div class="timeline-event-header">
-                    <h4 class="timeline-event-title">
-                        ${event.name}
-                        ${event.is_auto_generated ? '<span class="auto-badge">AUTO</span>' : ''}
-                    </h4>
-                    <span class="timeline-event-type ${event.event_type}">
-                        ${getEventTypeLabel(event.event_type)}
-                    </span>
-                </div>
-                ${event.description ? `<p class="timeline-description">${event.description}</p>` : ''}
-                <div class="timeline-dates">
-                    <i class="bi bi-calendar3"></i>
-                    <span>持续 ${event.duration_days} 天</span>
-                </div>
-                <div class="timeline-stats">
-                    <div class="timeline-stat">
-                        <div class="timeline-stat-value">${event.item_count}</div>
-                        <div class="timeline-stat-label">记录数</div>
-                    </div>
+                <div class="timeline-events-row">
+                    ${yearEvents.map(event => `
+                        <div class="timeline-item" onclick="viewEventDetail(${event.id})">
+                            <div class="timeline-dot ${event.event_type}"></div>
+                            <div class="timeline-content">
+                                <div class="timeline-date-badge">
+                                    ${formatDate(event.start_date)}
+                                    ${event.end_date ? ' → ' + formatDate(event.end_date) : ''}
+                                </div>
+                                <div class="timeline-event-header">
+                                    <h5 class="timeline-event-title">
+                                        ${event.name}
+                                        ${event.is_auto_generated ? '<span class="auto-badge">AUTO</span>' : ''}
+                                    </h5>
+                                    <span class="timeline-event-type ${event.event_type}">
+                                        ${getEventTypeLabel(event.event_type)}
+                                    </span>
+                                </div>
+                                ${event.description ? `<p class="timeline-description">${event.description}</p>` : ''}
+                                <div class="timeline-dates">
+                                    <i class="bi bi-calendar3"></i>
+                                    <span>持续 ${event.duration_days} 天</span>
+                                </div>
+                                <div class="timeline-stats">
+                                    <div class="timeline-stat">
+                                        <div class="timeline-stat-value">${event.item_count}</div>
+                                        <div class="timeline-stat-label">记录</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // 修改原有的 filterEvents 函数以支持时间线
