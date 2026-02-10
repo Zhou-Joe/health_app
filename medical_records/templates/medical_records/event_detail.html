@@ -1,0 +1,702 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.name }} - 健康事件详情{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --brutal-red: #FF4757;
+    --brutal-purple: #A855F7;
+    --brutal-orange: #FB923C;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
+}
+
+.event-header-section {
+    background: var(--brutal-cyan);
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.event-header-section.illness { background: var(--brutal-red); }
+.event-header-section.checkup { background: var(--brutal-blue); }
+.event-header-section.chronic_management { background: var(--brutal-purple); }
+.event-header-section.emergency { background: var(--brutal-orange); }
+.event-header-section.wellness { background: var(--brutal-green); }
+.event-header-section.medication_course { background: var(--brutal-pink); }
+.event-header-section.other { background: #94a3b8; }
+
+.event-info-card {
+    background: #FFF;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard-sm);
+    margin-bottom: 1.5rem;
+}
+
+.event-info-card .card-header {
+    background: #000;
+    color: #FFF;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1rem 1.5rem;
+    border-bottom: var(--border-thick);
+}
+
+.item-card {
+    background: #FFF;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard-sm);
+    margin-bottom: 1rem;
+    transition: all 0.1s ease;
+}
+
+.item-card:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0px #000;
+}
+
+.item-card.checkup { border-left: 6px solid var(--brutal-blue); }
+.item-card.medication { border-left: 6px solid var(--brutal-pink); }
+.item-card.indicator { border-left: 6px solid var(--brutal-yellow); }
+
+.item-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: #f1f5f9;
+    border: var(--border-thick);
+    margin-right: 1rem;
+}
+
+.btn-add-item {
+    background: var(--brutal-green);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-add-item:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000;
+}
+
+.btn-edit {
+    background: var(--brutal-yellow);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-edit:hover {
+    background: var(--brutal-green);
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0px #000;
+}
+
+.btn-delete {
+    background: var(--brutal-red);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    color: #FFF;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-delete:hover {
+    background: #dc2626;
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0px #000;
+    color: #FFF;
+}
+
+.btn-back {
+    background: #FFF;
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.5rem 1.5rem;
+    font-weight: 700;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-back:hover {
+    background: var(--brutal-yellow);
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0px #000;
+}
+
+.stat-box {
+    text-align: center;
+    background: #FFF;
+    border: var(--border-thick);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #000;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.empty-items {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+}
+
+.auto-badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.2);
+    color: #FFF;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 返回按钮 -->
+    <div class="mb-3">
+        <button class="btn btn-back" onclick="history.back()">
+            <i class="bi bi-arrow-left me-2"></i> 返回
+        </button>
+    </div>
+
+    <!-- 事件标题 -->
+    <div class="event-header-section {{ event.event_type }}">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="fw-bold mb-2" style="font-size: 2.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 0;">
+                    {{ event.name }}
+                    {% if event.is_auto_generated %}
+                    <span class="auto-badge">自动生成</span>
+                    {% endif %}
+                </h1>
+                <p class="mb-0" style="opacity: 0.9; font-size: 1.1rem;">{{ event.get_event_type_display }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-edit" onclick="editEvent()">
+                    <i class="bi bi-pencil me-2"></i> 编辑
+                </button>
+                <button class="btn btn-delete" onclick="deleteEvent()">
+                    <i class="bi bi-trash me-2"></i> 删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 事件统计 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-box">
+                <div class="stat-value" id="itemCount">0</div>
+                <div class="stat-label">关联记录</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-box">
+                <div class="stat-value">{{ event.duration_days }}</div>
+                <div class="stat-label">持续天数</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-box">
+                <div class="stat-value" id="checkupCount">0</div>
+                <div class="stat-label">体检报告</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-box">
+                <div class="stat-value" id="medicationCount">0</div>
+                <div class="stat-label">药单</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧：事件信息 -->
+        <div class="col-lg-4">
+            <div class="event-info-card">
+                <div class="card-header">
+                    <i class="bi bi-info-circle me-2"></i>事件信息
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">事件类型</label>
+                        <div>{{ event.get_event_type_display }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">开始日期</label>
+                        <div>{{ event.start_date|date:"Y年m月d日" }}</div>
+                    </div>
+                    {% if event.end_date %}
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">结束日期</label>
+                        <div>{{ event.end_date|date:"Y年m月d日" }}</div>
+                    </div>
+                    {% endif %}
+                    {% if event.description %}
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">事件描述</label>
+                        <div style="white-space: pre-wrap;">{{ event.description }}</div>
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">创建时间</label>
+                        <div>{{ event.created_at|date:"Y年m月d日 H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 添加记录按钮 -->
+            <button class="btn btn-add-item w-100" onclick="showAddItemModal()">
+                <i class="bi bi-plus-circle me-2"></i> 添加记录到事件
+            </button>
+        </div>
+
+        <!-- 右侧：关联记录 -->
+        <div class="col-lg-8">
+            <div class="event-info-card">
+                <div class="card-header">
+                    <i class="bi bi-link-45deg me-2"></i>关联记录
+                </div>
+                <div class="card-body" id="itemsList">
+                    <!-- 动态加载记录 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑事件模态框 -->
+<div class="modal fade" id="editEventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border: var(--border-thick); border-radius: 0; box-shadow: var(--shadow-hard);">
+            <div class="modal-header" style="background: var(--brutal-yellow); color: #000; border-radius: 0; border: none; border-bottom: var(--border-thick); padding: 1.5rem;">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil me-2"></i> 编辑事件
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <form id="editEventForm">
+                    <div class="mb-3">
+                        <label for="editEventName" class="form-label">事件名称 *</label>
+                        <input type="text" class="form-control" id="editEventName" value="{{ event.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventType" class="form-label">事件类型 *</label>
+                        <select class="form-control" id="editEventType" required>
+                            <option value="illness" {% if event.event_type == 'illness' %}selected{% endif %}>疾病事件</option>
+                            <option value="checkup" {% if event.event_type == 'checkup' %}selected{% endif %}>体检事件</option>
+                            <option value="chronic_management" {% if event.event_type == 'chronic_management' %}selected{% endif %}>慢性病管理</option>
+                            <option value="emergency" {% if event.event_type == 'emergency' %}selected{% endif %}>急诊事件</option>
+                            <option value="wellness" {% if event.event_type == 'wellness' %}selected{% endif %}>健康管理</option>
+                            <option value="medication_course" {% if event.event_type == 'medication_course' %}selected{% endif %}>用药疗程</option>
+                            <option value="other" {% if event.event_type == 'other' %}selected{% endif %}>其他</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editStartDate" class="form-label">开始日期 *</label>
+                            <input type="date" class="form-control" id="editStartDate" value="{{ event.start_date|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editEndDate" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="editEndDate" value="{% if event.end_date %}{{ event.end_date|date:'Y-m-d' }}{% endif %}">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">事件描述</label>
+                        <textarea class="form-control" id="editDescription" rows="3">{{ event.description }}</textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top: var(--border-thick); padding: 1.5rem 2rem;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateEvent()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加记录模态框 -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border: var(--border-thick); border-radius: 0; box-shadow: var(--shadow-hard);">
+            <div class="modal-header" style="background: var(--brutal-green); color: #000; border-radius: 0; border: none; border-bottom: var(--border-thick); padding: 1.5rem;">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-plus-circle me-2"></i> 添加记录到事件
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="mb-3">
+                    <label class="form-label">记录类型</label>
+                    <select class="form-control" id="itemTypeFilter" onchange="loadAvailableItems()">
+                        <option value="">全部类型</option>
+                        <option value="healthcheckup">体检报告</option>
+                        <option value="medication">药单</option>
+                        <option value="healthindicator">健康指标</option>
+                    </select>
+                </div>
+                <div id="availableItemsList" style="max-height: 400px; overflow-y: auto;">
+                    <!-- 动态加载可用记录 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let editEventModal, addItemModal;
+const eventId = {{ event.id }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
+    addItemModal = new bootstrap.Modal(document.getElementById('addItemModal'));
+    loadEventItems();
+});
+
+// 加载事件关联的记录
+async function loadEventItems() {
+    try {
+        const response = await fetch(`{% url "medical_records:api_event_detail" 0 %}`.replace('0', eventId));
+        const data = await response.json();
+
+        if (data.success) {
+            renderEventItems(data.items);
+            updateStats(data.items);
+        }
+    } catch (error) {
+        console.error('加载失败:', error);
+    }
+}
+
+// 渲染事件记录
+function renderEventItems(items) {
+    const container = document.getElementById('itemsList');
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="empty-items">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #cbd5e1;"></i>
+                <p class="text-muted mt-3">还没有关联记录</p>
+                <button class="btn btn-add-item" onclick="showAddItemModal()">
+                    <i class="bi bi-plus-circle me-2"></i> 添加记录
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = items.map(item => `
+        <div class="item-card ${getItemClass(item.content_type)}">
+            <div class="card-body">
+                <div class="d-flex align-items-start">
+                    <div class="item-icon">
+                        <i class="bi ${getItemIcon(item.content_type)}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="fw-bold mb-1">${item.item_summary}</h6>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock me-1"></i>${formatDateTime(item.added_at)}
+                                    <span class="ms-2">
+                                        ${item.added_by === 'auto' ?
+                                            '<span class="badge bg-secondary">自动</span>' :
+                                            '<span class="badge bg-primary">手动</span>'}
+                                    </span>
+                                </small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${item.id})" style="border: 2px solid #ef4444;">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                        ${item.notes ? `<small class="text-muted mt-1 d-block">${item.notes}</small>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 更新统计数据
+function updateStats(items) {
+    document.getElementById('itemCount').textContent = items.length;
+
+    const checkupCount = items.filter(i => i.content_type === 'healthcheckup').length;
+    const medicationCount = items.filter(i => i.content_type === 'medication').length;
+
+    document.getElementById('checkupCount').textContent = checkupCount;
+    document.getElementById('medicationCount').textContent = medicationCount;
+}
+
+// 获取记录类型对应的CSS类
+function getItemClass(contentType) {
+    const classes = {
+        'healthcheckup': 'checkup',
+        'medication': 'medication',
+        'healthindicator': 'indicator'
+    };
+    return classes[contentType] || '';
+}
+
+// 获取记录类型对应的图标
+function getItemIcon(contentType) {
+    const icons = {
+        'healthcheckup': 'bi-clipboard2-pulse',
+        'medication': 'bi-capsule',
+        'healthindicator': 'bi-graph-up',
+        'medicationrecord': 'bi-check2-circle'
+    };
+    return icons[contentType] || 'bi-file-text';
+}
+
+// 编辑事件
+function editEvent() {
+    editEventModal.show();
+}
+
+// 更新事件
+async function updateEvent() {
+    const name = document.getElementById('editEventName').value;
+    const eventType = document.getElementById('editEventType').value;
+    const startDate = document.getElementById('editStartDate').value;
+    const endDate = document.getElementById('editEndDate').value;
+    const description = document.getElementById('editDescription').value;
+
+    if (!name || !eventType || !startDate) {
+        alert('请填写所有必填项');
+        return;
+    }
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_event_detail" 0 %}`.replace('0', eventId), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: name,
+                event_type: eventType,
+                start_date: startDate,
+                end_date: endDate || null,
+                description: description
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('更新成功！');
+            location.reload();
+        } else {
+            alert('更新失败：' + data.error);
+        }
+    } catch (error) {
+        alert('更新失败：' + error);
+    }
+}
+
+// 删除事件
+async function deleteEvent() {
+    if (!confirm('确定要删除这个事件吗？关联记录不会被删除。')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_event_detail" 0 %}`.replace('0', eventId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('删除成功！');
+            window.location.href = '{% url "medical_records:events_list" %}';
+        } else {
+            alert('删除失败：' + data.error);
+        }
+    } catch (error) {
+        alert('删除失败：' + error);
+    }
+}
+
+// 显示添加记录模态框
+function showAddItemModal() {
+    loadAvailableItems();
+    addItemModal.show();
+}
+
+// 加载可用记录
+async function loadAvailableItems() {
+    const contentType = document.getElementById('itemTypeFilter').value;
+    const url = `{% url "medical_records:api_event_available_items" %}${contentType ? '?content_type=' + contentType : ''}`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+            renderAvailableItems(data.items);
+        }
+    } catch (error) {
+        console.error('加载失败:', error);
+    }
+}
+
+// 渲染可用记录
+function renderAvailableItems(items) {
+    const container = document.getElementById('availableItemsList');
+
+    if (items.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                <p class="mt-3">没有可用的记录</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = items.map(item => `
+        <div class="card mb-2" style="border: 2px solid #e2e8f0; cursor: pointer;" onclick="addItem('${item.content_type}', ${item.object_id})">
+            <div class="card-body py-2">
+                <div class="d-flex align-items-center">
+                    <i class="bi ${getItemIcon(item.content_type)} me-3" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <div class="fw-bold">${item.summary}</div>
+                        <small class="text-muted">${item.date}</small>
+                    </div>
+                    <i class="bi bi-plus-circle ms-auto" style="font-size: 1.5rem; color: var(--brutal-green);"></i>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 添加记录到事件
+async function addItem(contentType, objectId) {
+    try {
+        const response = await fetch(`{% url "medical_records:api_event_add_item" 0 %}`.replace('0', eventId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                content_type: contentType,
+                object_id: objectId
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            addItemModal.hide();
+            loadEventItems();
+        } else {
+            alert('添加失败：' + data.error);
+        }
+    } catch (error) {
+        alert('添加失败：' + error);
+    }
+}
+
+// 移除记录
+async function removeItem(itemId) {
+    if (!confirm('确定要移除这条记录吗？')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_event_remove_item" 0 0 %}`.replace('0', eventId).replace('0', itemId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            loadEventItems();
+        } else {
+            alert('移除失败：' + data.error);
+        }
+    } catch (error) {
+        alert('移除失败：' + error);
+    }
+}
+
+// 格式化日期时间
+function formatDateTime(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-CN');
+}
+
+// 获取CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

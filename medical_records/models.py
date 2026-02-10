@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
-from datetime import date
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+from datetime import date, timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -423,3 +425,467 @@ class MedicationRecord(models.Model):
 
     def __str__(self):
         return f"{self.medication.medicine_name} - {self.record_date}"
+
+
+class HealthEvent(models.Model):
+    """健康事件聚合模型"""
+    EVENT_TYPE_CHOICES = [
+        ('illness', '疾病事件'),
+        ('checkup', '体检事件'),
+        ('chronic_management', '慢性病管理'),
+        ('emergency', '急诊事件'),
+        ('wellness', '健康管理'),
+        ('medication_course', '用药疗程'),
+        ('other', '其他'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户', related_name='health_events')
+    name = models.CharField(max_length=200, verbose_name='事件名称')
+    description = models.TextField(blank=True, null=True, verbose_name='事件描述')
+    start_date = models.DateField(verbose_name='开始日期')
+    end_date = models.DateField(blank=True, null=True, verbose_name='结束日期')
+    event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES, default='other', verbose_name='事件类型')
+    is_auto_generated = models.BooleanField(default=False, verbose_name='是否自动生成')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '健康事件'
+        verbose_name_plural = '健康事件'
+        ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['user', '-start_date']),
+            models.Index(fields=['event_type']),
+            models.Index(fields=['is_auto_generated']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name} ({self.start_date})"
+
+    @property
+    def duration_days(self):
+        """计算事件持续天数"""
+        if self.end_date:
+            return (self.end_date - self.start_date).days + 1
+        # 如果没有结束日期，计算到今天
+        return (date.today() - self.start_date).days + 1
+
+    def get_all_items(self):
+        """获取事件关联的所有健康记录"""
+        return self.event_items.all()
+
+    def get_checkups(self):
+        """获取关联的体检报告"""
+        return self.event_items.filter(
+            content_type__model='healthcheckup'
+        )
+
+    def get_medications(self):
+        """获取关联的药单"""
+        return self.event_items.filter(
+            content_type__model='medication'
+        )
+
+    def get_indicators(self):
+        """获取关联的健康指标"""
+        return self.event_items.filter(
+            content_type__model='healthindicator'
+        )
+
+    def get_item_count(self):
+        """获取关联记录总数"""
+        return self.event_items.count()
+
+    @classmethod
+    def auto_cluster_user_records(cls, user, days_threshold=7):
+        """
+        自动聚类用户的健康记录为事件
+
+        Args:
+            user: 用户对象
+            days_threshold: 时间阈值（天），在此时间窗口内的记录会被聚为一类
+
+        Returns:
+            创建的事件数量
+        """
+        from django.db.models import Q
+
+        events_created = 0
+
+        # 1. 聚类体检报告（基于日期相近性）
+        checkups = HealthCheckup.objects.filter(user=user).order_by('checkup_date')
+        checkup_clusters = cls._cluster_by_time(checkups, 'checkup_date', days_threshold)
+
+        for cluster in checkup_clusters:
+            if len(cluster) == 0:
+                continue
+
+            # 找到聚类的时间范围
+            dates = [c.checkup_date for c in cluster]
+            start = min(dates)
+            end = max(dates)
+
+            # 生成事件名称
+            if len(cluster) == 1:
+                event_name = f"{start} 体检"
+            else:
+                event_name = f"{start} 至 {end} 体检期间"
+
+            # 检查是否已存在类似事件
+            existing = cls.objects.filter(
+                user=user,
+                event_type='checkup',
+                is_auto_generated=True,
+                start_date=start
+            ).first()
+
+            if existing:
+                event = existing
+            else:
+                event = cls.objects.create(
+                    user=user,
+                    name=event_name,
+                    start_date=start,
+                    end_date=end if end != start else None,
+                    event_type='checkup',
+                    is_auto_generated=True,
+                    description=f"自动聚类 {len(cluster)} 份体检报告"
+                )
+                events_created += 1
+
+            # 添加体检报告到事件
+            for checkup in cluster:
+                EventItem.objects.get_or_create(
+                    event=event,
+                    content_type=ContentType.objects.get_for_model(checkup),
+                    object_id=checkup.id,
+                    defaults={'added_by': 'auto'}
+                )
+
+        # 2. 聚类药单（基于时间重叠或相近性）
+        medications = Medication.objects.filter(user=user, is_active=True).order_by('start_date')
+        medication_clusters = cls._cluster_medications(medications, days_threshold)
+
+        for cluster in medication_clusters:
+            if len(cluster) == 0:
+                continue
+
+            # 找到聚类的时间范围
+            starts = [m.start_date for m in cluster]
+            ends = [m.end_date for m in cluster]
+            cluster_start = min(starts)
+            cluster_end = max(ends)
+
+            # 生成事件名称
+            med_names = ', '.join([m.medicine_name for m in cluster[:3]])
+            if len(cluster) > 3:
+                med_names += f' 等{len(cluster)}种药'
+
+            event_name = f"{cluster_start} 用药: {med_names}"
+
+            # 检查是否已存在类似事件
+            existing = cls.objects.filter(
+                user=user,
+                event_type='medication_course',
+                is_auto_generated=True,
+                start_date=cluster_start
+            ).first()
+
+            if existing:
+                event = existing
+            else:
+                event = cls.objects.create(
+                    user=user,
+                    name=event_name,
+                    start_date=cluster_start,
+                    end_date=cluster_end,
+                    event_type='medication_course',
+                    is_auto_generated=True,
+                    description=f"自动聚类 {len(cluster)} 个药单"
+                )
+                events_created += 1
+
+            # 添加药单到事件
+            for medication in cluster:
+                EventItem.objects.get_or_create(
+                    event=event,
+                    content_type=ContentType.objects.get_for_model(medication),
+                    object_id=medication.id,
+                    defaults={'added_by': 'auto'}
+                )
+
+        # 3. 检测疾病事件（通过异常指标和药单关联）
+        cls._detect_illness_events(user, days_threshold)
+
+        return events_created
+
+    @classmethod
+    def _cluster_by_time(cls, queryset, date_field, threshold_days):
+        """根据时间聚类记录"""
+        if not queryset.exists():
+            return []
+
+        clusters = []
+        current_cluster = []
+
+        for obj in queryset:
+            obj_date = getattr(obj, date_field)
+
+            if not current_cluster:
+                current_cluster.append(obj)
+            else:
+                # 检查与聚类中第一条记录的时间差
+                first_date = getattr(current_cluster[0], date_field)
+                days_diff = abs((obj_date - first_date).days)
+
+                if days_diff <= threshold_days:
+                    current_cluster.append(obj)
+                else:
+                    # 开始新聚类
+                    clusters.append(current_cluster)
+                    current_cluster = [obj]
+
+        if current_cluster:
+            clusters.append(current_cluster)
+
+        return clusters
+
+    @classmethod
+    def _cluster_medications(cls, medications, threshold_days):
+        """聚类药单（基于时间重叠或相近性）"""
+        if not medications:
+            return []
+
+        clusters = []
+        used_indices = set()
+
+        for i, med1 in enumerate(medications):
+            if i in used_indices:
+                continue
+
+            cluster = [med1]
+            used_indices.add(i)
+
+            for j, med2 in enumerate(medications):
+                if j <= i or j in used_indices:
+                    continue
+
+                # 检查时间是否重叠或相近
+                if cls._medications_overlap_or_near(med1, med2, threshold_days):
+                    cluster.append(med2)
+                    used_indices.add(j)
+                    # 更新基准时间范围
+                    med1 = cls._merge_medication_time_range(cluster)
+
+            clusters.append(cluster)
+
+        return clusters
+
+    @classmethod
+    def _medications_overlap_or_near(cls, med1, med2, threshold_days):
+        """检查两个药单是否时间重叠或相近"""
+        # 检查重叠
+        if not (med1.end_date < med2.start_date or med2.end_date < med1.start_date):
+            return True
+
+        # 检查相近性
+        gap = min(abs((med1.end_date - med2.start_date).days),
+                  abs((med2.end_date - med1.start_date).days))
+        return gap <= threshold_days
+
+    @classmethod
+    def _merge_medication_time_range(cls, medications):
+        """合并药单时间范围"""
+        if not medications:
+            return None
+
+        start = min(m.start_date for m in medications)
+        end = max(m.end_date for m in medications)
+
+        # 返回一个虚拟对象用于比较
+        from collections import namedtuple
+        MedicationRange = namedtuple('MedicationRange', ['start_date', 'end_date'])
+        return MedicationRange(start_date=start, end_date=end)
+
+    @classmethod
+    def _detect_illness_events(cls, user, threshold_days):
+        """检测疾病事件（通过异常指标和药单关联）"""
+        # 获取有异常指标的体检
+        checkups_with_abnormal = HealthCheckup.objects.filter(
+            user=user,
+            indicators__status__in=['abnormal', 'attention']
+        ).distinct()
+
+        for checkup in checkups_with_abnormal:
+            # 查找附近时间的药单
+            nearby_meds = Medication.objects.filter(
+                user=user,
+                start_date__gte=checkup.checkup_date - timedelta(days=threshold_days),
+                start_date__lte=checkup.checkup_date + timedelta(days=threshold_days)
+            )
+
+            if nearby_meds.exists():
+                # 创建疾病事件
+                event_name = f"{checkup.checkup_date} 健康关注"
+
+                existing = cls.objects.filter(
+                    user=user,
+                    event_type='illness',
+                    is_auto_generated=True,
+                    start_date=checkup.checkup_date
+                ).first()
+
+                if existing:
+                    event = existing
+                else:
+                    event = cls.objects.create(
+                        user=user,
+                        name=event_name,
+                        start_date=checkup.checkup_date,
+                        end_date=checkup.checkup_date + timedelta(days=30),
+                        event_type='illness',
+                        is_auto_generated=True,
+                        description=f"检测到异常指标和用药，自动创建关注事件"
+                    )
+
+                # 添加体检报告
+                EventItem.objects.get_or_create(
+                    event=event,
+                    content_type=ContentType.objects.get_for_model(checkup),
+                    object_id=checkup.id,
+                    defaults={'added_by': 'auto'}
+                )
+
+                # 添加药单
+                for med in nearby_meds:
+                    EventItem.objects.get_or_create(
+                        event=event,
+                        content_type=ContentType.objects.get_for_model(med),
+                        object_id=med.id,
+                        defaults={'added_by': 'auto'}
+                    )
+
+
+class EventItem(models.Model):
+    """事件项目关联模型 - 将健康记录关联到事件"""
+    ADDED_BY_CHOICES = [
+        ('auto', '自动添加'),
+        ('manual', '手动添加'),
+    ]
+
+    event = models.ForeignKey(HealthEvent, on_delete=models.CASCADE, verbose_name='事件', related_name='event_items')
+    # Generic foreign key to link to any health record model
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, verbose_name='内容类型')
+    object_id = models.PositiveIntegerField(verbose_name='对象ID')
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    notes = models.TextField(blank=True, null=True, verbose_name='备注')
+    added_by = models.CharField(max_length=10, choices=ADDED_BY_CHOICES, default='manual', verbose_name='添加方式')
+    added_at = models.DateTimeField(auto_now_add=True, verbose_name='添加时间')
+
+    class Meta:
+        verbose_name = '事件项目'
+        verbose_name_plural = '事件项目'
+        ordering = ['event', '-added_at']
+        indexes = [
+            models.Index(fields=['event', 'content_type', 'object_id']),
+            models.Index(fields=['added_by']),
+        ]
+        # 确保同一记录不会重复添加到同一事件
+        constraints = [
+            models.UniqueConstraint(
+                fields=['event', 'content_type', 'object_id'],
+                name='unique_event_item'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.event.name} - {self.content_type.model}"
+
+    @property
+    def item_summary(self):
+        """获取关联记录的摘要信息"""
+        obj = self.content_object
+        if not obj:
+            return "已删除的记录"
+
+        model_name = self.content_type.model
+
+        if model_name == 'healthcheckup':
+            return f"体检报告: {obj.checkup_date} - {obj.hospital}"
+        elif model_name == 'medication':
+            return f"药单: {obj.medicine_name} ({obj.start_date} 至 {obj.end_date})"
+        elif model_name == 'healthindicator':
+            return f"指标: {obj.indicator_name} = {obj.value} {obj.unit or ''}"
+        elif model_name == 'medicationrecord':
+            return f"服药记录: {obj.medication.medicine_name} - {obj.record_date}"
+        else:
+            return f"{model_name}: {str(obj)}"
+
+
+class EventTemplate(models.Model):
+    """事件模板 - 预设的常见健康事件配置"""
+    EVENT_TYPE_CHOICES = [
+        ('illness', '疾病事件'),
+        ('checkup', '体检事件'),
+        ('chronic_management', '慢性病管理'),
+        ('emergency', '急诊事件'),
+        ('wellness', '健康管理'),
+        ('medication_course', '用药疗程'),
+        ('other', '其他'),
+    ]
+
+    name = models.CharField(max_length=200, verbose_name='模板名称')
+    description = models.TextField(blank=True, null=True, verbose_name='模板描述')
+    event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES, verbose_name='事件类型')
+    suggested_duration_days = models.PositiveIntegerField(blank=True, null=True, verbose_name='建议持续天数')
+    default_name_template = models.CharField(max_length=200, blank=True, verbose_name='默认名称模板')
+    is_system_template = models.BooleanField(default=False, verbose_name='系统模板')
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '事件模板'
+        verbose_name_plural = '事件模板'
+        ordering = ['is_system_template', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_event_type_display()})"
+
+    def apply_template(self, user, start_date=None, custom_name=None):
+        """
+        应用模板创建新事件
+
+        Args:
+            user: 用户对象
+            start_date: 开始日期（默认今天）
+            custom_name: 自定义事件名称（可选）
+
+        Returns:
+            创建的 HealthEvent 对象
+        """
+        from datetime import timedelta
+
+        if not start_date:
+            start_date = date.today()
+
+        end_date = None
+        if self.suggested_duration_days:
+            end_date = start_date + timedelta(days=self.suggested_duration_days - 1)
+
+        event_name = custom_name or self.default_name_template or self.name
+        # 可以在名称模板中使用 {date} 占位符
+        event_name = event_name.format(date=start_date.strftime('%Y-%m-%d'))
+
+        event = HealthEvent.objects.create(
+            user=user,
+            name=event_name,
+            event_type=self.event_type,
+            start_date=start_date,
+            end_date=end_date,
+            description=self.description,
+            is_auto_generated=False
+        )
+
+        return event

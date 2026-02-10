@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 import json
 import requests
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, UserProfile, Medication, MedicationRecord
+from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, UserProfile, Medication, MedicationRecord, HealthEvent, EventItem
 from .forms import HealthCheckupForm, HealthIndicatorForm, ManualIndicatorForm, HealthAdviceForm, SystemSettingsForm, CustomUserCreationForm, UserProfileForm
 from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
 
@@ -1965,3 +1965,117 @@ def medication_list(request):
         'page_title': '我的药单'
     }
     return render(request, 'medical_records/medication_list.html', context)
+
+
+# ==================== 健康事件管理 ====================
+
+@login_required
+def events_list(request):
+    """健康事件列表页面"""
+    events = HealthEvent.objects.filter(user=request.user).order_by('-start_date')
+
+    context = {
+        'page_title': '健康事件'
+    }
+    return render(request, 'medical_records/events_list.html', context)
+
+
+@login_required
+def event_detail(request, event_id):
+    """健康事件详情页面"""
+    event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+    context = {
+        'event': event,
+        'page_title': event.name
+    }
+    return render(request, 'medical_records/event_detail.html', context)
+
+
+@login_required
+def create_event(request):
+    """创建新健康事件"""
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        event_type = request.POST.get('event_type', 'other')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        description = request.POST.get('description', '')
+
+        if not name or not start_date:
+            messages.error(request, '事件名称和开始日期为必填项')
+            return redirect('medical_records:events_list')
+
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            if end_date:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+            event = HealthEvent.objects.create(
+                user=request.user,
+                name=name,
+                event_type=event_type,
+                start_date=start_date,
+                end_date=end_date,
+                description=description,
+                is_auto_generated=False
+            )
+
+            messages.success(request, f'事件 "{name}" 创建成功！')
+            return redirect('medical_records:event_detail', event_id=event.id)
+
+        except ValueError as e:
+            messages.error(request, f'日期格式错误：{str(e)}')
+            return redirect('medical_records:events_list')
+
+    return redirect('medical_records:events_list')
+
+
+@login_required
+def edit_event(request, event_id):
+    """编辑健康事件"""
+    event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        event_type = request.POST.get('event_type')
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        description = request.POST.get('description', '')
+
+        if not name or not event_type or not start_date:
+            messages.error(request, '请填写所有必填项')
+            return redirect('medical_records:event_detail', event_id=event_id)
+
+        try:
+            event.name = name
+            event.event_type = event_type
+            event.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            if end_date:
+                event.end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            else:
+                event.end_date = None
+            event.description = description
+            event.save()
+
+            messages.success(request, '事件更新成功！')
+            return redirect('medical_records:event_detail', event_id=event_id)
+
+        except ValueError as e:
+            messages.error(request, f'日期格式错误：{str(e)}')
+
+    return redirect('medical_records:event_detail', event_id=event_id)
+
+
+@login_required
+def delete_event(request, event_id):
+    """删除健康事件"""
+    event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+    if request.method == 'POST':
+        event_name = event.name
+        event.delete()
+        messages.success(request, f'事件 "{event_name}" 已删除')
+        return redirect('medical_records:events_list')
+
+    return redirect('medical_records:event_detail', event_id=event_id)

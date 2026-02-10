@@ -65,4 +65,34 @@ urlpatterns = [
 
     # 药单管理页面
     path('medications/', views.medication_list, name='medication_list'),
+
+    # 健康事件管理页面
+    path('events/', views.events_list, name='events_list'),
+    path('events/<int:event_id>/', views.event_detail, name='event_detail'),
+    path('events/create/', views.create_event, name='create_event'),
+    path('events/<int:event_id>/edit/', views.edit_event, name='edit_event'),
+    path('events/<int:event_id>/delete/', views.delete_event, name='delete_event'),
+
+    # 健康事件聚合API
+    path('api/events/', api_views.api_events, name='api_events'),
+    path('api/events/<int:event_id>/', api_views.api_event_detail, name='api_event_detail'),
+    path('api/events/<int:event_id>/add-item/', api_views.api_event_add_item, name='api_event_add_item'),
+    path('api/events/<int:event_id>/remove-item/<int:item_id>/', api_views.api_event_remove_item, name='api_event_remove_item'),
+    path('api/events/auto-cluster/', api_views.api_event_auto_cluster, name='api_event_auto_cluster'),
+    path('api/events/available-items/', api_views.api_event_available_items, name='api_event_available_items'),
+
+    # TODO: Advanced features - to be implemented later
+    # # 批量操作
+    # path('api/events/<int:event_id>/bulk-add-items/', api_views.api_event_bulk_add_items, name='api_event_bulk_add_items'),
+    # path('api/events/<int:event_id>/bulk-remove-items/', api_views.api_event_bulk_remove_items, name='api_event_bulk_remove_items'),
+    # path('api/events/bulk-delete/', api_views.api_event_bulk_delete, name='api_event_bulk_delete'),
+    #
+    # # 事件模板
+    # path('api/events/templates/', api_views.api_event_templates, name='api_event_templates'),
+    # path('api/events/apply-template/', api_views.api_event_apply_template, name='api_event_apply_template'),
+    #
+    # # 统计和搜索
+    # path('api/events/statistics/', api_views.api_event_statistics, name='api_event_statistics'),
+    # path('api/events/search/', api_views.api_events_advanced_search, name='api_events_advanced_search'),
+    # path('api/events/timeline/', api_views.api_events_timeline, name='api_events_timeline'),
 ]

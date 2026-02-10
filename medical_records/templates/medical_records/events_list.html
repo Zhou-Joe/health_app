@@ -1,0 +1,973 @@
+{% extends 'base.html' %}
+
+{% block title %}健康事件 - 个人健康管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --brutal-yellow: #FFD60A;
+    --brutal-cyan: #14b8a6;
+    --brutal-pink: #FF5C8D;
+    --brutal-blue: #4C8BF5;
+    --brutal-green: #06FFA5;
+    --brutal-red: #FF4757;
+    --brutal-purple: #A855F7;
+    --brutal-orange: #FB923C;
+    --border-thick: 3px solid #000;
+    --shadow-hard: 6px 6px 0px #000;
+    --shadow-hard-sm: 4px 4px 0px #000;
+}
+
+body {
+    background: #FAFAFA;
+}
+
+.event-card {
+    border: var(--border-thick);
+    border-radius: 0;
+    box-shadow: var(--shadow-hard);
+    overflow: hidden;
+    background: #FFF;
+    transition: all 0.1s ease;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+}
+
+.event-card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0px #000;
+}
+
+.event-header {
+    padding: 1.5rem;
+    border-bottom: var(--border-thick);
+}
+
+.event-header.illness { background: var(--brutal-red); }
+.event-header.checkup { background: var(--brutal-blue); }
+.event-header.chronic_management { background: var(--brutal-purple); }
+.event-header.emergency { background: var(--brutal-orange); }
+.event-header.wellness { background: var(--brutal-green); }
+.event-header.medication_course { background: var(--brutal-pink); }
+.event-header.other { background: #94a3b8; }
+
+.event-title {
+    font-size: 1.25rem;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+}
+
+.event-type-badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.2);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 0;
+}
+
+.event-body {
+    padding: 1.5rem;
+}
+
+.event-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.event-meta-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.event-meta-item i {
+    width: 20px;
+    margin-right: 0.5rem;
+}
+
+.event-stats {
+    display: flex;
+    gap: 1rem;
+    padding-top: 1rem;
+    border-top: 2px solid #f1f5f9;
+}
+
+.event-stat {
+    text-align: center;
+}
+
+.event-stat-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #000;
+}
+
+.event-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-auto-cluster {
+    background: var(--brutal-green);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-auto-cluster:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000;
+}
+
+.btn-create {
+    background: var(--brutal-yellow);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.75rem 2rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #000;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-create:hover {
+    background: var(--brutal-green);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #000;
+}
+
+.filter-section {
+    background: #FFF;
+    border: var(--border-thick);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.filter-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-control {
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+}
+
+.form-control:focus {
+    border-color: #000;
+    box-shadow: 6px 6px 0px var(--brutal-yellow);
+    outline: none;
+}
+
+.auto-tag {
+    display: inline-block;
+    background: rgba(0,0,0,0.3);
+    color: #FFF;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-left: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: #FFF;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.empty-state i {
+    font-size: 5rem;
+    margin-bottom: 1.5rem;
+    color: var(--brutal-cyan);
+}
+
+/* ==================== 时间线视图样式 ==================== */
+.timeline-container {
+    position: relative;
+    padding: 2rem 0;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.timeline-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--brutal-cyan) 0%, var(--brutal-purple) 100%);
+    transform: translateX(-50%);
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.timeline-item:nth-child(1) { animation-delay: 0.1s; }
+.timeline-item:nth-child(2) { animation-delay: 0.2s; }
+.timeline-item:nth-child(3) { animation-delay: 0.3s; }
+.timeline-item:nth-child(4) { animation-delay: 0.4s; }
+.timeline-item:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.timeline-item:nth-child(odd) .timeline-content {
+    margin-left: auto;
+    margin-right: calc(50% + 3rem);
+}
+
+.timeline-item:nth-child(even) .timeline-content {
+    margin-left: calc(50% + 3rem);
+    margin-right: auto;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: 50%;
+    top: 1.5rem;
+    width: 28px;
+    height: 28px;
+    background: #FFF;
+    border: 4px solid #000;
+    border-radius: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.timeline-dot.illness { background: var(--brutal-red); }
+.timeline-dot.checkup { background: var(--brutal-blue); }
+.timeline-dot.chronic_management { background: var(--brutal-purple); }
+.timeline-dot.emergency { background: var(--brutal-orange); }
+.timeline-dot.wellness { background: var(--brutal-green); }
+.timeline-dot.medication_course { background: var(--brutal-pink); }
+.timeline-dot.other { background: #94a3b8; }
+
+.timeline-content {
+    background: #FFF;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard-sm);
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.timeline-content:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-hard);
+}
+
+.timeline-date-badge {
+    display: inline-block;
+    background: #000;
+    color: #FFF;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.timeline-event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.timeline-event-title {
+    font-size: 1.125rem;
+    font-weight: 900;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.timeline-event-type {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    border-radius: 0;
+    color: #FFF;
+}
+
+.timeline-event-type.illness { background: var(--brutal-red); }
+.timeline-event-type.checkup { background: var(--brutal-blue); }
+.timeline-event-type.chronic_management { background: var(--brutal-purple); }
+.timeline-event-type.emergency { background: var(--brutal-orange); }
+.timeline-event-type.wellness { background: var(--brutal-green); }
+.timeline-event-type.medication_course { background: var(--brutal-pink); }
+.timeline-event-type.other { background: #94a3b8; }
+
+.timeline-description {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin: 0.5rem 0;
+    white-space: pre-wrap;
+}
+
+.timeline-dates {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #475569;
+    margin: 0.5rem 0;
+}
+
+.timeline-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 2px solid #f1f5f9;
+}
+
+.timeline-stat {
+    text-align: center;
+    flex: 1;
+}
+
+.timeline-stat-value {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #000;
+}
+
+.timeline-stat-label {
+    font-size: 0.625rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.view-toggle-group {
+    display: inline-flex;
+    background: #FFF;
+    border: var(--border-thick);
+    box-shadow: var(--shadow-hard-sm);
+    padding: 0.25rem;
+}
+
+.view-toggle-btn {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.view-toggle-btn:hover {
+    background: rgba(20, 184, 166, 0.1);
+}
+
+.view-toggle-btn.active {
+    background: var(--brutal-cyan);
+    font-weight: 900;
+}
+
+@media (max-width: 768px) {
+    .timeline-line {
+        left: 2rem;
+    }
+
+    .timeline-dot {
+        left: 2rem;
+    }
+
+    .timeline-item:nth-child(odd) .timeline-content,
+    .timeline-item:nth-child(even) .timeline-content {
+        margin-left: 4rem;
+        margin-right: 0;
+        max-width: calc(100% - 5rem);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="page-header" style="background: var(--brutal-cyan); border: var(--border-thick); box-shadow: var(--shadow-hard); padding: 2rem; margin-bottom: 2rem;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-1 fw-bold" style="font-size: 2.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 0;">
+                    <i class="bi bi-collection"></i> 健康事件
+                </h1>
+                <p class="mb-0" style="opacity: 0.9;">将体检报告、药单等记录聚合为健康事件，方便查看和管理</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-auto-cluster" onclick="autoClusterEvents()">
+                    <i class="bi bi-magic me-2"></i> 自动聚类
+                </button>
+                <button class="btn btn-create" onclick="showCreateEventModal()">
+                    <i class="bi bi-plus-circle me-2"></i> 新建事件
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 筛选区域 -->
+    <div class="filter-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="filter-group">
+                <div>
+                    <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">事件类型</label>
+                <select class="form-control" id="filterEventType" onchange="filterEvents()">
+                    <option value="">全部</option>
+                    <option value="illness">疾病事件</option>
+                    <option value="checkup">体检事件</option>
+                    <option value="chronic_management">慢性病管理</option>
+                    <option value="emergency">急诊事件</option>
+                    <option value="wellness">健康管理</option>
+                    <option value="medication_course">用药疗程</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">来源</label>
+                <select class="form-control" id="filterIsAuto" onchange="filterEvents()">
+                    <option value="">全部</option>
+                    <option value="true">自动生成</option>
+                    <option value="false">手动创建</option>
+                </select>
+            </div>
+            <div>
+                <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">搜索</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="搜索事件名称..." oninput="filterEvents()">
+            </div>
+        </div>
+
+        <!-- 视图切换 -->
+        <div class="view-toggle-group">
+            <button class="view-toggle-btn active" id="gridViewBtn" onclick="switchView('grid')">
+                <i class="bi bi-grid-3x3-gap"></i>
+                <span class="d-none d-md-inline">网格</span>
+            </button>
+            <button class="view-toggle-btn" id="timelineViewBtn" onclick="switchView('timeline')">
+                <i class="bi bi-clock-history"></i>
+                <span class="d-none d-md-inline">时间线</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 事件列表容器 -->
+    <div id="eventsContainer">
+        <!-- 网格视图 -->
+        <div class="row" id="eventsList">
+            <!-- 动态加载事件 -->
+        </div>
+
+        <!-- 时间线视图 -->
+        <div class="timeline-container d-none" id="timelineContainer">
+            <div class="timeline-line"></div>
+            <!-- 动态加载时间线 -->
+        </div>
+    </div>
+</div>
+
+<!-- 创建/编辑事件模态框 -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border: var(--border-thick); border-radius: 0; box-shadow: var(--shadow-hard);">
+            <div class="modal-header" style="background: var(--brutal-cyan); color: #000; border-radius: 0; border: none; border-bottom: var(--border-thick); padding: 1.5rem;">
+                <h5 class="modal-title fw-bold" style="font-size: 1.5rem; font-weight: 900; text-transform: uppercase;">
+                    <i class="bi bi-plus-circle me-2"></i> <span id="modalTitle">新建事件</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <form id="eventForm">
+                    <input type="hidden" id="eventId">
+                    <div class="mb-3">
+                        <label for="eventName" class="form-label">事件名称 *</label>
+                        <input type="text" class="form-control" id="eventName" required placeholder="例如：2024年体检、感冒治疗等">
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventType" class="form-label">事件类型 *</label>
+                        <select class="form-control" id="eventType" required>
+                            <option value="illness">疾病事件</option>
+                            <option value="checkup">体检事件</option>
+                            <option value="chronic_management">慢性病管理</option>
+                            <option value="emergency">急诊事件</option>
+                            <option value="wellness">健康管理</option>
+                            <option value="medication_course">用药疗程</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startDate" class="form-label">开始日期 *</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endDate" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">事件描述</label>
+                        <textarea class="form-control" id="description" rows="3" placeholder="描述这个健康事件的情况..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top: var(--border-thick); padding: 1.5rem 2rem;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveEvent()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 自动聚类设置模态框 -->
+<div class="modal fade" id="clusterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border: var(--border-thick); border-radius: 0; box-shadow: var(--shadow-hard);">
+            <div class="modal-header" style="background: var(--brutal-green); color: #000; border-radius: 0; border: none; border-bottom: var(--border-thick); padding: 1.5rem;">
+                <h5 class="modal-title fw-bold" style="font-size: 1.5rem; font-weight: 900; text-transform: uppercase;">
+                    <i class="bi bi-magic me-2"></i> 自动聚类设置
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem;">
+                <div class="mb-3">
+                    <label for="daysThreshold" class="form-label">时间阈值（天）</label>
+                    <input type="number" class="form-control" id="daysThreshold" value="7" min="1" max="365">
+                    <small class="text-muted">在此时间窗口内的记录会被聚为同一个事件</small>
+                </div>
+                <div class="alert alert-info" style="background: #e0f2fe; border: 2px solid #000; border-radius: 0;">
+                    <strong>聚类规则：</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>体检报告：按日期相近性聚类</li>
+                        <li>药单：按时间重叠或相近性聚类</li>
+                        <li>疾病事件：通过异常指标和药单关联检测</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-top: var(--border-thick); padding: 1.5rem 2rem;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="runAutoCluster()">
+                    <i class="bi bi-magic me-2"></i> 开始聚类
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let eventModal, clusterModal;
+let currentEvents = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+    clusterModal = new bootstrap.Modal(document.getElementById('clusterModal'));
+    loadEvents();
+});
+
+// 加载事件列表
+async function loadEvents() {
+    try {
+        const response = await fetch('{% url "medical_records:api_events" %}');
+        const data = await response.json();
+
+        if (data.success) {
+            currentEvents = data.events;
+            renderEvents(currentEvents);
+        }
+    } catch (error) {
+        console.error('加载失败:', error);
+    }
+}
+
+// 渲染事件列表
+function renderEvents(events) {
+    const container = document.getElementById('eventsList');
+
+    if (events.length === 0) {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="bi bi-collection"></i>
+                    <h3 style="color: #64748b;">还没有健康事件</h3>
+                    <p style="margin-bottom: 2rem;">点击"自动聚类"或"新建事件"开始创建</p>
+                    <button class="btn btn-auto-cluster" onclick="autoClusterEvents()">
+                        <i class="bi bi-magic me-2"></i> 自动聚类
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = events.map(event => `
+        <div class="col-lg-6 col-xl-4">
+            <div class="event-card" onclick="viewEventDetail(${event.id})">
+                <div class="event-header ${event.event_type}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="event-title">
+                            ${event.name}
+                            ${event.is_auto_generated ? '<span class="auto-tag">AUTO</span>' : ''}
+                        </h5>
+                        <span class="event-type-badge">${getEventTypeLabel(event.event_type)}</span>
+                    </div>
+                </div>
+                <div class="event-body">
+                    <div class="event-meta">
+                        <div class="event-meta-item">
+                            <i class="bi bi-calendar3"></i>
+                            <span>${formatDate(event.start_date)}</span>
+                        </div>
+                        ${event.end_date ? `
+                        <div class="event-meta-item">
+                            <i class="bi bi-calendar-check"></i>
+                            <span>${formatDate(event.end_date)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="event-stats">
+                        <div class="event-stat">
+                            <div class="event-stat-value">${event.item_count}</div>
+                            <div class="event-stat-label">记录数</div>
+                        </div>
+                        <div class="event-stat">
+                            <div class="event-stat-value">${event.duration_days}</div>
+                            <div class="event-stat-label">天数</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 筛选事件
+function filterEvents() {
+    const eventType = document.getElementById('filterEventType').value;
+    const isAuto = document.getElementById('filterIsAuto').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+
+    let filtered = currentEvents;
+
+    if (eventType) {
+        filtered = filtered.filter(e => e.event_type === eventType);
+    }
+
+    if (isAuto) {
+        filtered = filtered.filter(e => e.is_auto_generated === (isAuto === 'true'));
+    }
+
+    if (search) {
+        filtered = filtered.filter(e =>
+            e.name.toLowerCase().includes(search) ||
+            (e.description && e.description.toLowerCase().includes(search))
+        );
+    }
+
+    renderEvents(filtered);
+}
+
+// ==================== 视图切换 ====================
+let currentView = 'grid'; // 'grid' or 'timeline'
+
+function switchView(view) {
+    currentView = view;
+    const gridBtn = document.getElementById('gridViewBtn');
+    const timelineBtn = document.getElementById('timelineViewBtn');
+    const eventsList = document.getElementById('eventsList');
+    const timelineContainer = document.getElementById('timelineContainer');
+
+    if (view === 'grid') {
+        gridBtn.classList.add('active');
+        timelineBtn.classList.remove('active');
+        eventsList.classList.remove('d-none');
+        timelineContainer.classList.add('d-none');
+    } else {
+        timelineBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+        eventsList.classList.add('d-none');
+        timelineContainer.classList.remove('d-none');
+        renderTimeline(currentEvents);
+    }
+}
+
+// ==================== 时间线渲染 ====================
+function renderTimeline(events) {
+    const container = document.getElementById('timelineContainer');
+
+    if (events.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-clock-history" style="font-size: 5rem; color: #cbd5e1;"></i>
+                <h3 style="color: #64748b;">还没有健康事件</h3>
+                <p style="margin-bottom: 2rem;">点击"自动聚类"或"新建事件"开始创建</p>
+                <button class="btn btn-auto-cluster" onclick="autoClusterEvents()">
+                    <i class="bi bi-magic me-2"></i> 自动聚类
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    // 按开始日期排序
+    const sortedEvents = [...events].sort((a, b) => {
+        return new Date(b.start_date) - new Date(a.start_date);
+    });
+
+    container.innerHTML = '<div class="timeline-line"></div>' + sortedEvents.map(event => `
+        <div class="timeline-item" onclick="viewEventDetail(${event.id})">
+            <div class="timeline-dot ${event.event_type}"></div>
+            <div class="timeline-content">
+                <div class="timeline-date-badge">
+                    ${formatDate(event.start_date)}
+                    ${event.end_date ? ' → ' + formatDate(event.end_date) : ''}
+                </div>
+                <div class="timeline-event-header">
+                    <h4 class="timeline-event-title">
+                        ${event.name}
+                        ${event.is_auto_generated ? '<span class="auto-badge">AUTO</span>' : ''}
+                    </h4>
+                    <span class="timeline-event-type ${event.event_type}">
+                        ${getEventTypeLabel(event.event_type)}
+                    </span>
+                </div>
+                ${event.description ? `<p class="timeline-description">${event.description}</p>` : ''}
+                <div class="timeline-dates">
+                    <i class="bi bi-calendar3"></i>
+                    <span>持续 ${event.duration_days} 天</span>
+                </div>
+                <div class="timeline-stats">
+                    <div class="timeline-stat">
+                        <div class="timeline-stat-value">${event.item_count}</div>
+                        <div class="timeline-stat-label">记录数</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 修改原有的 filterEvents 函数以支持时间线
+const originalRenderEvents = renderEvents;
+renderEvents = function(events) {
+    if (currentView === 'grid') {
+        originalRenderEvents(events);
+    } else {
+        renderTimeline(events);
+    }
+};
+
+// 筛选事件
+function filterEvents() {
+    const eventType = document.getElementById('filterEventType').value;
+    const isAuto = document.getElementById('filterIsAuto').value;
+    const search = document.getElementById('searchInput').value.toLowerCase();
+
+    let filtered = currentEvents;
+
+    if (eventType) {
+        filtered = filtered.filter(e => e.event_type === eventType);
+    }
+
+    if (isAuto) {
+        filtered = filtered.filter(e => e.is_auto_generated === (isAuto === 'true'));
+    }
+
+    if (search) {
+        filtered = filtered.filter(e =>
+            e.name.toLowerCase().includes(search) ||
+            (e.description && e.description.toLowerCase().includes(search))
+        );
+    }
+
+    renderEvents(filtered);
+}
+
+// 显示创建事件模态框
+function showCreateEventModal() {
+    document.getElementById('modalTitle').textContent = '新建事件';
+    document.getElementById('eventForm').reset();
+    document.getElementById('eventId').value = '';
+    eventModal.show();
+}
+
+// 自动聚类
+function autoClusterEvents() {
+    clusterModal.show();
+}
+
+// 执行自动聚类
+async function runAutoCluster() {
+    const daysThreshold = parseInt(document.getElementById('daysThreshold').value) || 7;
+
+    try {
+        const response = await fetch('{% url "medical_records:api_event_auto_cluster" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                days_threshold: daysThreshold
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`聚类完成！创建了 ${data.events_created} 个新事件`);
+            clusterModal.hide();
+            loadEvents();
+        } else {
+            alert('聚类失败：' + data.error);
+        }
+    } catch (error) {
+        alert('聚类失败：' + error);
+    }
+}
+
+// 保存事件
+async function saveEvent() {
+    const eventId = document.getElementById('eventId').value;
+    const name = document.getElementById('eventName').value;
+    const eventType = document.getElementById('eventType').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const description = document.getElementById('description').value;
+
+    if (!name || !eventType || !startDate) {
+        alert('请填写所有必填项');
+        return;
+    }
+
+    const url = eventId ?
+        `{% url "medical_records:api_event_detail" 0 %}`.replace('0', eventId) :
+        `{% url "medical_records:api_events" %}`;
+
+    const method = eventId ? 'PUT' : 'POST';
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: name,
+                event_type: eventType,
+                start_date: startDate,
+                end_date: endDate || null,
+                description: description
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert('保存成功！');
+            eventModal.hide();
+            loadEvents();
+        } else {
+            alert('保存失败：' + data.error);
+        }
+    } catch (error) {
+        alert('保存失败：' + error);
+    }
+}
+
+// 查看事件详情
+function viewEventDetail(eventId) {
+    window.location.href = `{% url "medical_records:event_detail" 0 %}`.replace('0', eventId);
+}
+
+// 获取事件类型标签
+function getEventTypeLabel(type) {
+    const labels = {
+        'illness': '疾病事件',
+        'checkup': '体检事件',
+        'chronic_management': '慢性病管理',
+        'emergency': '急诊事件',
+        'wellness': '健康管理',
+        'medication_course': '用药疗程',
+        'other': '其他'
+    };
+    return labels[type] || '其他';
+}
+
+// 格式化日期
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+// 获取CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

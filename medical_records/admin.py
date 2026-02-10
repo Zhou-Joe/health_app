@@ -1,7 +1,9 @@
 from django.contrib import admin
+from django.contrib.contenttypes.admin import GenericTabularInline
 from .models import (
     HealthCheckup, HealthIndicator, HealthAdvice,
-    DocumentProcessing, SystemSettings, Medication, MedicationRecord
+    DocumentProcessing, SystemSettings, Medication, MedicationRecord,
+    HealthEvent, EventItem, EventTemplate
 )
 
 
@@ -88,3 +90,187 @@ class MedicationRecordAdmin(admin.ModelAdmin):
     date_hierarchy = 'record_date'
     ordering = ['-record_date', '-taken_at']
     readonly_fields = ['taken_at']
+
+
+class EventItemInline(GenericTabularInline):
+    """事件项目内联编辑"""
+    model = EventItem
+    extra = 0
+    readonly_fields = ['content_object', 'added_by', 'added_at']
+    fields = ['content_object', 'notes', 'added_by', 'added_at']
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(HealthEvent)
+class HealthEventAdmin(admin.ModelAdmin):
+    list_display = ['user', 'name', 'event_type', 'start_date', 'end_date', 'duration_display', 'item_count', 'is_auto_generated', 'created_at']
+    list_filter = ['event_type', 'is_auto_generated', 'start_date', 'created_at']
+    search_fields = ['user__username', 'name', 'description']
+    date_hierarchy = 'start_date'
+    ordering = ['-start_date']
+    readonly_fields = ['created_at', 'updated_at', 'item_count', 'duration_days']
+    inlines = [EventItemInline]
+
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('user', 'name', 'event_type', 'is_auto_generated')
+        }),
+        ('时间范围', {
+            'fields': ('start_date', 'end_date', 'duration_days')
+        }),
+        ('描述', {
+            'fields': ('description',)
+        }),
+        ('元数据', {
+            'fields': ('created_at', 'updated_at', 'item_count'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def duration_display(self, obj):
+        """显示持续时长"""
+        days = obj.duration_days
+        if days == 1:
+            return "1天"
+        return f"{days}天"
+    duration_display.short_description = '持续时长'
+
+    def item_count(self, obj):
+        """显示关联记录数"""
+        return obj.get_item_count()
+    item_count.short_description = '记录数'
+
+    actions = ['auto_cluster_selected']
+
+    def auto_cluster_selected(self, request, queryset):
+        """为选中用户的记录自动聚类"""
+        users = queryset.values_list('user', flat=True).distinct()
+        events_created = 0
+        for user_id in users:
+            from django.contrib.auth.models import User
+            user = User.objects.get(id=user_id)
+            events_created += HealthEvent.auto_cluster_user_records(user)
+
+        from django.contrib import messages
+        messages.success(request, f'已为 {len(users)} 个用户自动聚类，创建了 {events_created} 个事件')
+    auto_cluster_selected.short_description = '为选中记录的用户执行自动聚类'
+
+
+@admin.register(EventItem)
+class EventItemAdmin(admin.ModelAdmin):
+    list_display = ['event', 'content_type', 'object_summary', 'added_by', 'added_at']
+    list_filter = ['content_type', 'added_by', 'added_at']
+    search_fields = ['event__name', 'event__user__username', 'notes']
+    ordering = ['-added_at']
+    readonly_fields = ['added_at']
+
+    def object_summary(self, obj):
+        """显示对象摘要"""
+        return obj.item_summary
+    object_summary.short_description = '记录摘要'
+
+
+@admin.register(EventTemplate)
+class EventTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'event_type', 'suggested_duration_days', 'is_system_template', 'is_active', 'created_at']
+    list_filter = ['event_type', 'is_system_template', 'is_active', 'created_at']
+    search_fields = ['name', 'description']
+    ordering = ['is_system_template', 'name']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        ('基本信息', {
+            'fields': ('name', 'description', 'event_type')
+        }),
+        ('模板配置', {
+            'fields': ('suggested_duration_days', 'default_name_template', 'is_system_template', 'is_active')
+        }),
+        ('元数据', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    actions = ['create_default_templates']
+
+    def create_default_templates(self, request, queryset):
+        """创建默认的系统模板"""
+        templates = [
+            {
+                'name': '年度体检',
+                'description': '年度健康体检事件',
+                'event_type': 'checkup',
+                'suggested_duration_days': 1,
+                'default_name_template': '{date} 年度体检',
+                'is_system_template': True,
+            },
+            {
+                'name': '感冒治疗',
+                'description': '普通感冒或流感治疗过程',
+                'event_type': 'illness',
+                'suggested_duration_days': 7,
+                'default_name_template': '{date} 感冒治疗',
+                'is_system_template': True,
+            },
+            {
+                'name': '高血压管理',
+                'description': '高血压慢性病管理',
+                'event_type': 'chronic_management',
+                'suggested_duration_days': 365,
+                'default_name_template': '高血压管理',
+                'is_system_template': True,
+            },
+            {
+                'name': '糖尿病管理',
+                'description': '糖尿病慢性病管理',
+                'event_type': 'chronic_management',
+                'suggested_duration_days': 365,
+                'default_name_template': '糖尿病管理',
+                'is_system_template': True,
+            },
+            {
+                'name': '急诊',
+                'description': '急诊就诊事件',
+                'event_type': 'emergency',
+                'suggested_duration_days': 1,
+                'default_name_template': '{date} 急诊',
+                'is_system_template': True,
+            },
+            {
+                'name': '健康体检套餐',
+                'description': '全面健康体检套餐',
+                'event_type': 'checkup',
+                'suggested_duration_days': 3,
+                'default_name_template': '{date} 健康体检套餐',
+                'is_system_template': True,
+            },
+            {
+                'name': '抗生素疗程',
+                'description': '抗生素药物治疗疗程',
+                'event_type': 'medication_course',
+                'suggested_duration_days': 7,
+                'default_name_template': '抗生素疗程',
+                'is_system_template': True,
+            },
+            {
+                'name': '疫苗接种',
+                'description': '疫苗接种记录',
+                'event_type': 'wellness',
+                'suggested_duration_days': 1,
+                'default_name_template': '{date} 疫苗接种',
+                'is_system_template': True,
+            },
+        ]
+
+        created_count = 0
+        for template_data in templates:
+            # 检查是否已存在同名模板
+            if not EventTemplate.objects.filter(name=template_data['name']).exists():
+                EventTemplate.objects.create(**template_data)
+                created_count += 1
+
+        from django.contrib import messages
+        messages.success(request, f'已创建 {created_count} 个默认模板')
+    create_default_templates.short_description = '创建默认系统模板'

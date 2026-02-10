@@ -12,6 +12,7 @@ from django.core.files.storage import default_storage
 import json
 import uuid
 import os
+import threading
 from datetime import datetime, timedelta
 
 from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing, Conversation

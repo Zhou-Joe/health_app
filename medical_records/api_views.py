@@ -9,7 +9,9 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .models import HealthCheckup, DocumentProcessing, HealthIndicator, Conversation, HealthAdvice, SystemSettings
+from django.contrib.contenttypes.models import ContentType
+from .models import (HealthCheckup, DocumentProcessing, HealthIndicator, Conversation, HealthAdvice, SystemSettings,
+                    Medication, MedicationRecord, HealthEvent, EventItem)
 from .forms import HealthCheckupForm
 from .services import DocumentProcessingService
 from .utils import convert_image_to_pdf, is_image_file
@@ -3237,4 +3239,411 @@ def api_conversation_resources(request, conversation_id):
         return JsonResponse({
             'success': False,
             'error': f'获取对话资源失败: {str(e)}'
+        }, status=500)
+
+# ============================================================================
+# 健康事件聚合 API
+# ============================================================================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_events(request):
+    """
+    GET: 获取用户的健康事件列表
+    POST: 创建新的健康事件
+    """
+    if request.method == 'GET':
+        # 获取查询参数
+        event_type = request.GET.get('event_type')
+        is_auto = request.GET.get('is_auto_generated')
+        limit = int(request.GET.get('limit', 50))
+
+        # 构建查询
+        events = HealthEvent.objects.filter(user=request.user)
+
+        if event_type:
+            events = events.filter(event_type=event_type)
+        if is_auto is not None:
+            is_auto_bool = is_auto.lower() == 'true'
+            events = events.filter(is_auto_generated=is_auto_bool)
+
+        events = events[:limit]
+
+        # 序列化数据
+        events_data = []
+        for event in events:
+            events_data.append({
+                'id': event.id,
+                'name': event.name,
+                'description': event.description,
+                'event_type': event.event_type,
+                'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
+                'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
+                'duration_days': event.duration_days,
+                'item_count': event.get_item_count(),
+                'is_auto_generated': event.is_auto_generated,
+                'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': event.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return JsonResponse({
+            'success': True,
+            'events': events_data,
+            'count': len(events_data)
+        })
+
+    elif request.method == 'POST':
+        # 创建新事件
+        try:
+            data = request.data
+            name = data.get('name')
+            description = data.get('description', '')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+            event_type = data.get('event_type', 'other')
+
+            if not name:
+                return JsonResponse({
+                    'success': False,
+                    'error': '事件名称不能为空'
+                }, status=400)
+
+            if not start_date:
+                return JsonResponse({
+                    'success': False,
+                    'error': '开始日期不能为空'
+                }, status=400)
+
+            from datetime import datetime
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            if end_date:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+            event = HealthEvent.objects.create(
+                user=request.user,
+                name=name,
+                description=description,
+                start_date=start_date,
+                end_date=end_date,
+                event_type=event_type,
+                is_auto_generated=False
+            )
+
+            return JsonResponse({
+                'success': True,
+                'event': {
+                    'id': event.id,
+                    'name': event.name,
+                    'description': event.description,
+                    'event_type': event.event_type,
+                    'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
+                    'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
+                    'duration_days': event.duration_days,
+                    'item_count': 0,
+                    'is_auto_generated': event.is_auto_generated,
+                    'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'创建事件失败: {str(e)}'
+            }, status=500)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def api_event_detail(request, event_id):
+    """
+    GET: 获取事件详情（包含关联的记录）
+    PUT: 更新事件
+    DELETE: 删除事件
+    """
+    try:
+        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+        if request.method == 'GET':
+            # 获取事件关联的所有项目
+            items = event.event_items.all()
+            items_data = []
+
+            for item in items:
+                items_data.append({
+                    'id': item.id,
+                    'item_summary': item.item_summary,
+                    'content_type': item.content_type.model,
+                    'object_id': item.object_id,
+                    'notes': item.notes,
+                    'added_by': item.added_by,
+                    'added_at': item.added_at.strftime('%Y-%m-%d %H:%M:%S'),
+                })
+
+            return JsonResponse({
+                'success': True,
+                'event': {
+                    'id': event.id,
+                    'name': event.name,
+                    'description': event.description,
+                    'event_type': event.event_type,
+                    'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
+                    'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
+                    'duration_days': event.duration_days,
+                    'item_count': event.get_item_count(),
+                    'is_auto_generated': event.is_auto_generated,
+                    'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    'updated_at': event.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                },
+                'items': items_data
+            })
+
+        elif request.method == 'PUT':
+            # 更新事件
+            try:
+                data = request.data
+
+                if 'name' in data:
+                    event.name = data['name']
+                if 'description' in data:
+                    event.description = data['description']
+                if 'event_type' in data:
+                    event.event_type = data['event_type']
+                if 'start_date' in data:
+                    from datetime import datetime
+                    event.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+                if 'end_date' in data:
+                    if data['end_date']:
+                        from datetime import datetime
+                        event.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+                    else:
+                        event.end_date = None
+
+                event.save()
+
+                return JsonResponse({
+                    'success': True,
+                    'event': {
+                        'id': event.id,
+                        'name': event.name,
+                        'description': event.description,
+                        'event_type': event.event_type,
+                        'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
+                        'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
+                        'duration_days': event.duration_days,
+                        'item_count': event.get_item_count(),
+                        'is_auto_generated': event.is_auto_generated,
+                    }
+                })
+
+            except Exception as e:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'更新事件失败: {str(e)}'
+                }, status=500)
+
+        elif request.method == 'DELETE':
+            # 删除事件
+            event.delete()
+            return JsonResponse({
+                'success': True,
+                'message': '事件已删除'
+            })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'操作失败: {str(e)}'
+        }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_event_add_item(request, event_id):
+    """
+    向事件添加健康记录
+    """
+    try:
+        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+        data = request.data
+        content_type_str = data.get('content_type')  # 'healthcheckup', 'medication', etc.
+        object_id = data.get('object_id')
+        notes = data.get('notes', '')
+
+        if not content_type_str or not object_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'content_type 和 object_id 参数必填'
+            }, status=400)
+
+        # 获取 ContentType
+        try:
+            content_type = ContentType.objects.get(model=content_type_str)
+        except ContentType.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'无效的内容类型: {content_type_str}'
+            }, status=400)
+
+        # 检查对象是否存在且属于当前用户
+        obj = content_type.get_object_for_this_type(id=object_id)
+        if hasattr(obj, 'user') and obj.user != request.user:
+            return JsonResponse({
+                'success': False,
+                'error': '无权添加该记录'
+            }, status=403)
+
+        # 检查是否已经添加
+        if EventItem.objects.filter(
+            event=event,
+            content_type=content_type,
+            object_id=object_id
+        ).exists():
+            return JsonResponse({
+                'success': False,
+                'error': '该记录已添加到此事件'
+            }, status=400)
+
+        # 创建 EventItem
+        item = EventItem.objects.create(
+            event=event,
+            content_type=content_type,
+            object_id=object_id,
+            notes=notes,
+            added_by='manual'
+        )
+
+        return JsonResponse({
+            'success': True,
+            'item': {
+                'id': item.id,
+                'item_summary': item.item_summary,
+                'content_type': item.content_type.model,
+                'object_id': item.object_id,
+                'notes': item.notes,
+                'added_by': item.added_by,
+                'added_at': item.added_at.strftime('%Y-%m-%d %H:%M:%S'),
+            },
+            'event_item_count': event.get_item_count()
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'添加记录失败: {str(e)}'
+        }, status=500)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def api_event_remove_item(request, event_id, item_id):
+    """
+    从事件中移除健康记录
+    """
+    try:
+        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+        item = get_object_or_404(EventItem, id=item_id, event=event)
+
+        item.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': '记录已移除',
+            'event_item_count': event.get_item_count()
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'移除记录失败: {str(e)}'
+        }, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_event_auto_cluster(request):
+    """
+    为当前用户触发自动聚类
+    """
+    try:
+        # Get days_threshold from request.data
+        data = request.data if request.data else {}
+        days_threshold = int(data.get('days_threshold', 7))
+
+        # 执行自动聚类
+        events_created = HealthEvent.auto_cluster_user_records(request.user, days_threshold)
+
+        return JsonResponse({
+            'success': True,
+            'events_created': events_created,
+            'message': f'已自动创建 {events_created} 个事件'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'自动聚类失败: {str(e)}'
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def api_event_available_items(request):
+    """
+    获取可以添加到事件的记录列表
+    """
+    try:
+        content_type = request.GET.get('content_type', 'all')
+        limit = int(request.GET.get('limit', 50))
+
+        items = []
+
+        # 获取体检报告
+        if content_type in ['all', 'healthcheckup']:
+            checkups = HealthCheckup.objects.filter(user=request.user)[:limit]
+            for checkup in checkups:
+                items.append({
+                    'content_type': 'healthcheckup',
+                    'object_id': checkup.id,
+                    'summary': f"体检报告: {checkup.checkup_date} - {checkup.hospital}",
+                    'date': checkup.checkup_date.strftime('%Y-%m-%d'),
+                })
+
+        # 获取药单
+        if content_type in ['all', 'medication']:
+            medications = Medication.objects.filter(user=request.user, is_active=True)[:limit]
+            for med in medications:
+                items.append({
+                    'content_type': 'medication',
+                    'object_id': med.id,
+                    'summary': f"药单: {med.medicine_name} ({med.start_date} 至 {med.end_date})",
+                    'date': med.start_date.strftime('%Y-%m-%d'),
+                })
+
+        # 获取健康指标
+        if content_type in ['all', 'healthindicator']:
+            indicators = HealthIndicator.objects.filter(
+                checkup__user=request.user
+            ).select_related('checkup')[:limit]
+            for indicator in indicators:
+                items.append({
+                    'content_type': 'healthindicator',
+                    'object_id': indicator.id,
+                    'summary': f"指标: {indicator.indicator_name} = {indicator.value} {indicator.unit or ''}",
+                    'date': indicator.checkup.checkup_date.strftime('%Y-%m-%d'),
+                })
+
+        # 按日期排序
+        items.sort(key=lambda x: x['date'], reverse=True)
+
+        return JsonResponse({
+            'success': True,
+            'items': items[:limit],
+            'count': len(items[:limit])
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'获取记录列表失败: {str(e)}'
         }, status=500)
