@@ -215,8 +215,9 @@ body {
 /* ==================== 时间线视图样式 ==================== */
 .timeline-wrapper {
     position: relative;
-    padding: 3rem 1rem;
+    padding: 1rem 1rem 3rem 1rem;
     min-height: 400px;
+    margin-top: 1rem;
 }
 
 .timeline-svg {
@@ -811,29 +812,32 @@ function renderTimeline(events) {
     const years = [...new Set(sortedEvents.map(e => new Date(e.start_date).getFullYear()))].sort((a, b) => b - a);
 
     // Set wrapper height based on number of years
-    const rowHeight = 250;
-    const wrapperHeight = Math.max(rowHeight * years.length, 400);
+    const rowHeight = 200;
+    const startY = 60; // Start from top with some margin
+    const wrapperHeight = Math.max(startY + rowHeight * years.length, 300);
     newWrapper.style.height = wrapperHeight + 'px';
 
     // Calculate timeline path
     const wrapperWidth = newWrapper.offsetWidth;
-    const paddingX = 100;
-    const availableWidth = wrapperWidth - (paddingX * 2);
+    const paddingX = 80;
+    const endMargin = 60; // Margin at the end for semicircle
+    const availableWidth = wrapperWidth - (paddingX * 2) - endMargin;
+    const turnRadius = 30; // Radius of semicircle turns
 
     let pathD = '';
     let pathPoints = [];
 
     years.forEach((year, yearIndex) => {
-        const y = (yearIndex * rowHeight) + 80;
+        const y = startY + (yearIndex * rowHeight);
         const yearEvents = sortedEvents.filter(e => new Date(e.start_date).getFullYear() === year);
 
         yearEvents.forEach((event, eventIndex) => {
             const x = paddingX + (eventIndex / (yearEvents.length - 1 || 1)) * availableWidth;
-            pathPoints.push({ x, y, event });
+            pathPoints.push({ x, y, event, year, yearIndex });
         });
     });
 
-    // Draw the continuous path with curves
+    // Draw the continuous path with semicircle turns
     if (pathPoints.length > 0) {
         pathD = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
 
@@ -842,18 +846,22 @@ function renderTimeline(events) {
             const next = pathPoints[i + 1];
 
             // Check if we're transitioning to a new year (different y)
-            if (Math.abs(next.y - current.y) > 10) {
-                // Create a curved connection between years
-                const midY = (current.y + next.y) / 2;
-                const controlPoint1X = current.x;
-                const controlPoint2X = next.x;
+            if (next.yearIndex !== current.yearIndex) {
+                // End of current year line
+                const endX = current.x + turnRadius;
 
-                // Use cubic bezier curve for smooth transition
-                pathD += ` C ${controlPoint1X} ${midY}, ${controlPoint2X} ${midY}, ${next.x} ${next.y}`;
+                // Draw semicircle turn: go from current.x to current.x + turnRadius
+                // Arc from (current.x + turnRadius, current.y) to (current.x + turnRadius, next.y)
+                const arcX = current.x + turnRadius;
+                const arcEndY = next.y;
+
+                // Line to arc start, then semicircle arc
+                pathD += ` L ${arcX} ${current.y}`;
+                pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${arcX} ${arcEndY}`;
+                pathD += ` L ${next.x} ${next.y}`;
             } else {
-                // Same year - straight line with slight curve
-                const midX = (current.x + next.x) / 2;
-                pathD += ` Q ${midX} ${current.y}, ${next.x} ${next.y}`;
+                // Same year - horizontal line
+                pathD += ` L ${next.x} ${next.y}`;
             }
         }
     }
@@ -865,11 +873,11 @@ function renderTimeline(events) {
     pathPoints.forEach((point, index) => {
         const event = point.event;
         const isAbove = index % 2 === 0;
-        const cardOffset = isAbove ? -140 : 30;
+        const cardOffset = isAbove ? -130 : 25;
 
         eventsHtml += `
             <div class="timeline-item" style="left: ${point.x - 90}px; top: ${point.y + cardOffset}px; animation-delay: ${index * 0.1}s">
-                <div class="timeline-dot ${event.event_type}" style="position: absolute; ${isAbove ? 'bottom: -50px;' : 'top: -50px;'} left: 50%; transform: translateX(-50%);"></div>
+                <div class="timeline-dot ${event.event_type}" style="position: absolute; ${isAbove ? 'bottom: -45px;' : 'top: -45px;'} left: 50%; transform: translateX(-50%);"></div>
                 <div class="timeline-card ${isAbove ? 'above' : 'below'}" onclick="viewEventDetail(${event.id})">
                     <div class="timeline-date-badge">
                         ${formatDate(event.start_date)}
