@@ -246,6 +246,17 @@ body {
     z-index: 10;
 }
 
+.timeline-year-label {
+    position: absolute;
+    left: 10px;
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    z-index: 5;
+}
+
 @keyframes popIn {
     0% {
         opacity: 0;
@@ -819,8 +830,8 @@ function renderTimeline(events) {
 
     // Calculate timeline path
     const wrapperWidth = newWrapper.offsetWidth;
-    const paddingX = 100;
-    const endMargin = 100;
+    const paddingX = 120;
+    const endMargin = 80;
     const availableWidth = wrapperWidth - paddingX - endMargin;
     const turnRadius = (rowHeight / 2);
 
@@ -873,21 +884,6 @@ function renderTimeline(events) {
     let allPoints = [];
 
     if (yearData.length > 0) {
-        // Collect all points in S-shape order
-        for (let i = 0; i < yearData.length; i++) {
-            const currentYear = yearData[i];
-
-            if (currentYear.isLeftToRight) {
-                // Left to right: add points in order of increasing x
-                const sortedPoints = [...currentYear.eventPoints].sort((a, b) => a.x - b.x);
-                sortedPoints.forEach(pt => allPoints.push(pt));
-            } else {
-                // Right to left: add points in order of decreasing x
-                const sortedPoints = [...currentYear.eventPoints].sort((a, b) => b.x - a.x);
-                sortedPoints.forEach(pt => allPoints.push(pt));
-            }
-        }
-
         // Build the S-shaped path
         // Start from the first point's row edge
         const firstYear = yearData[0];
@@ -903,15 +899,7 @@ function renderTimeline(events) {
 
             if (yr.isLeftToRight) {
                 // Moving left to right on this row
-                // Get points on this row, sorted by x
-                const rowPoints = yr.eventPoints.sort((a, b) => a.x - b.x);
-
-                // Draw line through each point
-                rowPoints.forEach(pt => {
-                    pathD += ` L ${pt.x} ${pt.y}`;
-                });
-
-                // Extend to right edge
+                // Draw line to right edge
                 pathD += ` L ${paddingX + availableWidth} ${yr.y}`;
 
                 // Draw semicircle to next row if not last
@@ -922,15 +910,7 @@ function renderTimeline(events) {
                 }
             } else {
                 // Moving right to left on this row
-                // Get points on this row, sorted by x (descending)
-                const rowPoints = yr.eventPoints.sort((a, b) => b.x - a.x);
-
-                // Draw line through each point
-                rowPoints.forEach(pt => {
-                    pathD += ` L ${pt.x} ${pt.y}`;
-                });
-
-                // Extend to left edge
+                // Draw line to left edge
                 pathD += ` L ${paddingX} ${yr.y}`;
 
                 // Draw semicircle to next row if not last
@@ -947,16 +927,35 @@ function renderTimeline(events) {
 
     // Render event cards along the path
     let eventsHtml = '';
+    // Year labels
+    yearData.forEach(yr => {
+        eventsHtml += `
+            <div class="timeline-year-label" style="top: ${yr.y - 18}px;">
+                ${yr.year}
+            </div>
+        `;
+    });
+
+    // Points along each year row (left-to-right or right-to-left)
+    yearData.forEach(yr => {
+        const orderedPoints = [...yr.eventPoints].sort((a, b) => {
+            return yr.isLeftToRight ? a.x - b.x : b.x - a.x;
+        });
+        orderedPoints.forEach(point => {
+            allPoints.push(point);
+        });
+    });
+
     allPoints.forEach((point, index) => {
         const event = point.event;
         // Alternate cards above/below the line
         const isAbove = index % 2 === 0;
-        const cardOffset = isAbove ? -140 : 35;
+        const cardOffset = isAbove ? -150 : 40;
 
         eventsHtml += `
-            <div class="timeline-item" style="left: ${point.x - 90}px; top: ${point.y + cardOffset}px; animation-delay: ${index * 0.08}s">
-                <div class="timeline-dot ${event.event_type}" style="position: absolute; ${isAbove ? 'bottom: -50px;' : 'top: -50px;'} left: 50%; transform: translateX(-50%);"></div>
-                <div class="timeline-card ${isAbove ? 'above' : 'below'}" onclick="viewEventDetail(${event.id})">
+            <div class="timeline-item" style="left: ${point.x}px; top: ${point.y}px; animation-delay: ${index * 0.08}s">
+                <div class="timeline-dot ${event.event_type}" style="left: -10px; top: -10px;"></div>
+                <div class="timeline-card ${isAbove ? 'above' : 'below'}" style="${isAbove ? 'bottom: 36px;' : 'top: 36px;'} left: -90px;" onclick="viewEventDetail(${event.id})">
                     <div class="timeline-date-badge">
                         ${formatDate(event.start_date)}
                     </div>
