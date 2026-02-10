@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}共享访问{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header" style="background: var(--brutal-cyan); border: var(--border-thick); box-shadow: var(--shadow-hard); padding: 2rem; margin-bottom: 2rem;">
+        <h1 class="mb-1 fw-bold" style="font-size: 2.25rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 0;">
+            <i class="bi bi-share"></i> 共享访问
+        </h1>
+        <p class="mb-0" style="opacity: 0.9;">查看他人授权给您的健康记录</p>
+    </div>
+
+    <div class="card" style="border: var(--border-thick); box-shadow: var(--shadow-hard-sm);">
+        <div class="card-header" style="background: #000; color: #fff;">已共享列表</div>
+        <div class="card-body">
+            {% if shares %}
+                <ul class="list-group">
+                    {% for share in shares %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ share.owner.username }}</strong>
+                                {% if share.relationship %}
+                                    <span class="text-muted">({{ share.relationship }})</span>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex gap-2">
+                                {% if share.can_view_records %}
+                                    <a class="btn btn-outline-dark btn-sm" href="{% url 'medical_records:shared_checkups' share.owner.id %}">体检报告</a>
+                                {% endif %}
+                                {% if share.can_view_medications %}
+                                    <a class="btn btn-outline-dark btn-sm" href="{% url 'medical_records:shared_medications' share.owner.id %}">药单</a>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-muted">暂无共享访问</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

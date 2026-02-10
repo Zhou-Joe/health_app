@@ -11,7 +11,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.contenttypes.models import ContentType
 from .models import (HealthCheckup, DocumentProcessing, HealthIndicator, Conversation, HealthAdvice, SystemSettings,
-                    Medication, MedicationRecord, HealthEvent, EventItem)
+                    Medication, MedicationRecord, HealthEvent, EventItem, CareGoal, CareAction)
 from .forms import HealthCheckupForm
 from .services import DocumentProcessingService
 from .utils import convert_image_to_pdf, is_image_file
@@ -24,6 +24,7 @@ from .llm_prompts import (
     build_data_integration_prompt,
     build_ai_doctor_prompt
 )
+from .views import call_ai_doctor_api
 
 
 def extract_json_objects(text):
@@ -3350,6 +3351,70 @@ def api_events(request):
                 'success': False,
                 'error': f'创建事件失败: {str(e)}'
             }, status=500)
+
+
+# ============================================================================
+# 健康计划 - AI建议行动
+# ============================================================================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_care_goal_suggest_actions(request, goal_id):
+    """为目标生成AI建议行动"""
+    goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+    prompt = (
+        f"请为以下健康目标生成3-6条可执行的行动建议，"
+        f"每条建议尽量简短明确：\n目标：{goal.title}\n"
+        f"如果目标包含数值，请给出可操作的日常建议。"
+    )
+
+    answer, error = call_ai_doctor_api(prompt, None, request.user)
+    if error:
+        return JsonResponse({'success': False, 'error': error}, status=400)
+
+    suggestions = []
+    for line in (answer or '').splitlines():
+        cleaned = line.strip().lstrip('•-*0123456789.、) ')
+        if cleaned:
+            suggestions.append(cleaned)
+
+    # 限制数量避免噪音
+    suggestions = suggestions[:8]
+
+    return JsonResponse({
+        'success': True,
+        'suggestions': suggestions,
+        'raw': answer
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_care_goal_add_actions(request, goal_id):
+    """批量添加行动"""
+    goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+    actions = request.data.get('actions', [])
+
+    if isinstance(actions, str):
+        actions = [a.strip() for a in actions.split('\n') if a.strip()]
+
+    if not isinstance(actions, list) or len(actions) == 0:
+        return JsonResponse({'success': False, 'error': '未提供行动列表'}, status=400)
+
+    created = 0
+    for title in actions:
+        if not title:
+            continue
+        CareAction.objects.create(
+            goal=goal,
+            title=title[:200],
+            suggested_by_ai=True
+        )
+        created += 1
+
+    goal.recalculate_progress()
+
+    return JsonResponse({'success': True, 'created': created})
 
 
 @api_view(['GET', 'PUT', 'DELETE'])

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}照护者授权{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header" style="background: var(--brutal-cyan); border: var(--border-thick); box-shadow: var(--shadow-hard); padding: 2rem; margin-bottom: 2rem;">
+        <h1 class="mb-1 fw-bold" style="font-size: 2.25rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 0;">
+            <i class="bi bi-people"></i> 照护者授权
+        </h1>
+        <p class="mb-0" style="opacity: 0.9;">为家人或照护者授权访问记录与药单</p>
+    </div>
+
+    <div class="card mb-4" style="border: var(--border-thick); box-shadow: var(--shadow-hard);">
+        <div class="card-header" style="background: var(--brutal-yellow); border-bottom: var(--border-thick);">新增授权</div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-4">{{ form.caregiver_username.label_tag }}{{ form.caregiver_username }}</div>
+                    <div class="col-md-4">{{ form.relationship.label_tag }}{{ form.relationship }}</div>
+                </div>
+                <div class="mt-3 d-flex flex-wrap gap-3">
+                    <div class="form-check">{{ form.can_view_records }} {{ form.can_view_records.label_tag }}</div>
+                    <div class="form-check">{{ form.can_view_medications }} {{ form.can_view_medications.label_tag }}</div>
+                    <div class="form-check">{{ form.can_view_events }} {{ form.can_view_events.label_tag }}</div>
+                    <div class="form-check">{{ form.can_view_diary }} {{ form.can_view_diary.label_tag }}</div>
+                    <div class="form-check">{{ form.can_manage_medications }} {{ form.can_manage_medications.label_tag }}</div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">保存授权</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card" style="border: var(--border-thick); box-shadow: var(--shadow-hard-sm);">
+        <div class="card-header" style="background: #000; color: #fff;">已授权列表</div>
+        <div class="card-body">
+            {% if accesses %}
+                <ul class="list-group">
+                    {% for access in accesses %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ access.caregiver.username }}</strong>
+                                {% if access.relationship %}
+                                    <span class="text-muted">({{ access.relationship }})</span>
+                                {% endif %}
+                                {% if not access.is_active %}
+                                    <span class="badge bg-secondary">已撤销</span>
+                                {% endif %}
+                                <div class="text-muted" style="font-size: 0.85rem;">
+                                    权限：
+                                    {% if access.can_view_records %}体检报告{% endif %}
+                                    {% if access.can_view_medications %} 药单{% endif %}
+                                    {% if access.can_view_events %} 事件{% endif %}
+                                    {% if access.can_view_diary %} 日志{% endif %}
+                                </div>
+                            </div>
+                            {% if access.is_active %}
+                                <a class="btn btn-outline-danger btn-sm" href="?revoke={{ access.id }}">撤销</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-muted">暂无授权</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

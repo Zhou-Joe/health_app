@@ -1,15 +1,47 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
+from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Avg
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
 import json
 import requests
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, UserProfile, Medication, MedicationRecord, HealthEvent, EventItem
-from .forms import HealthCheckupForm, HealthIndicatorForm, ManualIndicatorForm, HealthAdviceForm, SystemSettingsForm, CustomUserCreationForm, UserProfileForm
+from .models import (
+    HealthCheckup,
+    HealthIndicator,
+    HealthAdvice,
+    SystemSettings,
+    UserProfile,
+    Medication,
+    MedicationRecord,
+    HealthEvent,
+    EventItem,
+    SymptomEntry,
+    VitalEntry,
+    CarePlan,
+    CareGoal,
+    CareAction,
+    CaregiverAccess,
+)
+from .forms import (
+    HealthCheckupForm,
+    HealthIndicatorForm,
+    ManualIndicatorForm,
+    HealthAdviceForm,
+    SystemSettingsForm,
+    CustomUserCreationForm,
+    UserProfileForm,
+    SymptomEntryForm,
+    VitalEntryForm,
+    CarePlanForm,
+    CareGoalForm,
+    CareActionForm,
+    CaregiverAccessForm,
+)
 from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
 
 
@@ -267,6 +299,28 @@ def dashboard(request):
     }
 
     return render(request, 'medical_records/dashboard.html', context)
+
+
+def attach_entry_to_daily_event(user, entry_date, entry_obj):
+    """将症状/体征日志挂接到当天的自动事件，便于时间线展示"""
+    event, _ = HealthEvent.objects.get_or_create(
+        user=user,
+        start_date=entry_date,
+        end_date=entry_date,
+        event_type='wellness',
+        is_auto_generated=True,
+        defaults={
+            'name': f"{entry_date} 日志",
+            'description': '自动创建：症状/体征日志'
+        }
+    )
+
+    EventItem.objects.get_or_create(
+        event=event,
+        content_type=ContentType.objects.get_for_model(entry_obj),
+        object_id=entry_obj.id,
+        defaults={'added_by': 'auto'}
+    )
 
 
 def _get_key_indicators_summary(user):
@@ -2079,3 +2133,214 @@ def delete_event(request, event_id):
         return redirect('medical_records:events_list')
 
     return redirect('medical_records:event_detail', event_id=event_id)
+
+
+# ==================== 症状/体征日志 ====================
+@login_required
+def symptom_vitals(request):
+    """症状与体征日志"""
+    if request.method == 'POST':
+        form_type = request.POST.get('form_type')
+
+        if form_type == 'symptom':
+            symptom_form = SymptomEntryForm(request.user, request.POST)
+            vital_form = VitalEntryForm(request.user)
+            if symptom_form.is_valid():
+                entry = symptom_form.save(commit=False)
+                entry.user = request.user
+                entry.save()
+                attach_entry_to_daily_event(request.user, entry.entry_date, entry)
+                messages.success(request, '症状日志已添加')
+                return redirect('medical_records:symptom_vitals')
+        elif form_type == 'vital':
+            symptom_form = SymptomEntryForm(request.user)
+            vital_form = VitalEntryForm(request.user, request.POST)
+            if vital_form.is_valid():
+                entry = vital_form.save(commit=False)
+                entry.user = request.user
+                entry.save()
+                attach_entry_to_daily_event(request.user, entry.entry_date, entry)
+                messages.success(request, '体征日志已添加')
+                return redirect('medical_records:symptom_vitals')
+        else:
+            symptom_form = SymptomEntryForm(request.user)
+            vital_form = VitalEntryForm(request.user)
+    else:
+        symptom_form = SymptomEntryForm(request.user)
+        vital_form = VitalEntryForm(request.user)
+
+    symptoms = SymptomEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
+    vitals = VitalEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
+
+    context = {
+        'symptom_form': symptom_form,
+        'vital_form': vital_form,
+        'symptoms': symptoms,
+        'vitals': vitals,
+        'page_title': '症状与体征日志'
+    }
+    return render(request, 'medical_records/symptom_vitals.html', context)
+
+
+# ==================== 健康计划与目标 ====================
+@login_required
+def care_plans(request):
+    """健康管理计划与目标"""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'create_plan':
+            plan_form = CarePlanForm(request.POST)
+            goal_form = CareGoalForm()
+            action_form = CareActionForm()
+            if plan_form.is_valid():
+                plan = plan_form.save(commit=False)
+                plan.user = request.user
+                plan.save()
+                messages.success(request, '健康计划已创建')
+                return redirect('medical_records:care_plans')
+        elif action == 'create_goal':
+            plan_id = request.POST.get('plan_id')
+            plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
+            plan_form = CarePlanForm()
+            goal_form = CareGoalForm(request.POST)
+            action_form = CareActionForm()
+            if goal_form.is_valid():
+                goal = goal_form.save(commit=False)
+                goal.plan = plan
+                goal.save()
+                messages.success(request, '健康目标已添加')
+                return redirect('medical_records:care_plans')
+        elif action == 'create_action':
+            goal_id = request.POST.get('goal_id')
+            goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+            plan_form = CarePlanForm()
+            goal_form = CareGoalForm()
+            action_form = CareActionForm(request.POST)
+            if action_form.is_valid():
+                care_action = action_form.save(commit=False)
+                care_action.goal = goal
+                care_action.suggested_by_ai = request.POST.get('suggested_by_ai') == 'true'
+                care_action.save()
+                goal.recalculate_progress()
+                messages.success(request, '行动已添加')
+                return redirect('medical_records:care_plans')
+        elif action == 'toggle_action':
+            action_id = request.POST.get('action_id')
+            care_action = get_object_or_404(CareAction, id=action_id, goal__plan__user=request.user)
+            care_action.status = 'done' if care_action.status == 'pending' else 'pending'
+            care_action.save(update_fields=['status'])
+            care_action.goal.recalculate_progress()
+            return redirect('medical_records:care_plans')
+        else:
+            plan_form = CarePlanForm()
+            goal_form = CareGoalForm()
+            action_form = CareActionForm()
+    else:
+        plan_form = CarePlanForm()
+        goal_form = CareGoalForm()
+        action_form = CareActionForm()
+
+    plans = CarePlan.objects.filter(user=request.user).prefetch_related('goals__actions')
+
+    context = {
+        'plan_form': plan_form,
+        'goal_form': goal_form,
+        'action_form': action_form,
+        'plans': plans,
+        'page_title': '健康计划与目标'
+    }
+    return render(request, 'medical_records/care_plans.html', context)
+
+
+# ==================== 照护者授权与共享 ====================
+@login_required
+def caregiver_access(request):
+    """授权照护者访问"""
+    if request.method == 'POST':
+        form = CaregiverAccessForm(request.POST)
+        if form.is_valid():
+            caregiver_username = form.cleaned_data['caregiver_username']
+            caregiver = User.objects.get(username=caregiver_username)
+            if caregiver == request.user:
+                messages.error(request, '不能授权给自己')
+            else:
+                access, _ = CaregiverAccess.objects.update_or_create(
+                    owner=request.user,
+                    caregiver=caregiver,
+                    defaults={
+                        'relationship': form.cleaned_data.get('relationship'),
+                        'can_view_records': form.cleaned_data.get('can_view_records', False),
+                        'can_view_medications': form.cleaned_data.get('can_view_medications', False),
+                        'can_view_events': form.cleaned_data.get('can_view_events', False),
+                        'can_view_diary': form.cleaned_data.get('can_view_diary', False),
+                        'can_manage_medications': form.cleaned_data.get('can_manage_medications', False),
+                        'is_active': True
+                    }
+                )
+                messages.success(request, f'已授权 {caregiver.username} 访问')
+                return redirect('medical_records:caregiver_access')
+    else:
+        form = CaregiverAccessForm()
+
+    revoke_id = request.GET.get('revoke')
+    if revoke_id:
+        access = get_object_or_404(CaregiverAccess, id=revoke_id, owner=request.user)
+        access.is_active = False
+        access.save(update_fields=['is_active'])
+        messages.success(request, '授权已撤销')
+        return redirect('medical_records:caregiver_access')
+
+    accesses = CaregiverAccess.objects.filter(owner=request.user).select_related('caregiver').order_by('-created_at')
+
+    context = {
+        'form': form,
+        'accesses': accesses,
+        'page_title': '照护者授权'
+    }
+    return render(request, 'medical_records/caregiver_access.html', context)
+
+
+@login_required
+def shared_access(request):
+    """照护者查看共享列表"""
+    shares = CaregiverAccess.objects.filter(caregiver=request.user, is_active=True).select_related('owner').order_by('-created_at')
+    context = {
+        'shares': shares,
+        'page_title': '共享访问'
+    }
+    return render(request, 'medical_records/shared_access.html', context)
+
+
+@login_required
+def shared_checkups(request, owner_id):
+    """查看被授权用户的体检报告"""
+    access = get_object_or_404(CaregiverAccess, owner_id=owner_id, caregiver=request.user, is_active=True)
+    if not access.can_view_records:
+        messages.error(request, '您没有查看体检报告的权限')
+        return redirect('medical_records:shared_access')
+
+    checkups = HealthCheckup.objects.filter(user_id=owner_id).order_by('-checkup_date')
+    context = {
+        'checkups': checkups,
+        'shared_user': access.owner,
+        'page_title': f"{access.owner.username} 的体检报告"
+    }
+    return render(request, 'medical_records/shared_checkups.html', context)
+
+
+@login_required
+def shared_medications(request, owner_id):
+    """查看被授权用户的药单"""
+    access = get_object_or_404(CaregiverAccess, owner_id=owner_id, caregiver=request.user, is_active=True)
+    if not access.can_view_medications:
+        messages.error(request, '您没有查看药单的权限')
+        return redirect('medical_records:shared_access')
+
+    medications = Medication.objects.filter(user_id=owner_id, is_active=True).order_by('-start_date')
+    context = {
+        'medications': medications,
+        'shared_user': access.owner,
+        'page_title': f"{access.owner.username} 的药单"
+    }
+    return render(request, 'medical_records/shared_medications.html', context)

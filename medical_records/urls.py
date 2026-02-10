@@ -17,6 +17,12 @@ urlpatterns = [
     path('all/', views.all_checkups, name='all_checkups'),
     path('settings/', views.system_settings, name='system_settings'),
     path('profile/', views.user_profile, name='user_profile'),
+    path('diary/', views.symptom_vitals, name='symptom_vitals'),
+    path('care-plans/', views.care_plans, name='care_plans'),
+    path('caregivers/', views.caregiver_access, name='caregiver_access'),
+    path('shared/', views.shared_access, name='shared_access'),
+    path('shared/<int:owner_id>/checkups/', views.shared_checkups, name='shared_checkups'),
+    path('shared/<int:owner_id>/medications/', views.shared_medications, name='shared_medications'),
 
     # API路由
     path('api/upload/', api_views.upload_and_process, name='api_upload'),
@@ -81,6 +87,8 @@ urlpatterns = [
     path('api/events/auto-cluster/', api_views.api_event_auto_cluster, name='api_event_auto_cluster'),
     path('api/events/recluster/', api_views.api_event_recluster, name='api_event_recluster'),
     path('api/events/available-items/', api_views.api_event_available_items, name='api_event_available_items'),
+    path('api/care-goals/<int:goal_id>/suggest-actions/', api_views.api_care_goal_suggest_actions, name='api_care_goal_suggest_actions'),
+    path('api/care-goals/<int:goal_id>/actions/bulk/', api_views.api_care_goal_add_actions, name='api_care_goal_add_actions'),
 
     # TODO: Advanced features - to be implemented later
     # # 批量操作

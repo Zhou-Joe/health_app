@@ -440,6 +440,24 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{% url 'medical_records:events_list' %}">
+                            <i class="bi bi-clock-history"></i>
+                            <span>健康事件</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'medical_records:symptom_vitals' %}">
+                            <i class="bi bi-activity"></i>
+                            <span>日志</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'medical_records:care_plans' %}">
+                            <i class="bi bi-clipboard2-pulse"></i>
+                            <span>计划</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{% url 'medical_records:data_integration' %}">
                             <i class="bi bi-diagram-3"></i>
                             <span>数据整合</span>
@@ -473,6 +491,18 @@
                                     <a class="dropdown-item" href="{% url 'medical_records:user_profile' %}">
                                         <i class="bi bi-person"></i>
                                         个人信息
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'medical_records:caregiver_access' %}">
+                                        <i class="bi bi-people"></i>
+                                        照护者授权
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'medical_records:shared_access' %}">
+                                        <i class="bi bi-share"></i>
+                                        共享访问
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>

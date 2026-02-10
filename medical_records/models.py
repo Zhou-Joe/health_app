@@ -427,6 +427,170 @@ class MedicationRecord(models.Model):
         return f"{self.medication.medicine_name} - {self.record_date}"
 
 
+class SymptomEntry(models.Model):
+    """症状日志"""
+    SEVERITY_CHOICES = [
+        (1, '轻微'),
+        (2, '轻度'),
+        (3, '中度'),
+        (4, '严重'),
+        (5, '非常严重'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    entry_date = models.DateField(verbose_name='日期', default=date.today)
+    symptom = models.CharField(max_length=200, verbose_name='症状')
+    severity = models.IntegerField(choices=SEVERITY_CHOICES, default=3, verbose_name='严重程度')
+    notes = models.TextField(blank=True, null=True, verbose_name='备注')
+    related_checkup = models.ForeignKey(HealthCheckup, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='关联体检')
+    related_medication = models.ForeignKey(Medication, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='关联药单')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '症状日志'
+        verbose_name_plural = '症状日志'
+        ordering = ['-entry_date', '-created_at']
+
+    def __str__(self):
+        return f"{self.entry_date} - {self.symptom}"
+
+
+class VitalEntry(models.Model):
+    """体征日志"""
+    VITAL_TYPE_CHOICES = [
+        ('blood_pressure', '血压'),
+        ('heart_rate', '心率'),
+        ('weight', '体重'),
+        ('temperature', '体温'),
+        ('blood_sugar', '血糖'),
+        ('oxygen', '血氧'),
+        ('other', '其他'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    entry_date = models.DateField(verbose_name='日期', default=date.today)
+    vital_type = models.CharField(max_length=50, choices=VITAL_TYPE_CHOICES, verbose_name='体征类型')
+    value = models.CharField(max_length=100, verbose_name='数值')
+    unit = models.CharField(max_length=20, blank=True, null=True, verbose_name='单位')
+    notes = models.TextField(blank=True, null=True, verbose_name='备注')
+    related_checkup = models.ForeignKey(HealthCheckup, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='关联体检')
+    related_medication = models.ForeignKey(Medication, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='关联药单')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '体征日志'
+        verbose_name_plural = '体征日志'
+        ordering = ['-entry_date', '-created_at']
+
+    def __str__(self):
+        return f"{self.entry_date} - {self.get_vital_type_display()} {self.value}{self.unit or ''}"
+
+
+class CarePlan(models.Model):
+    """健康管理计划"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    title = models.CharField(max_length=200, verbose_name='计划标题')
+    description = models.TextField(blank=True, null=True, verbose_name='计划描述')
+    is_active = models.BooleanField(default=True, verbose_name='是否启用')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '健康管理计划'
+        verbose_name_plural = '健康管理计划'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+
+
+class CareGoal(models.Model):
+    """健康目标"""
+    STATUS_CHOICES = [
+        ('active', '进行中'),
+        ('completed', '已完成'),
+        ('paused', '已暂停'),
+    ]
+
+    plan = models.ForeignKey(CarePlan, on_delete=models.CASCADE, related_name='goals', verbose_name='所属计划')
+    title = models.CharField(max_length=200, verbose_name='目标标题')
+    target_value = models.CharField(max_length=100, blank=True, null=True, verbose_name='目标值')
+    unit = models.CharField(max_length=20, blank=True, null=True, verbose_name='单位')
+    due_date = models.DateField(blank=True, null=True, verbose_name='目标日期')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active', verbose_name='状态')
+    progress_percent = models.IntegerField(default=0, verbose_name='进度百分比')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '健康目标'
+        verbose_name_plural = '健康目标'
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.plan.title} - {self.title}"
+
+    def recalculate_progress(self):
+        actions = self.actions.all()
+        total = actions.count()
+        if total == 0:
+            self.progress_percent = 0
+        else:
+            done = actions.filter(status='done').count()
+            self.progress_percent = int((done / total) * 100)
+        self.save(update_fields=['progress_percent'])
+
+
+class CareAction(models.Model):
+    """健康行动"""
+    STATUS_CHOICES = [
+        ('pending', '待完成'),
+        ('done', '已完成'),
+    ]
+
+    goal = models.ForeignKey(CareGoal, on_delete=models.CASCADE, related_name='actions', verbose_name='所属目标')
+    title = models.CharField(max_length=200, verbose_name='行动')
+    frequency = models.CharField(max_length=50, blank=True, null=True, verbose_name='频率')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='状态')
+    suggested_by_ai = models.BooleanField(default=False, verbose_name='AI建议')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '健康行动'
+        verbose_name_plural = '健康行动'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.goal.title} - {self.title}"
+
+
+class CaregiverAccess(models.Model):
+    """家属/照护者访问授权"""
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='caregiver_links', verbose_name='授权人')
+    caregiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='caregiver_accesses', verbose_name='照护者')
+    relationship = models.CharField(max_length=50, blank=True, null=True, verbose_name='关系')
+    can_view_records = models.BooleanField(default=True, verbose_name='可查看体检报告')
+    can_view_medications = models.BooleanField(default=True, verbose_name='可查看药单')
+    can_view_events = models.BooleanField(default=False, verbose_name='可查看事件')
+    can_view_diary = models.BooleanField(default=False, verbose_name='可查看日志')
+    can_manage_medications = models.BooleanField(default=False, verbose_name='可管理药单')
+    is_active = models.BooleanField(default=True, verbose_name='是否有效')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        verbose_name = '照护者授权'
+        verbose_name_plural = '照护者授权'
+        constraints = [
+            models.UniqueConstraint(fields=['owner', 'caregiver'], name='unique_caregiver_access')
+        ]
+
+    def __str__(self):
+        return f"{self.owner.username} -> {self.caregiver.username}"
+
+
 class HealthEvent(models.Model):
     """健康事件聚合模型"""
     EVENT_TYPE_CHOICES = [
@@ -819,6 +983,10 @@ class EventItem(models.Model):
             return f"指标: {obj.indicator_name} = {obj.value} {obj.unit or ''}"
         elif model_name == 'medicationrecord':
             return f"服药记录: {obj.medication.medicine_name} - {obj.record_date}"
+        elif model_name == 'symptomentry':
+            return f"症状日志: {obj.entry_date} - {obj.symptom}"
+        elif model_name == 'vitalentry':
+            return f"体征记录: {obj.entry_date} - {obj.get_vital_type_display()} {obj.value}{obj.unit or ''}"
         else:
             return f"{model_name}: {str(obj)}"
 

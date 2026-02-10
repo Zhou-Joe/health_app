@@ -2,7 +2,20 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, UserProfile
+from .models import (
+    HealthCheckup,
+    HealthIndicator,
+    HealthAdvice,
+    SystemSettings,
+    UserProfile,
+    SymptomEntry,
+    VitalEntry,
+    CarePlan,
+    CareGoal,
+    CareAction,
+    CaregiverAccess,
+    Medication,
+)
 
 
 class CustomUserCreationForm(forms.ModelForm):
@@ -211,6 +224,120 @@ HealthIndicatorFormSet = forms.inlineformset_factory(
     extra=1,
     can_delete=True
 )
+
+
+class SymptomEntryForm(forms.ModelForm):
+    """症状日志表单"""
+
+    class Meta:
+        model = SymptomEntry
+        fields = ['entry_date', 'symptom', 'severity', 'notes', 'related_checkup', 'related_medication']
+        widgets = {
+            'entry_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'symptom': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如：头痛、咳嗽、乏力'}),
+            'severity': forms.Select(attrs={'class': 'form-control'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': '可选备注'}),
+            'related_checkup': forms.Select(attrs={'class': 'form-control'}),
+            'related_medication': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['related_checkup'].queryset = HealthCheckup.objects.filter(user=user).order_by('-checkup_date')
+        self.fields['related_medication'].queryset = Medication.objects.filter(user=user, is_active=True).order_by('-start_date')
+        self.fields['related_checkup'].required = False
+        self.fields['related_medication'].required = False
+
+
+class VitalEntryForm(forms.ModelForm):
+    """体征日志表单"""
+
+    class Meta:
+        model = VitalEntry
+        fields = ['entry_date', 'vital_type', 'value', 'unit', 'notes', 'related_checkup', 'related_medication']
+        widgets = {
+            'entry_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'vital_type': forms.Select(attrs={'class': 'form-control'}),
+            'value': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如：120/80 或 36.6'}),
+            'unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '单位'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': '可选备注'}),
+            'related_checkup': forms.Select(attrs={'class': 'form-control'}),
+            'related_medication': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['related_checkup'].queryset = HealthCheckup.objects.filter(user=user).order_by('-checkup_date')
+        self.fields['related_medication'].queryset = Medication.objects.filter(user=user, is_active=True).order_by('-start_date')
+        self.fields['related_checkup'].required = False
+        self.fields['related_medication'].required = False
+
+
+class CarePlanForm(forms.ModelForm):
+    """健康管理计划表单"""
+
+    class Meta:
+        model = CarePlan
+        fields = ['title', 'description', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如：降压管理计划'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': '计划说明'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+
+class CareGoalForm(forms.ModelForm):
+    """健康目标表单"""
+
+    class Meta:
+        model = CareGoal
+        fields = ['title', 'target_value', 'unit', 'due_date', 'status']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如：将血压控制在120/80'}),
+            'target_value': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '目标值'}),
+            'unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '单位'}),
+            'due_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+
+class CareActionForm(forms.ModelForm):
+    """健康行动表单"""
+
+    class Meta:
+        model = CareAction
+        fields = ['title', 'frequency', 'status']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如：每天散步30分钟'}),
+            'frequency': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '频率，如每日/每周'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+
+class CaregiverAccessForm(forms.Form):
+    """照护者授权表单"""
+    caregiver_username = forms.CharField(
+        label='照护者用户名',
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '请输入对方用户名'})
+    )
+    relationship = forms.CharField(
+        label='关系',
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如：家属/朋友/医生'})
+    )
+    can_view_records = forms.BooleanField(label='体检报告', required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    can_view_medications = forms.BooleanField(label='药单', required=False, initial=True, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    can_view_events = forms.BooleanField(label='事件', required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    can_view_diary = forms.BooleanField(label='日志', required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    can_manage_medications = forms.BooleanField(label='管理药单', required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+
+    def clean_caregiver_username(self):
+        username = self.cleaned_data.get('caregiver_username', '').strip()
+        if not username:
+            raise ValidationError('请输入照护者用户名')
+        if not User.objects.filter(username=username).exists():
+            raise ValidationError('用户不存在')
+        return username
 
 
 class SystemSettingsForm(forms.Form):

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}共享体检报告{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="page-header" style="background: var(--brutal-cyan); border: var(--border-thick); box-shadow: var(--shadow-hard); padding: 2rem; margin-bottom: 2rem;">
+        <h1 class="mb-1 fw-bold" style="font-size: 2.25rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.03em; margin: 0;">
+            <i class="bi bi-file-earmark-medical"></i> {{ page_title }}
+        </h1>
+    </div>
+
+    <div class="card" style="border: var(--border-thick); box-shadow: var(--shadow-hard-sm);">
+        <div class="card-header" style="background: #000; color: #fff;">体检报告</div>
+        <div class="card-body">
+            {% if checkups %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>机构</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for checkup in checkups %}
+                            <tr>
+                                <td>{{ checkup.checkup_date }}</td>
+                                <td>{{ checkup.hospital }}</td>
+                                <td>{{ checkup.notes|default:'-' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="text-muted">暂无体检报告</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
