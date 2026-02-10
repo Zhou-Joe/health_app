@@ -213,88 +213,59 @@ body {
 }
 
 /* ==================== 时间线视图样式 ==================== */
-.timeline-container {
+.timeline-wrapper {
     position: relative;
-    padding: 2rem 0;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 3rem 1rem;
+    min-height: 400px;
 }
 
-.timeline-year-group {
-    margin-bottom: 4rem;
-    opacity: 0;
-    animation: fadeIn 0.5s ease forwards;
+.timeline-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
 }
 
-.timeline-year-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding: 0 2rem;
-}
-
-.timeline-year-label {
-    font-size: 2rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    background: linear-gradient(135deg, var(--brutal-cyan) 0%, var(--brutal-purple) 100%);
-    color: #FFF;
-    padding: 0.75rem 2rem;
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard-sm);
-}
-
-.timeline-year-line {
-    flex: 1;
-    height: 4px;
-    background: linear-gradient(90deg, var(--brutal-cyan) 0%, var(--brutal-purple) 100%);
-    margin-left: 1.5rem;
-}
-
-.timeline-events-row {
-    display: flex;
-    gap: 1.5rem;
-    padding: 0 1rem;
-    flex-wrap: wrap;
-    align-items: stretch;
+.timeline-path {
+    fill: none;
+    stroke: url(#timelineGradient);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .timeline-item {
-    position: relative;
-    flex: 1;
-    min-width: 300px;
-    max-width: 400px;
+    position: absolute;
     opacity: 0;
-    animation: slideIn 0.5s ease forwards;
+    animation: popIn 0.4s ease forwards;
+    cursor: pointer;
+    z-index: 10;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideIn {
-    from {
+@keyframes popIn {
+    0% {
         opacity: 0;
-        transform: translateY(30px);
+        transform: scale(0.8);
     }
-    to {
+    100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: scale(1);
     }
 }
 
 .timeline-dot {
     position: absolute;
-    left: -14px;
-    top: 1.5rem;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: #FFF;
     border: 4px solid #000;
     border-radius: 50%;
     z-index: 10;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
 }
 
 .timeline-dot.illness { background: var(--brutal-red); }
@@ -305,65 +276,57 @@ body {
 .timeline-dot.medication_course { background: var(--brutal-pink); }
 .timeline-dot.other { background: #94a3b8; }
 
-.timeline-content {
+.timeline-card {
+    position: absolute;
     background: #FFF;
     border: var(--border-thick);
     box-shadow: var(--shadow-hard-sm);
-    padding: 1.5rem;
-    margin-left: 1rem;
-    cursor: pointer;
+    padding: 1rem;
+    min-width: 180px;
+    max-width: 220px;
     transition: all 0.2s ease;
-    position: relative;
-    height: 100%;
+    z-index: 10;
 }
 
-.timeline-content::before {
-    content: '';
-    position: absolute;
-    left: -1.5rem;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: #e2e8f0;
-}
-
-.timeline-content:hover {
-    transform: translateY(-2px);
+.timeline-card:hover {
+    transform: scale(1.05);
     box-shadow: var(--shadow-hard);
-    border-color: var(--brutal-cyan);
+    z-index: 11;
+}
+
+.timeline-card.above {
+    margin-bottom: 10px;
+}
+
+.timeline-card.below {
+    margin-top: 10px;
 }
 
 .timeline-date-badge {
     display: inline-block;
     background: #000;
     color: #FFF;
-    padding: 0.25rem 0.75rem;
-    font-size: 0.75rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 0.75rem;
-}
-
-.timeline-event-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
     margin-bottom: 0.5rem;
 }
 
 .timeline-event-title {
-    font-size: 1rem;
+    font-size: 0.875rem;
     font-weight: 900;
-    margin: 0;
+    margin: 0.25rem 0;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    line-height: 1.3;
 }
 
 .timeline-event-type {
     display: inline-block;
-    padding: 0.125rem 0.5rem;
-    font-size: 0.625rem;
+    padding: 0.0625rem 0.375rem;
+    font-size: 0.5625rem;
     font-weight: 700;
     border-radius: 0;
     color: #FFF;
@@ -379,46 +342,54 @@ body {
 
 .timeline-description {
     color: #64748b;
-    font-size: 0.8125rem;
-    margin: 0.5rem 0;
-    white-space: pre-wrap;
-    line-height: 1.4;
+    font-size: 0.75rem;
+    margin: 0.25rem 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.timeline-dates {
+.timeline-meta {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.6875rem;
     color: #475569;
-    margin: 0.5rem 0;
-}
-
-.timeline-stats {
-    display: flex;
-    gap: 1rem;
-    margin-top: 0.75rem;
-    padding-top: 0.75rem;
-    border-top: 2px solid #f1f5f9;
+    margin: 0.25rem 0;
 }
 
 .timeline-stat {
-    text-align: center;
-    flex: 1;
-}
-
-.timeline-stat-value {
-    font-size: 1.125rem;
-    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
     color: #000;
 }
 
-.timeline-stat-label {
-    font-size: 0.625rem;
-    color: #94a3b8;
+.btn-recluster {
+    background: var(--brutal-orange);
+    border: var(--border-thick);
+    border-radius: 0;
+    padding: 0.625rem 1.25rem;
+    font-weight: 800;
+    font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    color: #FFF;
+    transition: all 0.1s ease;
+    box-shadow: var(--shadow-hard-sm);
+}
+
+.btn-recluster:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000;
+    color: #FFF;
+}
+
+.btn-recluster:active {
+    transform: translate(0, 0);
+    box-shadow: var(--shadow-hard-sm);
 }
 
 .view-toggle-group {
@@ -482,6 +453,9 @@ body {
                 <button class="btn btn-auto-cluster" onclick="autoClusterEvents()">
                     <i class="bi bi-magic me-2"></i> 自动聚类
                 </button>
+                <button class="btn btn-recluster" onclick="reClusterEvents()">
+                    <i class="bi bi-arrow-clock-history me-2"></i> 重新聚类
+                </button>
                 <button class="btn btn-create" onclick="showCreateEventModal()">
                     <i class="bi bi-plus-circle me-2"></i> 新建事件
                 </button>
@@ -541,9 +515,20 @@ body {
         </div>
 
         <!-- 时间线视图 -->
-        <div class="timeline-container d-none" id="timelineContainer">
-            <div class="timeline-line"></div>
-            <!-- 动态加载时间线 -->
+        <div class="d-none" id="timelineContainer">
+            <div class="timeline-wrapper" id="timelineWrapper">
+                <svg class="timeline-svg" id="timelineSvg">
+                    <defs>
+                        <linearGradient id="timelineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#4C8BF5;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#A855F7;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#06FFA5;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <path class="timeline-path" id="timelinePath" d="" />
+                </svg>
+                <div id="timelineEvents"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -777,6 +762,9 @@ function switchView(view) {
 // ==================== 时间线渲染 ====================
 function renderTimeline(events) {
     const container = document.getElementById('timelineContainer');
+    const wrapper = document.getElementById('timelineWrapper');
+    const svgPath = document.getElementById('timelinePath');
+    const eventsContainer = document.getElementById('timelineEvents');
 
     if (events.length === 0) {
         container.innerHTML = `
@@ -792,67 +780,115 @@ function renderTimeline(events) {
         return;
     }
 
-    // 按年份分组
-    const eventsByYear = {};
-    events.forEach(event => {
-        const year = new Date(event.start_date).getFullYear();
-        if (!eventsByYear[year]) {
-            eventsByYear[year] = [];
-        }
-        eventsByYear[year].push(event);
+    // Reset to original structure
+    container.innerHTML = `
+        <div class="timeline-wrapper" id="timelineWrapper">
+            <svg class="timeline-svg" id="timelineSvg">
+                <defs>
+                    <linearGradient id="timelineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:#4C8BF5;stop-opacity:1" />
+                        <stop offset="50%" style="stop-color:#A855F7;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#06FFA5;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <path class="timeline-path" id="timelinePath" d="" />
+            </svg>
+            <div id="timelineEvents"></div>
+        </div>
+    `;
+
+    // Re-get references after innerHTML change
+    const newWrapper = document.getElementById('timelineWrapper');
+    const newSvgPath = document.getElementById('timelinePath');
+    const newEventsContainer = document.getElementById('timelineEvents');
+
+    // Sort events by date (descending for display - newest first)
+    const sortedEvents = [...events].sort((a, b) => {
+        return new Date(b.start_date) - new Date(a.start_date);
     });
 
-    // 按年份排序（降序）
-    const sortedYears = Object.keys(eventsByYear).sort((a, b) => b - a);
+    // Get years present in events (descending)
+    const years = [...new Set(sortedEvents.map(e => new Date(e.start_date).getFullYear()))].sort((a, b) => b - a);
 
-    container.innerHTML = sortedYears.map((year, index) => {
-        // 每年的事件按开始日期排序（降序）
-        const yearEvents = eventsByYear[year].sort((a, b) => {
-            return new Date(b.start_date) - new Date(a.start_date);
+    // Set wrapper height based on number of years
+    const rowHeight = 250;
+    const wrapperHeight = Math.max(rowHeight * years.length, 400);
+    newWrapper.style.height = wrapperHeight + 'px';
+
+    // Calculate timeline path
+    const wrapperWidth = newWrapper.offsetWidth;
+    const paddingX = 100;
+    const availableWidth = wrapperWidth - (paddingX * 2);
+
+    let pathD = '';
+    let pathPoints = [];
+
+    years.forEach((year, yearIndex) => {
+        const y = (yearIndex * rowHeight) + 80;
+        const yearEvents = sortedEvents.filter(e => new Date(e.start_date).getFullYear() === year);
+
+        yearEvents.forEach((event, eventIndex) => {
+            const x = paddingX + (eventIndex / (yearEvents.length - 1 || 1)) * availableWidth;
+            pathPoints.push({ x, y, event });
         });
+    });
 
-        return `
-            <div class="timeline-year-group" style="animation-delay: ${index * 0.2}s">
-                <div class="timeline-year-header">
-                    <span class="timeline-year-label">${year}年</span>
-                    <div class="timeline-year-line"></div>
-                </div>
-                <div class="timeline-events-row">
-                    ${yearEvents.map(event => `
-                        <div class="timeline-item" onclick="viewEventDetail(${event.id})">
-                            <div class="timeline-dot ${event.event_type}"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-date-badge">
-                                    ${formatDate(event.start_date)}
-                                    ${event.end_date ? ' → ' + formatDate(event.end_date) : ''}
-                                </div>
-                                <div class="timeline-event-header">
-                                    <h5 class="timeline-event-title">
-                                        ${event.name}
-                                        ${event.is_auto_generated ? '<span class="auto-badge">AUTO</span>' : ''}
-                                    </h5>
-                                    <span class="timeline-event-type ${event.event_type}">
-                                        ${getEventTypeLabel(event.event_type)}
-                                    </span>
-                                </div>
-                                ${event.description ? `<p class="timeline-description">${event.description}</p>` : ''}
-                                <div class="timeline-dates">
-                                    <i class="bi bi-calendar3"></i>
-                                    <span>持续 ${event.duration_days} 天</span>
-                                </div>
-                                <div class="timeline-stats">
-                                    <div class="timeline-stat">
-                                        <div class="timeline-stat-value">${event.item_count}</div>
-                                        <div class="timeline-stat-label">记录</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
+    // Draw the continuous path with curves
+    if (pathPoints.length > 0) {
+        pathD = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+
+        for (let i = 0; i < pathPoints.length - 1; i++) {
+            const current = pathPoints[i];
+            const next = pathPoints[i + 1];
+
+            // Check if we're transitioning to a new year (different y)
+            if (Math.abs(next.y - current.y) > 10) {
+                // Create a curved connection between years
+                const midY = (current.y + next.y) / 2;
+                const controlPoint1X = current.x;
+                const controlPoint2X = next.x;
+
+                // Use cubic bezier curve for smooth transition
+                pathD += ` C ${controlPoint1X} ${midY}, ${controlPoint2X} ${midY}, ${next.x} ${next.y}`;
+            } else {
+                // Same year - straight line with slight curve
+                const midX = (current.x + next.x) / 2;
+                pathD += ` Q ${midX} ${current.y}, ${next.x} ${next.y}`;
+            }
+        }
+    }
+
+    newSvgPath.setAttribute('d', pathD);
+
+    // Render event cards along the path
+    let eventsHtml = '';
+    pathPoints.forEach((point, index) => {
+        const event = point.event;
+        const isAbove = index % 2 === 0;
+        const cardOffset = isAbove ? -140 : 30;
+
+        eventsHtml += `
+            <div class="timeline-item" style="left: ${point.x - 90}px; top: ${point.y + cardOffset}px; animation-delay: ${index * 0.1}s">
+                <div class="timeline-dot ${event.event_type}" style="position: absolute; ${isAbove ? 'bottom: -50px;' : 'top: -50px;'} left: 50%; transform: translateX(-50%);"></div>
+                <div class="timeline-card ${isAbove ? 'above' : 'below'}" onclick="viewEventDetail(${event.id})">
+                    <div class="timeline-date-badge">
+                        ${formatDate(event.start_date)}
+                    </div>
+                    <h6 class="timeline-event-title">${event.name}</h6>
+                    <span class="timeline-event-type ${event.event_type}">
+                        ${getEventTypeLabel(event.event_type)}
+                    </span>
+                    <div class="timeline-meta">
+                        <span>${event.duration_days}天</span>
+                        <span>•</span>
+                        <span>${event.item_count}项</span>
+                    </div>
                 </div>
             </div>
         `;
-    }).join('');
+    });
+
+    newEventsContainer.innerHTML = eventsHtml;
 }
 
 // 修改原有的 filterEvents 函数以支持时间线
@@ -931,6 +967,50 @@ async function runAutoCluster() {
         }
     } catch (error) {
         alert('聚类失败：' + error);
+    }
+}
+
+// 重新聚类
+async function reClusterEvents() {
+    const daysThreshold = prompt('请输入时间阈值（天）：在此时间窗口内的记录会被聚为同一个事件', '7');
+
+    if (daysThreshold === null) {
+        return; // User cancelled
+    }
+
+    const threshold = parseInt(daysThreshold);
+
+    if (isNaN(threshold) || threshold < 1 || threshold > 365) {
+        alert('请输入1-365之间的数字');
+        return;
+    }
+
+    if (!confirm(`确定要重新聚类吗？\\n\\n这将：\\n1. 删除所有现有事件\\n2. 使用 ${threshold} 天的时间阈值重新创建事件\\n\\n此操作不可撤销！`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch('{% url "medical_records:api_event_recluster" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                days_threshold: threshold
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert(`重新聚类完成！\\n\\n删除了 ${data.events_deleted} 个事件\\n重新创建了 ${data.events_created} 个事件`);
+            loadEvents();
+        } else {
+            alert('重新聚类失败：' + data.error);
+        }
+    } catch (error) {
+        alert('重新聚类失败：' + error);
     }
 }
 

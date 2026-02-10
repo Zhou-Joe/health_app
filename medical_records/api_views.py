@@ -3586,6 +3586,36 @@ def api_event_auto_cluster(request):
         }, status=500)
 
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def api_event_recluster(request):
+    """
+    重新聚类：删除所有事件并根据新的时间阈值重新聚类
+    """
+    try:
+        data = request.data if request.data else {}
+        days_threshold = int(data.get('days_threshold', 7))
+
+        # 删除当前用户的所有事件（会级联删除EventItem）
+        deleted_count = HealthEvent.objects.filter(user=request.user).delete()[0]
+
+        # 执行自动聚类
+        events_created = HealthEvent.auto_cluster_user_records(request.user, days_threshold)
+
+        return JsonResponse({
+            'success': True,
+            'events_deleted': deleted_count,
+            'events_created': events_created,
+            'message': f'已删除 {deleted_count} 个事件，重新创建了 {events_created} 个事件'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'重新聚类失败: {str(e)}'
+        }, status=500)
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_event_available_items(request):

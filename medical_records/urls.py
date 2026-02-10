@@ -79,6 +79,7 @@ urlpatterns = [
     path('api/events/<int:event_id>/add-item/', api_views.api_event_add_item, name='api_event_add_item'),
     path('api/events/<int:event_id>/remove-item/<int:item_id>/', api_views.api_event_remove_item, name='api_event_remove_item'),
     path('api/events/auto-cluster/', api_views.api_event_auto_cluster, name='api_event_auto_cluster'),
+    path('api/events/recluster/', api_views.api_event_recluster, name='api_event_recluster'),
     path('api/events/available-items/', api_views.api_event_available_items, name='api_event_available_items'),
 
     # TODO: Advanced features - to be implemented later
