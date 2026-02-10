@@ -803,26 +803,26 @@ function renderTimeline(events) {
     const newSvgPath = document.getElementById('timelinePath');
     const newEventsContainer = document.getElementById('timelineEvents');
 
-    // Sort events by date (descending for display - newest first)
+    // Sort events by date (descending for display - newest first, 2026->2024)
     const sortedEvents = [...events].sort((a, b) => {
         return new Date(b.start_date) - new Date(a.start_date);
     });
 
-    // Get years present in events (descending)
+    // Get years present in events (descending: 2026, 2025, 2024...)
     const years = [...new Set(sortedEvents.map(e => new Date(e.start_date).getFullYear()))].sort((a, b) => b - a);
 
     // Set wrapper height based on number of years
-    const rowHeight = 200;
-    const startY = 60;
-    const wrapperHeight = Math.max(startY + rowHeight * years.length, 300);
+    const rowHeight = 180;
+    const startY = 80;
+    const wrapperHeight = Math.max(startY + rowHeight * years.length, 400);
     newWrapper.style.height = wrapperHeight + 'px';
 
     // Calculate timeline path
     const wrapperWidth = newWrapper.offsetWidth;
-    const paddingX = 80;
-    const endMargin = 60;
-    const availableWidth = wrapperWidth - (paddingX * 2) - endMargin;
-    const turnRadius = 30;
+    const paddingX = 100;
+    const endMargin = 100;
+    const availableWidth = wrapperWidth - paddingX - endMargin;
+    const turnRadius = (rowHeight / 2);
 
     // Build year-by-year data for drawing
     const yearData = [];
@@ -831,24 +831,32 @@ function renderTimeline(events) {
         const y = startY + (yearIndex * rowHeight);
         const yearEvents = sortedEvents.filter(e => new Date(e.start_date).getFullYear() === year);
 
-        // Even years (0, 2, 4...): left to right
-        // Odd years (1, 3, 5...): right to left
+        // Sort events within the year (ascending: Jan->Dec)
+        const sortedYearEvents = yearEvents.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+        // Even yearIndex (0, 2, 4...): left to right
+        // Odd yearIndex (1, 3, 5...): right to left
         const isLeftToRight = yearIndex % 2 === 0;
 
         const eventPoints = [];
-        yearEvents.forEach((event, eventIndex) => {
-            // Sort events by date within the year
-            const sortedYearEvents = yearEvents.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-
-            sortedYearEvents.forEach((evt, idx) => {
-                let x;
-                if (isLeftToRight) {
-                    x = paddingX + (idx / (sortedYearEvents.length - 1 || 1)) * availableWidth;
+        sortedYearEvents.forEach((evt, idx) => {
+            let x;
+            if (isLeftToRight) {
+                // Left to right: start from paddingX, spread across availableWidth
+                if (sortedYearEvents.length === 1) {
+                    x = paddingX + availableWidth / 2;
                 } else {
-                    x = paddingX + availableWidth - (idx / (sortedYearEvents.length - 1 || 1)) * availableWidth;
+                    x = paddingX + (idx / (sortedYearEvents.length - 1)) * availableWidth;
                 }
-                eventPoints.push({ x, y, event: evt, year, yearIndex, isLeftToRight });
-            });
+            } else {
+                // Right to left: start from paddingX + availableWidth, go backwards
+                if (sortedYearEvents.length === 1) {
+                    x = paddingX + availableWidth / 2;
+                } else {
+                    x = paddingX + availableWidth - (idx / (sortedYearEvents.length - 1)) * availableWidth;
+                }
+            }
+            eventPoints.push({ x, y, event: evt, year, yearIndex, isLeftToRight });
         });
 
         yearData.push({
@@ -856,11 +864,11 @@ function renderTimeline(events) {
             yearIndex,
             y,
             isLeftToRight,
-            eventPoints: eventPoints.slice(0, yearEvents.length) // Only take unique events
+            eventPoints
         });
     });
 
-    // Draw the S-shaped path
+    // Draw the S-shaped path with proper semicircle arcs
     let pathD = '';
     let allPoints = [];
 
@@ -880,18 +888,23 @@ function renderTimeline(events) {
                 allPoints.push(currentYear.eventPoints[j]);
             }
 
-            // If not the last year, draw semicircle to next year
+            // If not the last year, draw semicircle arc to next year
             if (i < yearData.length - 1) {
                 const nextYear = yearData[i + 1];
                 const lastPoint = currentYear.eventPoints[currentYear.eventPoints.length - 1];
-                const firstPointNext = nextYear.eventPoints[0];
+                const nextY = nextYear.y;
 
-                // Calculate arc position
-                const arcX = lastPoint.x + (currentYear.isLeftToRight ? turnRadius : -turnRadius);
-                const sweepFlag = currentYear.isLeftToRight ? 1 : 0;
-
-                // Draw semicircle arc
-                pathD += ` A ${turnRadius} ${turnRadius} 0 0 ${sweepFlag} ${arcX} ${firstPointNext.y}`;
+                if (currentYear.isLeftToRight) {
+                    // Left to right line ends at right side
+                    // Draw semicircle clockwise: from right end down to left start of next row
+                    // Arc endpoint: paddingX, nextY
+                    pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${paddingX} ${nextY}`;
+                } else {
+                    // Right to left line ends at left side
+                    // Draw semicircle clockwise: from left end down to right start of next row
+                    // Arc endpoint: paddingX + availableWidth, nextY
+                    pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${paddingX + availableWidth} ${nextY}`;
+                }
             }
         }
     }
@@ -902,12 +915,13 @@ function renderTimeline(events) {
     let eventsHtml = '';
     allPoints.forEach((point, index) => {
         const event = point.event;
+        // Alternate cards above/below the line
         const isAbove = index % 2 === 0;
-        const cardOffset = isAbove ? -130 : 25;
+        const cardOffset = isAbove ? -140 : 35;
 
         eventsHtml += `
-            <div class="timeline-item" style="left: ${point.x - 90}px; top: ${point.y + cardOffset}px; animation-delay: ${index * 0.1}s">
-                <div class="timeline-dot ${event.event_type}" style="position: absolute; ${isAbove ? 'bottom: -45px;' : 'top: -45px;'} left: 50%; transform: translateX(-50%);"></div>
+            <div class="timeline-item" style="left: ${point.x - 90}px; top: ${point.y + cardOffset}px; animation-delay: ${index * 0.08}s">
+                <div class="timeline-dot ${event.event_type}" style="position: absolute; ${isAbove ? 'bottom: -50px;' : 'top: -50px;'} left: 50%; transform: translateX(-50%);"></div>
                 <div class="timeline-card ${isAbove ? 'above' : 'below'}" onclick="viewEventDetail(${event.id})">
                     <div class="timeline-date-badge">
                         ${formatDate(event.start_date)}
