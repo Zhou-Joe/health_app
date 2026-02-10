@@ -873,36 +873,70 @@ function renderTimeline(events) {
     let allPoints = [];
 
     if (yearData.length > 0) {
-        // Start from first point of first year
-        const firstYear = yearData[0];
-        pathD = `M ${firstYear.eventPoints[0].x} ${firstYear.eventPoints[0].y}`;
-        allPoints.push(firstYear.eventPoints[0]);
-
-        // Draw each year
+        // Collect all points in S-shape order
         for (let i = 0; i < yearData.length; i++) {
             const currentYear = yearData[i];
 
-            // Draw horizontal line through all points in this year
-            for (let j = 1; j < currentYear.eventPoints.length; j++) {
-                pathD += ` L ${currentYear.eventPoints[j].x} ${currentYear.eventPoints[j].y}`;
-                allPoints.push(currentYear.eventPoints[j]);
+            if (currentYear.isLeftToRight) {
+                // Left to right: add points in order of increasing x
+                const sortedPoints = [...currentYear.eventPoints].sort((a, b) => a.x - b.x);
+                sortedPoints.forEach(pt => allPoints.push(pt));
+            } else {
+                // Right to left: add points in order of decreasing x
+                const sortedPoints = [...currentYear.eventPoints].sort((a, b) => b.x - a.x);
+                sortedPoints.forEach(pt => allPoints.push(pt));
             }
+        }
 
-            // If not the last year, draw semicircle arc to next year
-            if (i < yearData.length - 1) {
-                const nextYear = yearData[i + 1];
-                const lastPoint = currentYear.eventPoints[currentYear.eventPoints.length - 1];
-                const nextY = nextYear.y;
+        // Build the S-shaped path
+        // Start from the first point's row edge
+        const firstYear = yearData[0];
+        if (firstYear.isLeftToRight) {
+            pathD = `M ${paddingX} ${firstYear.y}`;
+        } else {
+            pathD = `M ${paddingX + availableWidth} ${firstYear.y}`;
+        }
 
-                if (currentYear.isLeftToRight) {
-                    // Left to right line ends at right side
-                    // Draw semicircle clockwise: from right end down to left start of next row
-                    // Arc endpoint: paddingX, nextY
+        // Draw path through all rows with semicircle transitions
+        for (let i = 0; i < yearData.length; i++) {
+            const yr = yearData[i];
+
+            if (yr.isLeftToRight) {
+                // Moving left to right on this row
+                // Get points on this row, sorted by x
+                const rowPoints = yr.eventPoints.sort((a, b) => a.x - b.x);
+
+                // Draw line through each point
+                rowPoints.forEach(pt => {
+                    pathD += ` L ${pt.x} ${pt.y}`;
+                });
+
+                // Extend to right edge
+                pathD += ` L ${paddingX + availableWidth} ${yr.y}`;
+
+                // Draw semicircle to next row if not last
+                if (i < yearData.length - 1) {
+                    const nextY = yearData[i + 1].y;
+                    // Arc from right edge to left edge of next row
                     pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${paddingX} ${nextY}`;
-                } else {
-                    // Right to left line ends at left side
-                    // Draw semicircle clockwise: from left end down to right start of next row
-                    // Arc endpoint: paddingX + availableWidth, nextY
+                }
+            } else {
+                // Moving right to left on this row
+                // Get points on this row, sorted by x (descending)
+                const rowPoints = yr.eventPoints.sort((a, b) => b.x - a.x);
+
+                // Draw line through each point
+                rowPoints.forEach(pt => {
+                    pathD += ` L ${pt.x} ${pt.y}`;
+                });
+
+                // Extend to left edge
+                pathD += ` L ${paddingX} ${yr.y}`;
+
+                // Draw semicircle to next row if not last
+                if (i < yearData.length - 1) {
+                    const nextY = yearData[i + 1].y;
+                    // Arc from left edge to right edge of next row
                     pathD += ` A ${turnRadius} ${turnRadius} 0 0 1 ${paddingX + availableWidth} ${nextY}`;
                 }
             }
