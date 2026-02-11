@@ -449,6 +449,67 @@ p {
     border-color: #000 !important;
     border-width: 2px;
 }
+
+/* 首页事件时间线 */
+.dashboard-events-timeline {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.dashboard-events-timeline::before {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 8px;
+    bottom: 8px;
+    width: 4px;
+    background: #000;
+}
+
+.dashboard-events-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.dashboard-events-item:last-child {
+    margin-bottom: 0;
+}
+
+.dashboard-events-dot {
+    width: 20px;
+    height: 20px;
+    border: 3px solid #000;
+    box-shadow: 2px 2px 0 #000;
+    flex-shrink: 0;
+    margin-top: 0.625rem;
+    position: relative;
+    z-index: 1;
+    background: #fff;
+}
+
+.dashboard-events-dot.illness { background: var(--brutal-red); }
+.dashboard-events-dot.checkup { background: var(--brutal-blue); }
+.dashboard-events-dot.chronic_management { background: #A855F7; }
+.dashboard-events-dot.emergency { background: #FB923C; }
+.dashboard-events-dot.wellness { background: var(--brutal-green); }
+.dashboard-events-dot.medication_course { background: var(--brutal-pink); }
+.dashboard-events-dot.other { background: #94A3B8; }
+
+.dashboard-events-card {
+    border: 2px solid #000;
+    box-shadow: var(--shadow-hard-sm);
+    background: #fff;
+    padding: 0.875rem;
+    flex: 1;
+}
+
+.dashboard-events-meta {
+    font-size: 0.8125rem;
+    color: #4b5563;
+}
 </style>
 {% endblock %}
 
@@ -688,28 +749,27 @@ p {
                         </div>
                         <div class="card-body">
                             {% if recent_events %}
-                                <div class="row g-2">
+                                <div class="dashboard-events-timeline">
                                     {% for event in recent_events %}
-                                    <div class="col-lg-6">
-                                        <div class="card h-100">
-                                            <div class="card-body p-3">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <div class="fw-bold">{{ event.name }}</div>
-                                                    <span class="badge bg-dark">{{ event.get_event_type_display }}</span>
-                                                </div>
-                                                <div class="small text-muted mb-1">
-                                                    <i class="bi bi-calendar3"></i>
-                                                    {{ event.start_date|date:"Y-m-d" }}
-                                                    {% if event.end_date %} ~ {{ event.end_date|date:"Y-m-d" }}{% endif %}
-                                                </div>
-                                                <div class="small text-muted mb-2">
-                                                    <i class="bi bi-list-check"></i> {{ event.item_count }} 条记录
-                                                    <span class="ms-2"><i class="bi bi-hourglass-split"></i> {{ event.duration_days }} 天</span>
-                                                </div>
-                                                <a href="{% url 'medical_records:event_detail' event.id %}" class="btn btn-sm btn-outline-primary">
-                                                    查看详情
-                                                </a>
+                                    <div class="dashboard-events-item">
+                                        <div class="dashboard-events-dot {{ event.event_type }}"></div>
+                                        <div class="dashboard-events-card">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <div class="fw-bold">{{ event.name }}</div>
+                                                <span class="badge bg-dark">{{ event.get_event_type_display }}</span>
                                             </div>
+                                            <div class="dashboard-events-meta mb-1">
+                                                <i class="bi bi-calendar3"></i>
+                                                {{ event.start_date|date:"Y-m-d" }}
+                                                {% if event.end_date %} ~ {{ event.end_date|date:"Y-m-d" }}{% endif %}
+                                            </div>
+                                            <div class="dashboard-events-meta mb-2">
+                                                <i class="bi bi-list-check"></i> {{ event.item_count }} 条记录
+                                                <span class="ms-2"><i class="bi bi-hourglass-split"></i> {{ event.duration_days }} 天</span>
+                                            </div>
+                                            <a href="{% url 'medical_records:event_detail' event.id %}" class="btn btn-sm btn-outline-primary">
+                                                查看详情
+                                            </a>
                                         </div>
                                     </div>
                                     {% endfor %}

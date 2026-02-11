@@ -18,6 +18,9 @@ urlpatterns = [
     path('settings/', views.system_settings, name='system_settings'),
     path('profile/', views.user_profile, name='user_profile'),
     path('health-management/', views.health_management, name='health_management'),
+    # 兼容错误/历史入口，避免外部链接导致404
+    path('-management/', views.health_management),
+    path('management/', views.health_management),
     path('caregivers/', views.caregiver_access, name='caregiver_access'),
     path('shared/', views.shared_access, name='shared_access'),
     path('shared/<int:owner_id>/checkups/', views.shared_checkups, name='shared_checkups'),
