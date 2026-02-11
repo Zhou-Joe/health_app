@@ -27,6 +27,36 @@ from .llm_prompts import (
 from .views import call_ai_doctor_api
 
 
+def _safe_get_request_json(request):
+    """
+    安全获取JSON请求体。
+    - DRF Request: 优先使用 request.data（可重复访问）
+    - Django HttpRequest: 回退使用 request.body
+    """
+    # DRF Request 路径
+    if hasattr(request, 'data'):
+        data = request.data
+        if data is None:
+            return {}
+        if isinstance(data, dict):
+            return data
+        if hasattr(data, 'dict'):
+            try:
+                return data.dict()
+            except Exception:
+                return {}
+        return {}
+
+    # 兼容普通 Django Request
+    try:
+        raw = request.body
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8')
+        return json.loads(raw) if raw else {}
+    except Exception:
+        return {}
+
+
 def extract_json_objects(text):
     """从文本中提取所有完整的JSON对象"""
     json_objects = []
@@ -1318,7 +1348,9 @@ def stream_ai_advice(request):
 
     try:
         # 获取请求数据
-        data = json.loads(request.body)
+        data = _safe_get_request_json(request)
+        if not isinstance(data, dict):
+            data = {}
         question = data.get('question', '').strip()
 
         if not question:
