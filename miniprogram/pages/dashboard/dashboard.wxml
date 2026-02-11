@@ -22,7 +22,11 @@
 
     <view class="avatar-section" bindtap="goToSettings">
       <view class="avatar-ring">
-        <text class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
+        <image wx:if="{{userInfo.avatar_url}}"
+               class="avatar-image"
+               src="{{userInfo.avatar_url}}"
+               mode="aspectFill"></image>
+        <text wx:else class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
       </view>
       <view class="settings-dot"></view>
     </view>
@@ -82,30 +86,6 @@
     </view>
   </view>
 
-  <!-- 异常提醒 - 卡片重叠设计 -->
-  <view class="alert-section" wx:if="{{abnormalIndicators.length > 0}}">
-    <view class="alert-card-main"
-          bindtap="goToAbnormalIndicator"
-          data-id="{{abnormalIndicators[0].id}}"
-          data-checkup="{{abnormalIndicators[0].checkup_id}}">
-      <view class="alert-left">
-        <view class="alert-emoji-wrapper">
-          <text class="alert-emoji">⚠️</text>
-        </view>
-      </view>
-      <view class="alert-content">
-        <text class="alert-title">需要关注</text>
-        <text class="alert-item">{{abnormalIndicators[0].indicator_name}}</text>
-        <text class="alert-value">{{abnormalIndicators[0].value_display}} {{abnormalIndicators[0].unit}}</text>
-      </view>
-      <view class="alert-arrow">→</view>
-    </view>
-
-    <view class="alert-card-sub" wx:if="{{abnormalIndicators.length > 1}}" bindtap="goToCheckups">
-      <text class="more-alert-text">还有 {{abnormalIndicators.length - 1}} 项异常</text>
-    </view>
-  </view>
-
   <!-- 快捷操作 - 大按钮网格 -->
   <view class="actions-grid">
     <view class="action-card action-upload" bindtap="goToUpload">
@@ -139,37 +119,54 @@
     </view>
   </view>
 
-  <!-- 最新报告 - 时间轴设计 -->
-  <view class="reports-section">
+  <!-- 健康事件时间轴 -->
+  <view class="events-section">
     <view class="section-header">
-      <text class="section-title">最近</text>
+      <text class="section-title">事件时间轴</text>
       <view class="section-line"></view>
-      <text class="section-more" bindtap="goToCheckups">全部 →</text>
+      <text class="section-more"
+            bindtap="autoAggregateEvents">
+        {{autoAggregating ? '整合中...' : '一键自动整合'}}
+      </text>
     </view>
 
-    <view class="report-timeline" wx:if="{{recentCheckups.length > 0}}">
-      <view class="timeline-item"
-            wx:for="{{recentCheckups}}"
-            wx:key="id"
-            bindtap="goToCheckupDetail"
-            data-id="{{item.id}}">
-        <view class="timeline-dot"></view>
-        <view class="timeline-content">
-          <text class="report-name">{{item.hospital || '体检报告'}}</text>
-          <view class="report-meta">
-            <text class="report-date">{{item.checkup_date}}</text>
-            <view class="report-badge">
-              <text class="badge-count">{{item.indicators_count}}</text>
-              <text class="badge-unit">项</text>
-            </view>
+    <view class="aggregate-tip" wx:if="{{showAggregateTip}}">
+      <view class="aggregate-tip-content">
+        <text class="aggregate-tip-title">不知道这个功能？</text>
+        <text class="aggregate-tip-text">可按时间自动聚合体检和药单，生成结构化事件时间轴。</text>
+      </view>
+      <view class="aggregate-tip-btn" bindtap="autoAggregateEvents">
+        <text>{{autoAggregating ? '处理中...' : '立即尝试'}}</text>
+      </view>
+    </view>
+
+    <view class="event-timeline" wx:if="{{recentEvents.length > 0}}">
+      <view class="event-item"
+            wx:for="{{recentEvents}}"
+            wx:key="id">
+        <view class="event-dot {{item.event_type}}"></view>
+        <view class="event-card" bindtap="goToEventDetail" data-id="{{item.id}}">
+          <view class="event-row">
+            <text class="event-name">{{item.name}}</text>
+            <text class="event-type">{{item.event_type_label}}</text>
           </view>
+          <view class="event-row-meta">
+            <text class="event-date">{{item.date_range}}</text>
+            <text class="event-count">{{item.item_count}} 条记录</text>
+          </view>
+          <text class="event-auto" wx:if="{{item.is_auto_generated}}">自动聚合</text>
+          <text class="event-enter">查看详情 →</text>
         </view>
       </view>
     </view>
 
-    <view class="empty-reports" wx:else>
-      <text class="empty-emoji">🌱</text>
-      <text class="empty-text">开始记录健康</text>
+    <view class="empty-events" wx:else>
+      <text class="empty-emoji">🧩</text>
+      <text class="empty-text">暂无事件时间轴</text>
+      <view class="empty-events-btn" bindtap="autoAggregateEvents">
+        <text>{{autoAggregating ? '整合中...' : '一键生成事件时间轴'}}</text>
+      </view>
     </view>
   </view>
+
 </view>

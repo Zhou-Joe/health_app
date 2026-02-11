@@ -1,5 +1,5 @@
 <!--pages/medications/medications.wxml-->
-<view class="container">
+<view class="container app-theme">
   <!-- 页面标题 -->
   <view class="page-header">
     <text class="page-title">我的药单</text>

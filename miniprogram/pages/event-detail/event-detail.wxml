@@ -1,0 +1,115 @@
+<view class="event-detail-page app-theme">
+  <view class="header-card" wx:if="{{event}}">
+    <view class="header-top">
+      <text class="event-title">{{event.name}}</text>
+      <text class="event-type">{{eventTypeLabel}}</text>
+    </view>
+
+    <view class="header-meta">
+      <view class="meta-chip">
+        <text>时间 {{dateRange}}</text>
+      </view>
+      <view class="meta-chip">
+        <text>持续 {{event.duration_days}} 天</text>
+      </view>
+      <view class="meta-chip">
+        <text>记录 {{items.length}} 条</text>
+      </view>
+    </view>
+
+    <text class="event-desc" wx:if="{{event.description}}">{{event.description}}</text>
+
+    <view class="header-actions">
+      <view class="header-btn" bindtap="openRenameModal">改名</view>
+      <view class="header-btn header-btn-primary" bindtap="openReportPicker">添加报告</view>
+    </view>
+  </view>
+
+  <view class="section-title-wrap">
+    <text class="section-title">绑定记录</text>
+  </view>
+
+  <view class="record-list" wx:if="{{items.length > 0}}">
+    <view class="record-item"
+          wx:for="{{items}}"
+          wx:key="id"
+          bindtap="onTapItem"
+          data-index="{{index}}">
+      <view class="record-left">
+        <text class="record-type">{{item.contentTypeLabel}}</text>
+        <text class="record-summary">{{item.item_summary}}</text>
+        <view class="record-subline">
+          <text class="record-meta">{{item.added_at}}</text>
+          <text class="record-meta">{{item.addedByLabel}}</text>
+        </view>
+        <text class="record-notes" wx:if="{{item.notes}}">备注：{{item.notes}}</text>
+      </view>
+
+      <view class="record-right">
+        <view class="record-action-btn" catchtap="onTapItemAction" data-index="{{index}}">
+          <text class="record-action">{{item.actionLabel}}</text>
+        </view>
+        <view class="record-remove-btn"
+              wx:if="{{item.canRemoveReport}}"
+              catchtap="onRemoveReportTap"
+              data-item-id="{{item.id}}">
+          <text class="record-remove-text">{{removingItemId === item.id ? '移除中...' : '移除'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">该事件暂无绑定记录</text>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showRenameModal}}" catchtap="closeRenameModal">
+    <view class="rename-modal" catchtap="noop">
+      <text class="modal-title">修改事件名称</text>
+      <input class="rename-input"
+             type="text"
+             maxlength="64"
+             placeholder="请输入事件名称"
+             value="{{renameInput}}"
+             bindinput="onRenameInput" />
+      <view class="modal-actions">
+        <view class="modal-btn modal-btn-cancel" bindtap="closeRenameModal">取消</view>
+        <view class="modal-btn modal-btn-confirm" bindtap="confirmRename">
+          {{savingRename ? '保存中...' : '保存'}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="modal-mask" wx:if="{{showReportPicker}}" catchtap="closeReportPicker">
+    <view class="report-picker" catchtap="noop">
+      <view class="report-picker-header">
+        <text class="modal-title">添加体检报告</text>
+        <text class="picker-close" bindtap="closeReportPicker">关闭</text>
+      </view>
+
+      <view class="picker-loading" wx:if="{{availableLoading}}">
+        <text>正在加载可添加报告...</text>
+      </view>
+
+      <scroll-view class="report-list-scroll" scroll-y wx:elif="{{availableReports.length > 0}}">
+        <view class="report-option" wx:for="{{availableReports}}" wx:key="object_id">
+          <view class="report-option-left">
+            <text class="report-option-title">{{item.summary}}</text>
+            <text class="report-option-date">{{item.date}}</text>
+          </view>
+          <view class="report-option-btn"
+                catchtap="onAddReportTap"
+                data-object-id="{{item.object_id}}">
+            <text>{{addingReportId === item.object_id ? '添加中...' : '添加'}}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="picker-empty" wx:else>
+        <text>暂无可添加的报告</text>
+      </view>
+    </view>
+  </view>
+</view>

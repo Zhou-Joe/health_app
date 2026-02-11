@@ -1,5 +1,5 @@
 <!--pages/login/login.wxml-->
-<view class="login-container">
+<view class="login-container app-theme">
   <!-- 温暖的氛围装饰 -->
   <view class="warm-glow glow-1"></view>
   <view class="warm-glow glow-2"></view>

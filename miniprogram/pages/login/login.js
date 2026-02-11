@@ -112,8 +112,13 @@ Page({
         ...userInfo
       })
 
+      const mergedUser = {
+        ...(res.user || {}),
+        avatar_url: (res.user && res.user.avatar_url) || userInfo.avatarUrl || ''
+      }
+
       // 4. 保存登录信息
-      app.setLoginInfo(res.token, res.user)
+      app.setLoginInfo(res.token, mergedUser)
 
       // 5. 判断是否需要完善个人信息
       if (res.need_complete_profile) {

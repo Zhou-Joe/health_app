@@ -59,6 +59,13 @@ module.exports = {
     // 数据整合
     integrateData: '/api/miniprogram/integrate-data/',
     applyIntegration: '/api/miniprogram/apply-integration/',
+    // 事件时间轴（复用网页端通用接口）
+    events: '/api/events/',
+    eventDetail: (id) => `/api/events/${id}/`,
+    eventAutoCluster: '/api/events/auto-cluster/',
+    eventAddItem: (id) => `/api/events/${id}/add-item/`,
+    eventRemoveItem: (eventId, itemId) => `/api/events/${eventId}/remove-item/${itemId}/`,
+    eventAvailableItems: '/api/events/available-items/',
 
     // 系统信息
     servicesStatus: '/api/miniprogram/services-status/', // 小程序专用接口
@@ -101,7 +108,8 @@ module.exports = {
     conversation: '/pages/conversation/conversation',
     integration: '/pages/integration/integration',
     settings: '/pages/settings/settings',
-    completeProfile: '/pages/complete-profile/complete-profile'
+    completeProfile: '/pages/complete-profile/complete-profile',
+    eventDetail: '/pages/event-detail/event-detail'
   },
 
   // 工作流类型

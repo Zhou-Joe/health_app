@@ -497,3 +497,46 @@ page {
   font-weight: 600;
   color: white;
 }
+
+/* Round-2 polish */
+.checkups-container.app-theme .page-header {
+  padding-top: 64rpx;
+}
+
+.checkups-container.app-theme .batch-actions {
+  border-radius: 24rpx;
+}
+
+.checkups-container.app-theme .report-card {
+  border-radius: 24rpx;
+}
+
+.checkups-container.app-theme .report-card::before {
+  border-radius: 24rpx;
+}
+
+.checkups-container.app-theme .report-card::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20rpx;
+  bottom: 20rpx;
+  width: 8rpx;
+  border-radius: 8rpx;
+  background: linear-gradient(180deg, rgba(58, 121, 195, 0.25), rgba(232, 93, 76, 0.28));
+}
+
+.checkups-container.app-theme .hospital-name {
+  color: #1d3958;
+}
+
+.checkups-container.app-theme .stat-number {
+  letter-spacing: 0.5rpx;
+}
+
+.checkups-container.app-theme .empty-content {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1rpx dashed rgba(86, 129, 180, 0.25);
+  border-radius: 24rpx;
+  padding: 34rpx 26rpx;
+}

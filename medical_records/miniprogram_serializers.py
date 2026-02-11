@@ -4,13 +4,22 @@ from django.contrib.auth.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     """用户序列化器，包含UserProfile信息"""
+    avatar_url = serializers.SerializerMethodField()
     birth_date = serializers.SerializerMethodField()
     gender = serializers.SerializerMethodField()
     age = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'birth_date', 'gender', 'age']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined', 'avatar_url', 'birth_date', 'gender', 'age']
+
+    def get_avatar_url(self, obj):
+        """获取头像URL"""
+        try:
+            profile = obj.userprofile
+            return profile.avatar_url if profile.avatar_url else None
+        except UserProfile.DoesNotExist:
+            return None
 
     def get_birth_date(self, obj):
         """获取出生日期"""

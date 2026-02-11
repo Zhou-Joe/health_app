@@ -346,3 +346,53 @@ page {
   color: white;
   box-shadow: 0 8rpx 24rpx rgba(232, 93, 76, 0.3);
 }
+
+/* Round-2 polish */
+.settings-container.app-theme .user-card {
+  background: linear-gradient(135deg, #3f7fc9, #5da0e8) !important;
+  border: 1rpx solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: 0 18rpx 34rpx rgba(45, 102, 170, 0.28) !important;
+}
+
+.settings-container.app-theme .user-name {
+  color: #ffffff;
+  font-size: 30rpx;
+}
+
+.settings-container.app-theme .section-title {
+  font-size: 25rpx;
+  font-weight: 700;
+  color: #40658f;
+}
+
+.settings-container.app-theme .section-list {
+  border-radius: 24rpx;
+}
+
+.settings-container.app-theme .list-item {
+  padding-top: 26rpx;
+  padding-bottom: 26rpx;
+}
+
+.settings-container.app-theme .item-label {
+  color: #24486f;
+  font-weight: 600;
+}
+
+.settings-container.app-theme .item-value {
+  color: #6783a6;
+}
+
+.settings-container.app-theme .logout-btn {
+  border-radius: 22rpx;
+  border-width: 1rpx;
+}
+
+.settings-container.app-theme .modal-container {
+  border-radius: 24rpx;
+}
+
+.settings-container.app-theme .modal-input,
+.settings-container.app-theme .picker-value {
+  border-radius: 16rpx;
+}

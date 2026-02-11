@@ -1801,7 +1801,9 @@ def stream_advice_sync(request):
 
     try:
         # 获取请求数据（与stream_ai_advice相同）
-        data = json.loads(request.body)
+        data = _safe_get_request_json(request)
+        if not isinstance(data, dict):
+            data = {}
         question = data.get('question', '').strip()
 
         if not question:

@@ -1,5 +1,5 @@
 <!--pages/conversation-history/conversation-history.wxml-->
-<view class="history-page">
+<view class="history-page app-theme">
   <!-- 背景装饰 -->
   <view class="bg-decoration">
     <view class="gradient-blob blob-1"></view>

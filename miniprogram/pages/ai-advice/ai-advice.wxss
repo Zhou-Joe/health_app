@@ -607,3 +607,63 @@ page {
   font-weight: 600;
   border: none;
 }
+
+/* Round-2 polish */
+.ai-advice-container.app-theme .page-header {
+  padding-top: 64rpx;
+}
+
+.ai-advice-container.app-theme .ai-card {
+  position: relative;
+  overflow: hidden;
+  padding-top: 44rpx;
+  padding-bottom: 44rpx;
+}
+
+.ai-advice-container.app-theme .ai-card::after {
+  content: '';
+  position: absolute;
+  width: 220rpx;
+  height: 220rpx;
+  right: -72rpx;
+  top: -86rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.ai-advice-container.app-theme .options-grid {
+  gap: 14rpx;
+}
+
+.ai-advice-container.app-theme .option-card {
+  border-radius: 24rpx;
+  min-height: 190rpx;
+}
+
+.ai-advice-container.app-theme .input-card {
+  border-radius: 26rpx;
+}
+
+.ai-advice-container.app-theme .question-input {
+  border-radius: 18rpx;
+  min-height: 190rpx;
+  padding: 22rpx;
+}
+
+.ai-advice-container.app-theme .submit-btn {
+  height: 100rpx;
+  border-radius: 22rpx;
+}
+
+.ai-advice-container.app-theme .modal-container {
+  background: linear-gradient(180deg, #fbfdff 0%, #ffffff 100%);
+}
+
+.ai-advice-container.app-theme .modal-option {
+  border-radius: 20rpx;
+}
+
+.ai-advice-container.app-theme .action-tag {
+  border-radius: 14rpx;
+  border: 1rpx solid rgba(85, 130, 182, 0.2);
+}

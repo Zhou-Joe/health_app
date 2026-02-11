@@ -22,12 +22,15 @@ Page({
       checkupCount: 0,
       indicatorCount: 0,
       conversationCount: 0,
-      abnormalCount: 0
+      abnormalCount: 0,
+      eventCount: 0
     },
-    // 最新报告
-    recentCheckups: [],
     // 异常指标
     abnormalIndicators: [],
+    // 事件时间轴（首页）
+    recentEvents: [],
+    showAggregateTip: true,
+    autoAggregating: false,
     // 健康趋势数据
     trendData: [],
     // 当前显示的趋势类型
@@ -43,6 +46,7 @@ Page({
   onLoad() {
     this.initDateDisplay()
     this.calculateHealthScore()
+    this.initAggregateTip()
     this.checkLogin()
     this.loadData()
   },
@@ -66,6 +70,16 @@ Page({
     this.setData({
       currentDay: day,
       currentMonth: month
+    })
+  },
+
+  /**
+   * 初始化自动整合提示显示状态
+   */
+  initAggregateTip() {
+    const seen = wx.getStorageSync('eventAutoAggregateTipSeen')
+    this.setData({
+      showAggregateTip: !seen
     })
   },
 
@@ -138,11 +152,12 @@ Page({
       this.setData({ userInfo: app.globalData.userInfo })
 
       // 并发请求多个接口
-      const [checkupsRes, abnormalRes, conversationsRes, indicatorTypesRes] = await Promise.all([
+      const [checkupsRes, abnormalRes, conversationsRes, indicatorTypesRes, eventsRes] = await Promise.all([
         api.getCheckups({ page: 1, page_size: 5 }),
         this.loadAbnormalIndicators(),
         api.getConversations(),
-        this.loadIndicatorTypes()
+        this.loadIndicatorTypes(),
+        this.loadEventsTimeline()
       ])
 
       const checkups = checkupsRes.data || checkupsRes.results || []
@@ -158,12 +173,12 @@ Page({
       const currentTypeName = trendTypes.length > 0 ? trendTypes[0].name : ''
 
       this.setData({
-        recentCheckups: checkups,
         stats: {
           checkupCount: checkupsRes.total || checkupsRes.count || 0,
           indicatorCount: indicatorCount,
           conversationCount: conversationsRes.total || conversationsRes.count || 0,
-          abnormalCount: this.data.abnormalIndicators.length
+          abnormalCount: this.data.abnormalIndicators.length,
+          eventCount: eventsRes.count || 0
         },
         trendTypes: trendTypes,
         currentTrendType: currentTrendType,
@@ -228,6 +243,71 @@ Page({
       // 如果加载失败，返回空数组
       return { data: [] }
     }
+  },
+
+  /**
+   * 首页事件时间轴（按时间倒序）
+   */
+  async loadEventsTimeline() {
+    try {
+      const res = await api.getEvents({ limit: 20 })
+      const rawEvents = res.events || res.data || []
+      const parseTime = (value) => {
+        const ts = new Date(value || 0).getTime()
+        return Number.isFinite(ts) ? ts : 0
+      }
+
+      const sorted = [...rawEvents].sort((a, b) => {
+        const aStart = parseTime(a.start_date || a.created_at)
+        const bStart = parseTime(b.start_date || b.created_at)
+        if (bStart !== aStart) {
+          return bStart - aStart
+        }
+        const aCreated = parseTime(a.created_at)
+        const bCreated = parseTime(b.created_at)
+        return bCreated - aCreated
+      })
+
+      const recentEvents = sorted.slice(0, 5).map(event => ({
+        ...event,
+        event_type_label: this.getEventTypeLabel(event.event_type),
+        date_range: this.getEventDateRange(event)
+      }))
+
+      if (sorted.length > 0 && this.data.showAggregateTip) {
+        this.setData({ showAggregateTip: false })
+        wx.setStorageSync('eventAutoAggregateTipSeen', true)
+      }
+
+      this.setData({ recentEvents })
+      return { count: sorted.length }
+    } catch (err) {
+      console.error('加载事件时间轴失败:', err)
+      this.setData({ recentEvents: [] })
+      return { count: 0 }
+    }
+  },
+
+  getEventTypeLabel(type) {
+    const labelMap = {
+      illness: '疾病事件',
+      checkup: '体检事件',
+      chronic_management: '慢病管理',
+      emergency: '急诊事件',
+      wellness: '健康管理',
+      medication_course: '用药疗程',
+      other: '其他'
+    }
+    return labelMap[type] || '其他'
+  },
+
+  getEventDateRange(event) {
+    const start = event.start_date || ''
+    const end = event.end_date || ''
+    if (start && end && start !== end) {
+      return `${start} ~ ${end}`
+    }
+    return start || end || ''
   },
 
   /**
@@ -303,6 +383,34 @@ Page({
     // 可以导航到详细趋势页面
   },
 
+  /**
+   * 一键自动整合事件（按时间自动聚类）
+   */
+  async autoAggregateEvents() {
+    if (this.data.autoAggregating) return
+
+    this.setData({
+      autoAggregating: true,
+      showAggregateTip: false
+    })
+    wx.setStorageSync('eventAutoAggregateTipSeen', true)
+
+    util.showLoading('正在自动整合...')
+    try {
+      const res = await api.autoClusterEvents({ days_threshold: 7 })
+      const created = Number(res.events_created || 0)
+
+      await this.loadData()
+      util.showToast(created > 0 ? `已新增 ${created} 个事件` : '已完成自动整合')
+    } catch (err) {
+      console.error('自动整合事件失败:', err)
+      util.showToast(err.message || '自动整合失败')
+    } finally {
+      util.hideLoading()
+      this.setData({ autoAggregating: false })
+    }
+  },
+
   // ==================== 页面跳转 ====================
 
   goToCheckups() {
@@ -333,18 +441,11 @@ Page({
     wx.switchTab({ url: '/pages/ai-advice/ai-advice' })
   },
 
-  goToCheckupDetail(e) {
+  goToEventDetail(e) {
     const id = e.currentTarget.dataset.id
+    if (!id) return
     wx.navigateTo({
-      url: `/pages/checkup-detail/checkup-detail?id=${id}`
-    })
-  },
-
-  goToAbnormalIndicator(e) {
-    const id = e.currentTarget.dataset.id
-    const checkupId = e.currentTarget.dataset.checkup
-    wx.navigateTo({
-      url: `/pages/checkup-detail/checkup-detail?id=${checkupId}`
+      url: `/pages/event-detail/event-detail?id=${id}`
     })
   },
 

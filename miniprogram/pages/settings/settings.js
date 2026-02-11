@@ -5,6 +5,7 @@
 const app = getApp()
 const api = require('../../utils/api.js')
 const util = require('../../utils/util.js')
+const config = require('../../config.js')
 
 Page({
   data: {
@@ -46,6 +47,16 @@ Page({
       // 保存到本地存储
       wx.setStorageSync('wechat_avatar', avatarUrl)
 
+      // 同步到后端，确保跨设备/重新登录后仍能显示
+      await api.completeProfile({ avatar_url: avatarUrl })
+
+      const mergedUserInfo = {
+        ...(app.globalData.userInfo || {}),
+        avatar_url: avatarUrl
+      }
+      app.globalData.userInfo = mergedUserInfo
+      wx.setStorageSync(config.storageKeys.USER_INFO, mergedUserInfo)
+
       // 更新页面显示
       this.setData({
         'userInfo.avatar_url': avatarUrl
@@ -74,8 +85,8 @@ Page({
       const res = await api.getUserInfo()
       const user = res.user
 
-      // 使用微信头像
-      if (wechatAvatar) {
+      // 优先后端头像，无后端时回退本地微信头像
+      if (!user.avatar_url && wechatAvatar) {
         user.avatar_url = wechatAvatar
       }
 
@@ -109,6 +120,9 @@ Page({
         userProfile,
         userInfo: user
       })
+
+      app.globalData.userInfo = user
+      wx.setStorageSync(config.storageKeys.USER_INFO, user)
     } catch (err) {
       console.error('加载用户信息失败:', err)
     }

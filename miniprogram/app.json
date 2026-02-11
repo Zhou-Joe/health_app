@@ -14,20 +14,21 @@
     "pages/settings/settings",
     "pages/complete-profile/complete-profile",
     "pages/medications/medications",
-    "pages/trends/trends"
+    "pages/trends/trends",
+    "pages/event-detail/event-detail"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#4A90E2",
+    "navigationBarBackgroundColor": "#3A78C2",
     "navigationBarTitleText": "健康档案",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#F5F5F5"
+    "backgroundColor": "#F6F8FC"
   },
   "tabBar": {
-    "color": "#666666",
-    "selectedColor": "#FF9A9E",
+    "color": "#7389A8",
+    "selectedColor": "#E85D4C",
     "backgroundColor": "#FFFFFF",
-    "borderStyle": "white",
+    "borderStyle": "black",
     "list": [
       {
         "pagePath": "pages/dashboard/dashboard",

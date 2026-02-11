@@ -301,6 +301,7 @@ class SystemSettings(models.Model):
 class UserProfile(models.Model):
     """用户信息扩展"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name='用户')
+    avatar_url = models.URLField(max_length=500, blank=True, null=True, verbose_name='头像URL')
     birth_date = models.DateField(null=True, blank=True, verbose_name='出生日期')
     gender = models.CharField(
         max_length=10,

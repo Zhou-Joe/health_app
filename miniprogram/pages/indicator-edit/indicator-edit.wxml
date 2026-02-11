@@ -1,4 +1,9 @@
-<view class="edit-container">
+<view class="edit-container app-theme">
+  <view class="edit-hero card">
+    <text class="hero-title">{{indicatorId ? '编辑健康指标' : '新增健康指标'}}</text>
+    <text class="hero-subtitle">补录关键指标，帮助趋势分析更准确</text>
+  </view>
+
   <view class="form-card card">
     <view class="form-item">
       <text class="label">指标名称 *</text>
@@ -23,5 +28,5 @@
       </picker>
     </view>
   </view>
-  <button class="submit-btn btn-primary" bindtap="handleSubmit">保存</button>
+  <button class="submit-btn btn-primary" bindtap="handleSubmit">{{indicatorId ? '保存修改' : '保存指标'}}</button>
 </view>

@@ -23,12 +23,33 @@ from .miniprogram_serializers import (
     MiniProgramCheckupListSerializer
 )
 
+
+def _get_request_data(request):
+    """兼容 DRF Request 与原生 HttpRequest 的请求数据解析。"""
+    if hasattr(request, 'data'):
+        data = request.data
+        if isinstance(data, dict):
+            return data
+        if hasattr(data, 'dict'):
+            try:
+                return data.dict()
+            except Exception:
+                pass
+
+    try:
+        raw = request.body
+        if isinstance(raw, bytes):
+            raw = raw.decode('utf-8')
+        return json.loads(raw) if raw else {}
+    except Exception:
+        return {}
+
 @api_view(['POST'])
 @permission_classes([])  # Disable CSRF for login
 def miniprogram_login(request):
     """小程序登录API - 支持微信登录"""
     try:
-        data = json.loads(request.body)
+        data = _get_request_data(request)
 
         # 支持两种登录方式：
         # 1. 微信小程序登录（需要微信code）
@@ -98,6 +119,16 @@ def miniprogram_login(request):
             # 检查是否有UserProfile
             from .models import UserProfile
             user_profile, profile_created = UserProfile.objects.get_or_create(user=user)
+
+            # 保存微信头像（优先使用最新授权头像）
+            if avatar_url:
+                user_profile.avatar_url = avatar_url
+                user_profile.save(update_fields=['avatar_url', 'updated_at'])
+
+            # 首次登录或昵称为空时，用微信昵称补全
+            if nickname and (created or not user.first_name or user.first_name == '微信用户'):
+                user.first_name = nickname
+                user.save(update_fields=['first_name'])
 
             # 判断是否首次登录（没有设置个人信息）
             is_first_login = not (user_profile.birth_date or user_profile.gender)
@@ -1230,13 +1261,22 @@ def miniprogram_conversation_detail(request, conversation_id):
 
         message_list = []
         last_selected_reports = []
+        last_selected_medications = []
 
         for index, msg in enumerate(messages):
-            # 解析selected_reports
+            # 解析 selected_reports
             msg_selected_reports = []
             if msg.selected_reports:
                 try:
                     msg_selected_reports = json.loads(msg.selected_reports)
+                except:
+                    pass
+
+            # 解析 selected_medications
+            msg_selected_medications = []
+            if msg.selected_medications:
+                try:
+                    msg_selected_medications = json.loads(msg.selected_medications)
                 except:
                     pass
 
@@ -1245,15 +1285,17 @@ def miniprogram_conversation_detail(request, conversation_id):
             message_list.append({
                 'id': msg.id,
                 'question': msg.question,
-                'answer': msg.answer or '',  # 确保answer不为None
-                'answer': msg.answer,
+                'answer': msg.answer or '',
                 'created_at': msg.created_at.isoformat(),
-                'selected_reports': msg_selected_reports
+                'selected_reports': msg_selected_reports,
+                'selected_medications': msg_selected_medications
             })
 
-            # 保存最后一条消息的selected_reports
+            # 保存最后一条消息的选择
             if msg_selected_reports:
                 last_selected_reports = msg_selected_reports
+            if msg_selected_medications:
+                last_selected_medications = msg_selected_medications
 
         return Response({
             'success': True,
@@ -1264,7 +1306,8 @@ def miniprogram_conversation_detail(request, conversation_id):
                 'updated_at': conversation.updated_at.isoformat(),
                 'messages': message_list,
                 'message_count': len(message_list),
-                'last_selected_reports': last_selected_reports
+                'last_selected_reports': last_selected_reports,
+                'last_selected_medications': last_selected_medications
             }
         })
 
@@ -1843,7 +1886,7 @@ def miniprogram_complete_profile(request):
     try:
         from .models import UserProfile
 
-        data = json.loads(request.body)
+        data = _get_request_data(request)
         print(f"[调试] 接收到的数据: {data}")
 
         # 获取或创建UserProfile
@@ -1878,6 +1921,10 @@ def miniprogram_complete_profile(request):
         if 'gender' in data:
             user_profile.gender = data['gender']
             print(f"[调试] 性别已更新: {data['gender']}")
+
+        if 'avatar_url' in data:
+            user_profile.avatar_url = data['avatar_url']
+            print(f"[调试] 头像URL已更新: {data['avatar_url']}")
 
         user_profile.save()
         print(f"[调试] UserProfile已保存")
@@ -2186,4 +2233,3 @@ def miniprogram_medication_records(request, medication_id):
         'success': True,
         'records': record_list
     })
-

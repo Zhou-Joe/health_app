@@ -1,130 +1,267 @@
-/* 全局样式 - 温暖治愈风格 */
+/* Global theme and shared primitives */
 page {
-  /* 温暖治愈风格变量 */
-  --warm-coral: #FF8A7A;
-  --warm-peach: #FFB4A2;
-  --warm-cream: #FFF5F0;
-  --warm-white: #FFFEF9;
-  --warm-mint: #A8E6CF;
-  --warm-lavender: #E8D5F2;
-  --warm-yellow: #FFF3B0;
-  --warm-pink: #FFB3C6;
-  --text-primary: #5D4E46;
-  --text-secondary: #8B7E7A;
-  --text-light: #B5A8A3;
+  --app-primary: #e85d4c;
+  --app-primary-soft: #f29b63;
+  --app-secondary: #4a90a4;
+  --app-secondary-soft: #6caec0;
+  --app-accent: #f5a962;
+  --app-bg: #f6f8fc;
+  --app-surface: rgba(255, 255, 255, 0.92);
+  --app-border: rgba(87, 129, 176, 0.18);
+  --app-shadow: rgba(26, 76, 132, 0.12);
+  --app-text: #1f3552;
+  --app-muted: #6d84a4;
 
-  background: linear-gradient(180deg, #FFF5F0 0%, #FFFEF9 100%);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background: linear-gradient(180deg, #f4f8ff 0%, #ffffff 52%, #fff9f4 100%);
+  color: var(--app-text);
+  font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
-/* 通用容器 */
+/* Unified theme wrapper. Add this class to page root containers (except dashboard). */
+.app-theme {
+  min-height: 100vh;
+  position: relative;
+}
+
+.app-theme .bg-decoration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-theme .blob,
+.app-theme .gradient-blob,
+.app-theme .warm-glow {
+  filter: blur(100rpx) !important;
+  opacity: 0.22 !important;
+}
+
+.app-theme .page-header,
+.app-theme .profile-header,
+.app-theme .chat-header,
+.app-theme .header-nav {
+  position: relative;
+  z-index: 2;
+}
+
+.app-theme .main-content,
+.app-theme .content-scroll,
+.app-theme .trends-list,
+.app-theme .reports-list,
+.app-theme .form-section,
+.app-theme .upload-section,
+.app-theme .section,
+.app-theme .record-list,
+.app-theme .medication-list {
+  position: relative;
+  z-index: 1;
+}
+
+.app-theme .header-title,
+.app-theme .page-title,
+.app-theme .app-name,
+.app-theme .section-title,
+.app-theme .card-title {
+  color: var(--app-text);
+  letter-spacing: 0.4rpx;
+}
+
+.app-theme .header-subtitle,
+.app-theme .page-count,
+.app-theme .app-desc,
+.app-theme .section-more,
+.app-theme .subtitle-tag,
+.app-theme .empty-hint,
+.app-theme .tip-text,
+.app-theme .record-meta,
+.app-theme .check-text {
+  color: var(--app-muted);
+}
+
+.app-theme .card,
+.app-theme .form-card,
+.app-theme .section-card,
+.app-theme .intro-card,
+.app-theme .stats-card,
+.app-theme .changes-card,
+.app-theme .tip-card,
+.app-theme .record-item,
+.app-theme .report-card,
+.app-theme .medication-card,
+.app-theme .conversation-card,
+.app-theme .trend-card,
+.app-theme .type-header,
+.app-theme .duplicate-group,
+.app-theme .change-item,
+.app-theme .upload-area,
+.app-theme .file-card,
+.app-theme .option-card,
+.app-theme .login-form,
+.app-theme .feature-card,
+.app-theme .empty-state,
+.app-theme .section-list,
+.app-theme .search-box,
+.app-theme .chat-meta,
+.app-theme .message-bubble .bubble-content,
+.app-theme .user-card,
+.app-theme .header-card {
+  background: var(--app-surface) !important;
+  border: 1rpx solid var(--app-border) !important;
+  border-radius: 28rpx !important;
+  box-shadow: 0 14rpx 34rpx var(--app-shadow) !important;
+  backdrop-filter: blur(14rpx);
+  -webkit-backdrop-filter: blur(14rpx);
+}
+
+.app-theme .chat-meta {
+  border-radius: 20rpx !important;
+}
+
+.app-theme .meta-chip,
+.app-theme .status-badge,
+.app-theme .event-type,
+.app-theme .record-type,
+.app-theme .type-count {
+  background: rgba(67, 123, 184, 0.12) !important;
+  border: 1rpx solid rgba(67, 123, 184, 0.2) !important;
+  color: #2d5f95 !important;
+}
+
+.app-theme .btn-primary,
+.app-theme .submit-btn,
+.app-theme .confirm-btn,
+.app-theme .upload-btn,
+.app-theme .start-chat-btn,
+.app-theme .primary-btn,
+.app-theme .merge-btn,
+.app-theme .empty-btn,
+.app-theme .action-btn,
+.app-theme .header-action,
+.app-theme .batch-download-btn {
+  background: linear-gradient(135deg, var(--app-primary), var(--app-primary-soft)) !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 10rpx 24rpx rgba(232, 93, 76, 0.24) !important;
+}
+
+.app-theme .btn-secondary,
+.app-theme .secondary-btn,
+.app-theme .cancel-btn,
+.app-theme .batch-btn,
+.app-theme .header-btn,
+.app-theme .records-btn,
+.app-theme .picker-close,
+.app-theme .history-btn,
+.app-theme .add-btn {
+  background: rgba(243, 248, 255, 0.96) !important;
+  color: #2f5c8d !important;
+  border: 1rpx solid rgba(79, 131, 191, 0.24) !important;
+  box-shadow: none !important;
+}
+
+.app-theme .input,
+.app-theme .input-field,
+.app-theme .form-input,
+.app-theme .question-input,
+.app-theme .rename-input,
+.app-theme .search-input,
+.app-theme .picker-value,
+.app-theme .form-picker,
+.app-theme .input-wrapper,
+.app-theme .textarea-wrapper,
+.app-theme .message-input {
+  background: rgba(246, 250, 255, 0.98) !important;
+  border: 1rpx solid rgba(86, 133, 182, 0.2) !important;
+  border-radius: 18rpx !important;
+  color: var(--app-text);
+}
+
+.app-theme .empty-icon,
+.app-theme .empty-emoji,
+.app-theme .header-emoji,
+.app-theme .option-emoji,
+.app-theme .ai-avatar,
+.app-theme .logo-icon {
+  filter: saturate(1.04);
+}
+
+.app-theme .section-title-wrap,
+.app-theme .section-header,
+.app-theme .card-header,
+.app-theme .header-top {
+  position: relative;
+  z-index: 1;
+}
+
+/* Shared card/button primitives still used by detail/edit pages */
 .container {
   min-height: 100vh;
   padding: 20rpx;
   box-sizing: border-box;
 }
 
-/* 卡片样式 - 温暖风格 */
 .card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 28rpx;
-  padding: 28rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 8rpx 32rpx rgba(255, 138, 122, 0.08);
-  border: 2rpx solid rgba(255, 255, 255, 0.8);
+  background: var(--app-surface);
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid var(--app-border);
+  box-shadow: 0 10rpx 28rpx var(--app-shadow);
 }
 
 .card-title {
   font-size: 32rpx;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 20rpx;
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
+  font-weight: 700;
+  margin-bottom: 18rpx;
 }
 
-/* 按钮样式 - 温暖风格 */
 .btn-primary {
-  background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
-  color: white;
-  border-radius: 24rpx;
+  background: linear-gradient(135deg, var(--app-primary), var(--app-primary-soft));
+  color: #fff;
+  border-radius: 20rpx;
   font-size: 28rpx;
-  font-weight: 600;
-  padding: 20rpx 40rpx;
+  font-weight: 700;
+  padding: 18rpx 36rpx;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(255, 138, 122, 0.3);
-}
-
-.btn-primary:active {
-  transform: scale(0.96);
-  box-shadow: 0 4rpx 12rpx rgba(255, 138, 122, 0.2);
 }
 
 .btn-secondary {
-  background: var(--warm-cream);
-  color: var(--text-primary);
+  background: rgba(243, 248, 255, 0.96);
+  color: #2f5c8d;
   border-radius: 20rpx;
   font-size: 28rpx;
-  padding: 20rpx 40rpx;
-  border: 2rpx solid rgba(255, 138, 122, 0.15);
+  padding: 18rpx 36rpx;
+  border: 1rpx solid rgba(79, 131, 191, 0.24);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
   color: white;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   font-size: 28rpx;
-  padding: 20rpx 40rpx;
+  padding: 18rpx 36rpx;
   border: none;
-  box-shadow: 0 8rpx 24rpx rgba(255, 107, 107, 0.3);
-}
-
-/* 文本样式 */
-.text-primary {
-  color: var(--warm-coral);
 }
 
 .text-success {
-  color: #3A7A5C;
+  color: #1f9a6b;
 }
 
 .text-warning {
-  color: #D4A017;
+  color: #d4892a;
 }
 
 .text-danger {
-  color: #FF6B6B;
+  color: #d74c4c;
 }
 
 .text-muted {
-  color: var(--text-light);
+  color: var(--app-muted);
 }
 
-.text-small {
-  font-size: 24rpx;
-}
-
-.text-large {
-  font-size: 36rpx;
-}
-
-/* 布局样式 */
 .flex {
   display: flex;
-}
-
-.flex-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .flex-between {
@@ -133,101 +270,100 @@ page {
   justify-content: space-between;
 }
 
-.flex-wrap {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-/* 间距样式 */
-.mt-10 { margin-top: 10rpx; }
-.mt-20 { margin-top: 20rpx; }
-.mt-30 { margin-top: 30rpx; }
-
-.mb-10 { margin-bottom: 10rpx; }
-.mb-20 { margin-bottom: 20rpx; }
-.mb-30 { margin-bottom: 30rpx; }
-
-.ml-10 { margin-left: 10rpx; }
-.ml-20 { margin-left: 20rpx; }
-
-.mr-10 { margin-right: 10rpx; }
-.mr-20 { margin-right: 20rpx; }
-
-.p-10 { padding: 10rpx; }
-.p-20 { padding: 20rpx; }
-.p-30 { padding: 30rpx; }
-
-/* 状态标签 - 温暖风格 */
 .status-badge {
   display: inline-block;
-  padding: 8rpx 16rpx;
-  border-radius: 16rpx;
-  font-size: 24rpx;
-  font-weight: 500;
+  padding: 6rpx 14rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 600;
 }
 
 .status-normal {
-  background: rgba(168, 230, 207, 0.25);
-  color: #3A7A5C;
+  background: rgba(31, 154, 107, 0.14);
+  color: #1f9a6b;
 }
 
 .status-abnormal {
-  background: rgba(255, 138, 122, 0.2);
-  color: #FF6B6B;
+  background: rgba(215, 76, 76, 0.14);
+  color: #d74c4c;
 }
 
 .status-attention {
-  background: rgba(255, 243, 176, 0.4);
-  color: #8B7A2C;
+  background: rgba(212, 137, 42, 0.14);
+  color: #d4892a;
 }
 
-/* 加载和空状态 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
+/* Round-2 polish */
+.app-theme .page-header,
+.app-theme .profile-header {
+  padding-top: 64rpx !important;
 }
 
-.empty-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100rpx 0;
-  color: var(--text-light);
+.app-theme .submit-section,
+.app-theme .action-section,
+.app-theme .input-area {
+  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
 }
 
-/* 分隔线 */
-.divider {
-  height: 2rpx;
-  background: linear-gradient(90deg, transparent, rgba(255, 138, 122, 0.2), transparent);
-  margin: 20rpx 0;
+.app-theme .card,
+.app-theme .report-card,
+.app-theme .trend-card,
+.app-theme .section-list,
+.app-theme .list-item,
+.app-theme .option-card,
+.app-theme .upload-option,
+.app-theme .medication-card,
+.app-theme .conversation-card,
+.app-theme .duplicate-group {
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
-/* 温暖风格通用类 */
-.warm-card {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(20rpx);
-  -webkit-backdrop-filter: blur(20rpx);
-  border-radius: 32rpx;
-  padding: 32rpx;
-  box-shadow: 0 8rpx 32rpx rgba(255, 138, 122, 0.08);
-  border: 2rpx solid rgba(255, 255, 255, 0.8);
+.app-theme .card:active,
+.app-theme .report-card:active,
+.app-theme .trend-card:active,
+.app-theme .option-card:active,
+.app-theme .upload-option:active,
+.app-theme .list-item:active {
+  transform: translateY(-2rpx) scale(0.994);
+  box-shadow: 0 18rpx 34rpx rgba(29, 82, 142, 0.17) !important;
 }
 
-.warm-btn {
-  background: linear-gradient(135deg, var(--warm-coral), var(--warm-peach));
-  color: white;
-  border-radius: 24rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  padding: 20rpx 40rpx;
-  border: none;
-  box-shadow: 0 8rpx 24rpx rgba(255, 138, 122, 0.3);
+.app-theme .modal-mask,
+.app-theme .sheet-mask,
+.app-theme .menu-mask {
+  backdrop-filter: blur(6rpx);
+  -webkit-backdrop-filter: blur(6rpx);
 }
 
-.warm-btn:active {
-  transform: scale(0.96);
+.app-theme .modal-container,
+.app-theme .modal-content,
+.app-theme .sheet-content,
+.app-theme .progress-content {
+  border: 1rpx solid rgba(88, 130, 178, 0.2);
+  box-shadow: 0 20rpx 38rpx rgba(17, 58, 108, 0.24);
+}
+
+.app-theme .section-title {
+  font-weight: 700;
+}
+
+.app-theme .empty-state {
+  min-height: 240rpx;
+}
+
+.integration-container.app-theme .section-card,
+.result-container.app-theme .stats-card,
+.result-container.app-theme .changes-card,
+.history-page.app-theme .conversation-card {
+  border-radius: 24rpx !important;
+}
+
+.integration-container.app-theme .detect-btn,
+.integration-container.app-theme .merge-btn,
+.result-container.app-theme .action-btn {
+  border-radius: 16rpx !important;
+}
+
+.history-page.app-theme .timeline-dot {
+  box-shadow: 0 0 0 8rpx rgba(91, 149, 216, 0.16);
 }

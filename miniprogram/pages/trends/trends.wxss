@@ -327,3 +327,36 @@ page {
   white-space: nowrap;
 }
 
+/* Round-2 polish */
+.trends-container.app-theme .page-header {
+  padding-top: 66rpx;
+  padding-bottom: 26rpx;
+}
+
+.trends-container.app-theme .type-header {
+  border-radius: 22rpx;
+  border: 1rpx solid rgba(87, 130, 179, 0.16);
+}
+
+.trends-container.app-theme .indicators-list {
+  padding-left: 18rpx;
+  gap: 12rpx;
+}
+
+.trends-container.app-theme .trend-card {
+  border-radius: 22rpx;
+  border: 1rpx solid rgba(87, 130, 179, 0.15);
+}
+
+.trends-container.app-theme .mini-chart {
+  height: 144rpx;
+}
+
+.trends-container.app-theme .chart-bar {
+  border-radius: 7rpx 7rpx 0 0;
+  box-shadow: 0 6rpx 14rpx rgba(38, 95, 165, 0.14);
+}
+
+.trends-container.app-theme .latest-value {
+  border-radius: 14rpx;
+}

@@ -1,4 +1,4 @@
-<view class="integration-container">
+<view class="integration-container app-theme">
   <!-- 背景装饰 -->
   <view class="bg-decoration">
     <view class="blob blob-1"></view>

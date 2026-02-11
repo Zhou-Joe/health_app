@@ -1,5 +1,5 @@
 <!--pages/complete-profile/complete-profile.wxml-->
-<view class="profile-container">
+<view class="profile-container app-theme">
   <!-- 背景装饰 -->
   <view class="bg-decoration">
     <view class="blob blob-1"></view>

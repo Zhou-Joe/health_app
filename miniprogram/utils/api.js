@@ -142,6 +142,28 @@ module.exports = {
   applyIntegration: (data) =>
     request.post(config.api.applyIntegration, data),
 
+  // ==================== 健康事件 ====================
+  getEvents: (params = {}) =>
+    request.get(config.api.events, params),
+
+  getEventDetail: (eventId) =>
+    request.get(config.api.eventDetail(eventId)),
+
+  updateEvent: (eventId, data) =>
+    request.put(config.api.eventDetail(eventId), data),
+
+  autoClusterEvents: (data = {}) =>
+    request.post(config.api.eventAutoCluster, data),
+
+  getEventAvailableItems: (params = {}) =>
+    request.get(config.api.eventAvailableItems, params),
+
+  addEventItem: (eventId, data) =>
+    request.post(config.api.eventAddItem(eventId), data),
+
+  removeEventItem: (eventId, itemId) =>
+    request.delete(config.api.eventRemoveItem(eventId, itemId)),
+
   // ==================== 系统信息 ====================
   getServicesStatus: () =>
     request.get(config.api.servicesStatus),

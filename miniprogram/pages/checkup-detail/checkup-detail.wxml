@@ -1,4 +1,15 @@
-<view class="detail-container">
+<view class="detail-container app-theme">
+  <view class="detail-hero card">
+    <view class="hero-top">
+      <view>
+        <text class="hero-title">{{checkup.hospital || '体检报告详情'}}</text>
+        <text class="hero-date">{{checkup.checkup_date || ''}}</text>
+      </view>
+      <view class="hero-badge">报告详情</view>
+    </view>
+    <text class="hero-subtitle">查看指标、补录数据或删除该报告</text>
+  </view>
+
   <view class="info-card card">
     <view class="info-row"><text class="label">体检机构</text><text class="value">{{checkup.hospital || '未知'}}</text></view>
     <view class="info-row"><text class="label">体检日期</text><text class="value">{{checkup.checkup_date}}</text></view>

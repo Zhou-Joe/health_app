@@ -497,3 +497,46 @@ page {
   min-width: 60rpx;
   text-align: right;
 }
+
+/* Round-2 polish */
+.upload-container.app-theme .page-header {
+  padding-top: 66rpx;
+}
+
+.upload-container.app-theme .upload-area {
+  border-radius: 28rpx;
+  border-width: 2rpx;
+}
+
+.upload-container.app-theme .upload-option {
+  border: 1rpx solid rgba(85, 130, 182, 0.18);
+  border-radius: 22rpx;
+}
+
+.upload-container.app-theme .option-circle {
+  width: 82rpx;
+  height: 82rpx;
+}
+
+.upload-container.app-theme .form-card {
+  border-radius: 24rpx;
+}
+
+.upload-container.app-theme .form-input,
+.upload-container.app-theme .form-picker {
+  border-radius: 16rpx;
+}
+
+.upload-container.app-theme .hospital-tag {
+  border-radius: 999rpx;
+  padding: 14rpx 24rpx;
+}
+
+.upload-container.app-theme .submit-btn {
+  height: 96rpx;
+  border-radius: 22rpx;
+}
+
+.upload-container.app-theme .progress-content {
+  border-radius: 26rpx;
+}

@@ -401,3 +401,51 @@
 .modal-submit-btn:active {
   transform: scale(0.96);
 }
+
+/* Round-2 polish */
+.container.app-theme {
+  padding-top: 10rpx;
+}
+
+.container.app-theme .page-header {
+  border-radius: 28rpx;
+  padding-top: 28rpx;
+  padding-bottom: 28rpx;
+  background: linear-gradient(135deg, #3f7fc9, #5ea2ea);
+}
+
+.container.app-theme .add-btn {
+  border: 1rpx solid rgba(255, 255, 255, 0.32);
+}
+
+.container.app-theme .medication-card {
+  border-radius: 24rpx;
+}
+
+.container.app-theme .delete-btn {
+  border-radius: 999rpx;
+}
+
+.container.app-theme .date-item,
+.container.app-theme .notes-section {
+  border-radius: 16rpx;
+}
+
+.container.app-theme .primary-btn,
+.container.app-theme .secondary-btn {
+  border-radius: 16rpx;
+  min-height: 102rpx;
+  justify-content: center;
+}
+
+.container.app-theme .modal-content {
+  border-radius: 28rpx 28rpx 0 0;
+  border: 1rpx solid rgba(86, 129, 180, 0.22);
+}
+
+.container.app-theme .form-input,
+.container.app-theme .picker-input,
+.container.app-theme .form-textarea {
+  border-radius: 16rpx;
+  border: 1rpx solid rgba(86, 129, 180, 0.22);
+}

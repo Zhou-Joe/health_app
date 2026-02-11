@@ -1,5 +1,5 @@
 <!--pages/settings/settings.wxml-->
-<view class="settings-container">
+<view class="settings-container app-theme">
   <!-- 背景装饰 -->
   <view class="bg-decoration">
     <view class="blob blob-1"></view>
@@ -9,11 +9,11 @@
   <!-- 用户信息卡片 -->
   <view class="user-card">
     <view class="avatar-wrapper" bindtap="chooseAvatar">
-      <image wx:if="{{userInfo.avatar_url || userInfo.avatar}}"
+      <image wx:if="{{userInfo.avatar_url}}"
              class="avatar-image"
-             src="{{userInfo.avatar_url || userInfo.avatar}}"
+             src="{{userInfo.avatar_url}}"
              mode="aspectFill"></image>
-      <text wx:else class="avatar-emoji">✨</text>
+      <text wx:else class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
     </view>
     <view class="user-info">
       <text class="user-name">{{userInfo.first_name || userInfo.username || '用户'}}</text>
