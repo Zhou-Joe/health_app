@@ -560,7 +560,7 @@ async function deleteEvent() {
 
         if (data.success) {
             alert('删除成功！');
-            window.location.href = '{% url "medical_records:events_list" %}';
+            window.location.href = '{% url "medical_records:dashboard" %}';
         } else {
             alert('删除失败：' + data.error);
         }

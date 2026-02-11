@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login
 from django.contrib.auth.models import User
@@ -270,6 +271,12 @@ def dashboard(request):
         if total_indicators > 0:
             health_score = int((normal_indicators / total_indicators) * 100)
 
+    # 最近健康事件（用于首页整合展示）
+    recent_events = HealthEvent.objects.filter(user=user).annotate(
+        item_count=Count('event_items')
+    ).order_by('-start_date')[:6]
+    total_events = HealthEvent.objects.filter(user=user).count()
+
     context = {
         # 侧边栏数据
         'recent_checkups': recent_checkups,
@@ -296,6 +303,10 @@ def dashboard(request):
         # 用药提醒
         'medication_reminders': medication_reminders_with_status,
         'has_medication_reminders': len(medication_reminders_with_status) > 0,
+
+        # 健康事件
+        'recent_events': recent_events,
+        'total_events': total_events,
     }
 
     return render(request, 'medical_records/dashboard.html', context)
@@ -2009,29 +2020,122 @@ def export_checkups_word(request):
 # ==================== 药单管理 ====================
 
 @login_required
-def medication_list(request):
-    """药单列表页面"""
-    from .models import Medication
+def health_management(request, default_tab='diary'):
+    """统一健康管理页：日志 / 计划 / 药单"""
+    allowed_tabs = {'diary', 'plans', 'medications'}
+    active_tab = request.GET.get('tab', default_tab)
+    if active_tab not in allowed_tabs:
+        active_tab = default_tab if default_tab in allowed_tabs else 'diary'
+
+    symptom_form = SymptomEntryForm(request.user)
+    vital_form = VitalEntryForm(request.user)
+    plan_form = CarePlanForm()
+    goal_form = CareGoalForm()
+    action_form = CareActionForm()
+
+    if request.method == 'POST':
+        module = request.POST.get('module')
+        if not module:
+            # 兼容旧表单（老页面未带 module 字段）
+            if request.POST.get('action'):
+                module = 'plans'
+            elif request.POST.get('form_type'):
+                module = 'diary'
+
+        if module == 'diary':
+            active_tab = 'diary'
+            form_type = request.POST.get('form_type')
+
+            if form_type == 'symptom':
+                symptom_form = SymptomEntryForm(request.user, request.POST)
+                vital_form = VitalEntryForm(request.user)
+                if symptom_form.is_valid():
+                    entry = symptom_form.save(commit=False)
+                    entry.user = request.user
+                    entry.save()
+                    attach_entry_to_daily_event(request.user, entry.entry_date, entry)
+                    messages.success(request, '症状日志已添加')
+                    return redirect(f"{reverse('medical_records:health_management')}?tab=diary")
+            elif form_type == 'vital':
+                symptom_form = SymptomEntryForm(request.user)
+                vital_form = VitalEntryForm(request.user, request.POST)
+                if vital_form.is_valid():
+                    entry = vital_form.save(commit=False)
+                    entry.user = request.user
+                    entry.save()
+                    attach_entry_to_daily_event(request.user, entry.entry_date, entry)
+                    messages.success(request, '体征日志已添加')
+                    return redirect(f"{reverse('medical_records:health_management')}?tab=diary")
+
+        elif module == 'plans':
+            active_tab = 'plans'
+            action = request.POST.get('action')
+
+            if action == 'create_plan':
+                plan_form = CarePlanForm(request.POST)
+                if plan_form.is_valid():
+                    plan = plan_form.save(commit=False)
+                    plan.user = request.user
+                    plan.save()
+                    messages.success(request, '健康计划已创建')
+                    return redirect(f"{reverse('medical_records:health_management')}?tab=plans")
+            elif action == 'create_goal':
+                plan_id = request.POST.get('plan_id')
+                plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
+                goal_form = CareGoalForm(request.POST)
+                if goal_form.is_valid():
+                    goal = goal_form.save(commit=False)
+                    goal.plan = plan
+                    goal.save()
+                    messages.success(request, '健康目标已添加')
+                    return redirect(f"{reverse('medical_records:health_management')}?tab=plans")
+            elif action == 'create_action':
+                goal_id = request.POST.get('goal_id')
+                goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+                action_form = CareActionForm(request.POST)
+                if action_form.is_valid():
+                    care_action = action_form.save(commit=False)
+                    care_action.goal = goal
+                    care_action.suggested_by_ai = request.POST.get('suggested_by_ai') == 'true'
+                    care_action.save()
+                    goal.recalculate_progress()
+                    messages.success(request, '行动已添加')
+                    return redirect(f"{reverse('medical_records:health_management')}?tab=plans")
+            elif action == 'toggle_action':
+                action_id = request.POST.get('action_id')
+                care_action = get_object_or_404(CareAction, id=action_id, goal__plan__user=request.user)
+                care_action.status = 'done' if care_action.status == 'pending' else 'pending'
+                care_action.save(update_fields=['status'])
+                care_action.goal.recalculate_progress()
+                return redirect(f"{reverse('medical_records:health_management')}?tab=plans")
+
+    symptoms = SymptomEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
+    vitals = VitalEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
+    plans = CarePlan.objects.filter(user=request.user).prefetch_related('goals__actions')
     medications = Medication.objects.filter(user=request.user).order_by('-created_at')
 
     context = {
+        'active_tab': active_tab,
+        'symptom_form': symptom_form,
+        'vital_form': vital_form,
+        'symptoms': symptoms,
+        'vitals': vitals,
+        'plan_form': plan_form,
+        'goal_form': goal_form,
+        'action_form': action_form,
+        'plans': plans,
         'medications': medications,
-        'page_title': '我的药单'
+        'page_title': '健康管理'
     }
-    return render(request, 'medical_records/medication_list.html', context)
+    return render(request, 'medical_records/health_management.html', context)
 
 
 # ==================== 健康事件管理 ====================
 
 @login_required
 def events_list(request):
-    """健康事件列表页面"""
-    events = HealthEvent.objects.filter(user=request.user).order_by('-start_date')
-
-    context = {
-        'page_title': '健康事件'
-    }
-    return render(request, 'medical_records/events_list.html', context)
+    """兼容旧路由：健康事件已整合到首页"""
+    return redirect('medical_records:dashboard')
 
 
 @login_required
@@ -2044,213 +2148,6 @@ def event_detail(request, event_id):
         'page_title': event.name
     }
     return render(request, 'medical_records/event_detail.html', context)
-
-
-@login_required
-def create_event(request):
-    """创建新健康事件"""
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        event_type = request.POST.get('event_type', 'other')
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
-        description = request.POST.get('description', '')
-
-        if not name or not start_date:
-            messages.error(request, '事件名称和开始日期为必填项')
-            return redirect('medical_records:events_list')
-
-        try:
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            if end_date:
-                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-
-            event = HealthEvent.objects.create(
-                user=request.user,
-                name=name,
-                event_type=event_type,
-                start_date=start_date,
-                end_date=end_date,
-                description=description,
-                is_auto_generated=False
-            )
-
-            messages.success(request, f'事件 "{name}" 创建成功！')
-            return redirect('medical_records:event_detail', event_id=event.id)
-
-        except ValueError as e:
-            messages.error(request, f'日期格式错误：{str(e)}')
-            return redirect('medical_records:events_list')
-
-    return redirect('medical_records:events_list')
-
-
-@login_required
-def edit_event(request, event_id):
-    """编辑健康事件"""
-    event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
-
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        event_type = request.POST.get('event_type')
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
-        description = request.POST.get('description', '')
-
-        if not name or not event_type or not start_date:
-            messages.error(request, '请填写所有必填项')
-            return redirect('medical_records:event_detail', event_id=event_id)
-
-        try:
-            event.name = name
-            event.event_type = event_type
-            event.start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            if end_date:
-                event.end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-            else:
-                event.end_date = None
-            event.description = description
-            event.save()
-
-            messages.success(request, '事件更新成功！')
-            return redirect('medical_records:event_detail', event_id=event_id)
-
-        except ValueError as e:
-            messages.error(request, f'日期格式错误：{str(e)}')
-
-    return redirect('medical_records:event_detail', event_id=event_id)
-
-
-@login_required
-def delete_event(request, event_id):
-    """删除健康事件"""
-    event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
-
-    if request.method == 'POST':
-        event_name = event.name
-        event.delete()
-        messages.success(request, f'事件 "{event_name}" 已删除')
-        return redirect('medical_records:events_list')
-
-    return redirect('medical_records:event_detail', event_id=event_id)
-
-
-# ==================== 症状/体征日志 ====================
-@login_required
-def symptom_vitals(request):
-    """症状与体征日志"""
-    if request.method == 'POST':
-        form_type = request.POST.get('form_type')
-
-        if form_type == 'symptom':
-            symptom_form = SymptomEntryForm(request.user, request.POST)
-            vital_form = VitalEntryForm(request.user)
-            if symptom_form.is_valid():
-                entry = symptom_form.save(commit=False)
-                entry.user = request.user
-                entry.save()
-                attach_entry_to_daily_event(request.user, entry.entry_date, entry)
-                messages.success(request, '症状日志已添加')
-                return redirect('medical_records:symptom_vitals')
-        elif form_type == 'vital':
-            symptom_form = SymptomEntryForm(request.user)
-            vital_form = VitalEntryForm(request.user, request.POST)
-            if vital_form.is_valid():
-                entry = vital_form.save(commit=False)
-                entry.user = request.user
-                entry.save()
-                attach_entry_to_daily_event(request.user, entry.entry_date, entry)
-                messages.success(request, '体征日志已添加')
-                return redirect('medical_records:symptom_vitals')
-        else:
-            symptom_form = SymptomEntryForm(request.user)
-            vital_form = VitalEntryForm(request.user)
-    else:
-        symptom_form = SymptomEntryForm(request.user)
-        vital_form = VitalEntryForm(request.user)
-
-    symptoms = SymptomEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
-    vitals = VitalEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
-
-    context = {
-        'symptom_form': symptom_form,
-        'vital_form': vital_form,
-        'symptoms': symptoms,
-        'vitals': vitals,
-        'page_title': '症状与体征日志'
-    }
-    return render(request, 'medical_records/symptom_vitals.html', context)
-
-
-# ==================== 健康计划与目标 ====================
-@login_required
-def care_plans(request):
-    """健康管理计划与目标"""
-    if request.method == 'POST':
-        action = request.POST.get('action')
-
-        if action == 'create_plan':
-            plan_form = CarePlanForm(request.POST)
-            goal_form = CareGoalForm()
-            action_form = CareActionForm()
-            if plan_form.is_valid():
-                plan = plan_form.save(commit=False)
-                plan.user = request.user
-                plan.save()
-                messages.success(request, '健康计划已创建')
-                return redirect('medical_records:care_plans')
-        elif action == 'create_goal':
-            plan_id = request.POST.get('plan_id')
-            plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
-            plan_form = CarePlanForm()
-            goal_form = CareGoalForm(request.POST)
-            action_form = CareActionForm()
-            if goal_form.is_valid():
-                goal = goal_form.save(commit=False)
-                goal.plan = plan
-                goal.save()
-                messages.success(request, '健康目标已添加')
-                return redirect('medical_records:care_plans')
-        elif action == 'create_action':
-            goal_id = request.POST.get('goal_id')
-            goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
-            plan_form = CarePlanForm()
-            goal_form = CareGoalForm()
-            action_form = CareActionForm(request.POST)
-            if action_form.is_valid():
-                care_action = action_form.save(commit=False)
-                care_action.goal = goal
-                care_action.suggested_by_ai = request.POST.get('suggested_by_ai') == 'true'
-                care_action.save()
-                goal.recalculate_progress()
-                messages.success(request, '行动已添加')
-                return redirect('medical_records:care_plans')
-        elif action == 'toggle_action':
-            action_id = request.POST.get('action_id')
-            care_action = get_object_or_404(CareAction, id=action_id, goal__plan__user=request.user)
-            care_action.status = 'done' if care_action.status == 'pending' else 'pending'
-            care_action.save(update_fields=['status'])
-            care_action.goal.recalculate_progress()
-            return redirect('medical_records:care_plans')
-        else:
-            plan_form = CarePlanForm()
-            goal_form = CareGoalForm()
-            action_form = CareActionForm()
-    else:
-        plan_form = CarePlanForm()
-        goal_form = CareGoalForm()
-        action_form = CareActionForm()
-
-    plans = CarePlan.objects.filter(user=request.user).prefetch_related('goals__actions')
-
-    context = {
-        'plan_form': plan_form,
-        'goal_form': goal_form,
-        'action_form': action_form,
-        'plans': plans,
-        'page_title': '健康计划与目标'
-    }
-    return render(request, 'medical_records/care_plans.html', context)
 
 
 # ==================== 照护者授权与共享 ====================

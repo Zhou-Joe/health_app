@@ -649,7 +649,7 @@ p {
 
                                             {% if not reminder.taken_today %}
                                             <div class="mt-2">
-                                                <a href="{% url 'medical_records:medication_list' %}"
+                                                <a href="{% url 'medical_records:health_management' %}?tab=medications"
                                                    class="btn btn-sm btn-outline-primary w-100">
                                                     <i class="bi bi-check2-square"></i> 打卡服药
                                                 </a>
@@ -668,7 +668,7 @@ p {
                             </div>
 
                             <div class="mt-3">
-                                <a href="{% url 'medical_records:medication_list' %}" class="btn btn-outline-info btn-sm w-100">
+                                <a href="{% url 'medical_records:health_management' %}?tab=medications" class="btn btn-outline-info btn-sm w-100">
                                     <i class="bi bi-list-ul"></i> 查看所有药单
                                 </a>
                             </div>
@@ -676,6 +676,64 @@ p {
                     </div>
                 </div>
                 {% endif %}
+
+                <!-- 健康事件（整合自事件页） -->
+                <div class="col-12 mb-3">
+                    <div class="card dashboard-card border-warning h-100">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0 d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-clock-history"></i> 健康事件</span>
+                                <span class="badge bg-light text-dark">{{ total_events }} 个</span>
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_events %}
+                                <div class="row g-2">
+                                    {% for event in recent_events %}
+                                    <div class="col-lg-6">
+                                        <div class="card h-100">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div class="fw-bold">{{ event.name }}</div>
+                                                    <span class="badge bg-dark">{{ event.get_event_type_display }}</span>
+                                                </div>
+                                                <div class="small text-muted mb-1">
+                                                    <i class="bi bi-calendar3"></i>
+                                                    {{ event.start_date|date:"Y-m-d" }}
+                                                    {% if event.end_date %} ~ {{ event.end_date|date:"Y-m-d" }}{% endif %}
+                                                </div>
+                                                <div class="small text-muted mb-2">
+                                                    <i class="bi bi-list-check"></i> {{ event.item_count }} 条记录
+                                                    <span class="ms-2"><i class="bi bi-hourglass-split"></i> {{ event.duration_days }} 天</span>
+                                                </div>
+                                                <a href="{% url 'medical_records:event_detail' event.id %}" class="btn btn-sm btn-outline-primary">
+                                                    查看详情
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="mt-3 d-flex gap-2">
+                                    <button class="btn btn-outline-warning btn-sm" onclick="autoClusterDashboardEvents()">
+                                        <i class="bi bi-magic"></i> 自动聚类事件
+                                    </button>
+                                    <a href="{% url 'medical_records:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-arrow-clockwise"></i> 刷新事件列表
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-3">
+                                    <i class="bi bi-collection text-muted" style="font-size: 2rem;"></i>
+                                    <p class="text-muted small mb-3 mt-2">暂无健康事件</p>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="autoClusterDashboardEvents()">
+                                        <i class="bi bi-magic"></i> 自动生成事件
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -959,6 +1017,34 @@ document.addEventListener('shown.bs.tab', function(e) {
         createIndicatorTypeTable(indicatorType);
     }
 });
+
+// 首页触发事件自动聚类
+async function autoClusterDashboardEvents() {
+    if (!confirm('将按时间相近性自动聚类体检与药单记录，是否继续？')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('{% url "medical_records:api_event_auto_cluster" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ days_threshold: 7 })
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert(`聚类完成，新增 ${data.events_created || 0} 个事件`);
+            window.location.reload();
+        } else {
+            alert(`聚类失败：${data.error || '未知错误'}`);
+        }
+    } catch (error) {
+        console.error('自动聚类失败:', error);
+        alert('自动聚类失败，请稍后重试');
+    }
+}
 
 // 删除体检报告
 function deleteCheckup(checkupId) {

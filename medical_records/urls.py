@@ -17,8 +17,7 @@ urlpatterns = [
     path('all/', views.all_checkups, name='all_checkups'),
     path('settings/', views.system_settings, name='system_settings'),
     path('profile/', views.user_profile, name='user_profile'),
-    path('diary/', views.symptom_vitals, name='symptom_vitals'),
-    path('care-plans/', views.care_plans, name='care_plans'),
+    path('health-management/', views.health_management, name='health_management'),
     path('caregivers/', views.caregiver_access, name='caregiver_access'),
     path('shared/', views.shared_access, name='shared_access'),
     path('shared/<int:owner_id>/checkups/', views.shared_checkups, name='shared_checkups'),
@@ -69,15 +68,9 @@ urlpatterns = [
     path('api/medications/checkin/', api_views.api_medication_checkin, name='api_medication_checkin'),
     path('api/medications/<int:medication_id>/records/', api_views.api_medication_records, name='api_medication_records'),
 
-    # 药单管理页面
-    path('medications/', views.medication_list, name='medication_list'),
-
     # 健康事件管理页面
     path('events/', views.events_list, name='events_list'),
     path('events/<int:event_id>/', views.event_detail, name='event_detail'),
-    path('events/create/', views.create_event, name='create_event'),
-    path('events/<int:event_id>/edit/', views.edit_event, name='edit_event'),
-    path('events/<int:event_id>/delete/', views.delete_event, name='delete_event'),
 
     # 健康事件聚合API
     path('api/events/', api_views.api_events, name='api_events'),

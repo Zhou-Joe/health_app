@@ -507,9 +507,10 @@ class EventViewTest(TestCase):
         self.client.login(username='testuser', password='testpass123')
 
     def test_events_list_page(self):
-        """测试事件列表页面"""
+        """测试事件列表路由兼容（现已重定向到首页）"""
         response = self.client.get('/events/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith('/'))
 
     def test_event_detail_page(self):
         """测试事件详情页面"""
@@ -523,22 +524,6 @@ class EventViewTest(TestCase):
         response = self.client.get(f'/events/{event.id}/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '测试事件')
-
-    def test_create_event_view(self):
-        """测试创建事件视图"""
-        response = self.client.post(
-            '/events/create/',
-            data={
-                'name': '新事件',
-                'event_type': 'checkup',
-                'start_date': date.today().strftime('%Y-%m-%d'),
-                'description': '测试描述'
-            }
-        )
-
-        self.assertEqual(response.status_code, 302)  # 重定向
-        self.assertTrue(HealthEvent.objects.filter(name='新事件').exists())
-
 
 # Helper import
 import json

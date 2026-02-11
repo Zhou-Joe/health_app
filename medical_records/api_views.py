@@ -1391,7 +1391,7 @@ def stream_ai_advice(request):
                     'error': 'Gemini API密钥未配置'
                 }, status=500)
         else:
-            if not api_url or not model_name or not api_key:
+            if not api_url or not model_name:
                 return JsonResponse({
                     'success': False,
                     'error': 'AI医生API未配置'
@@ -1670,7 +1670,8 @@ def stream_ai_advice(request):
                     # 初始化LangChain LLM
                     llm = ChatOpenAI(
                         model=model_name,
-                        api_key=api_key,
+                        # 兼容本地OpenAI兼容服务：允许未配置API Key
+                        api_key=api_key or 'not-needed',
                         base_url=base_url,
                         temperature=0.3,
                         max_tokens=max_tokens,
@@ -1814,18 +1815,35 @@ def stream_advice_sync(request):
 
         # 获取AI医生设置
         provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
-        api_url = SystemSettings.get_setting('ai_doctor_api_url')
-        api_key = SystemSettings.get_setting('ai_doctor_api_key')
-        model_name = SystemSettings.get_setting('ai_doctor_model_name')
+        api_url = None
+        api_key = None
+        model_name = None
+
+        if provider == 'gemini':
+            gemini_config = SystemSettings.get_gemini_config()
+            api_key = gemini_config.get('api_key')
+            model_name = gemini_config.get('model_name')
+        else:
+            api_url = SystemSettings.get_setting('ai_doctor_api_url')
+            api_key = SystemSettings.get_setting('ai_doctor_api_key')
+            model_name = SystemSettings.get_setting('ai_doctor_model_name')
+
         timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
         max_tokens = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
 
         # 验证配置
-        if not api_url or not model_name or not api_key:
-            return JsonResponse({
-                'success': False,
-                'error': 'AI医生API未配置'
-            }, status=500)
+        if provider == 'gemini':
+            if not api_key or not model_name:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Gemini API未配置'
+                }, status=500)
+        else:
+            if not api_url or not model_name:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI医生API未配置'
+                }, status=500)
 
         # 获取对话上下文
         from .views import get_conversation_context, format_health_data_for_prompt
@@ -1990,26 +2008,39 @@ def stream_advice_sync(request):
         print(f"[小程序-同步AI] 开始调用LLM，问题长度: {len(question)}")
 
         # 调用LLM（非流式）
-        from langchain_openai import ChatOpenAI
         from langchain_core.messages import HumanMessage
 
-        # 处理 API URL
-        base_url = api_url
-        if '/chat/completions' in base_url:
-            base_url = base_url.split('/chat/completions')[0].rstrip('/')
-        elif base_url.endswith('/'):
-            base_url = base_url.rstrip('/')
+        if provider == 'gemini':
+            from langchain_google_genai import ChatGoogleGenerativeAI
 
-        # 初始化LangChain LLM（非流式）
-        llm = ChatOpenAI(
-            model=model_name,
-            api_key=api_key,
-            base_url=base_url,
-            temperature=0.3,
-            max_tokens=max_tokens,
-            timeout=timeout,
-            streaming=False  # 非流式
-        )
+            llm = ChatGoogleGenerativeAI(
+                model=model_name,
+                google_api_key=api_key,
+                temperature=0.3,
+                timeout=timeout,
+                streaming=False
+            )
+        else:
+            from langchain_openai import ChatOpenAI
+
+            # 处理 API URL
+            base_url = api_url
+            if '/chat/completions' in base_url:
+                base_url = base_url.split('/chat/completions')[0].rstrip('/')
+            elif base_url.endswith('/'):
+                base_url = base_url.rstrip('/')
+
+            # 初始化LangChain LLM（非流式）
+            llm = ChatOpenAI(
+                model=model_name,
+                # 兼容本地OpenAI兼容服务：允许未配置API Key
+                api_key=api_key or 'not-needed',
+                base_url=base_url,
+                temperature=0.3,
+                max_tokens=max_tokens,
+                timeout=timeout,
+                streaming=False
+            )
 
         # 调用LLM
         messages = [HumanMessage(content=prompt)]
