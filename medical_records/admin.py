@@ -105,8 +105,8 @@ class EventItemInline(GenericTabularInline):
 
 @admin.register(HealthEvent)
 class HealthEventAdmin(admin.ModelAdmin):
-    list_display = ['user', 'name', 'event_type', 'start_date', 'end_date', 'duration_display', 'item_count', 'is_auto_generated', 'created_at']
-    list_filter = ['event_type', 'is_auto_generated', 'start_date', 'created_at']
+    list_display = ['user', 'name', 'event_type', 'status', 'start_date', 'end_date', 'duration_display', 'item_count', 'is_auto_generated', 'created_at']
+    list_filter = ['event_type', 'status', 'is_auto_generated', 'start_date', 'created_at']
     search_fields = ['user__username', 'name', 'description']
     date_hierarchy = 'start_date'
     ordering = ['-start_date']
@@ -115,7 +115,7 @@ class HealthEventAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('基本信息', {
-            'fields': ('user', 'name', 'event_type', 'is_auto_generated')
+            'fields': ('user', 'name', 'event_type', 'status', 'is_auto_generated')
         }),
         ('时间范围', {
             'fields': ('start_date', 'end_date', 'duration_days')

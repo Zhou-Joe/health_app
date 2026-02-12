@@ -189,6 +189,38 @@
     letter-spacing: 0.05em;
     margin-left: 0.5rem;
 }
+
+.event-status-badge {
+    display: inline-block;
+    border: 2px solid #000;
+    padding: 0.1rem 0.55rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    margin-left: 0.5rem;
+}
+
+.event-status-badge.pending {
+    background: var(--brutal-orange);
+    color: #000;
+}
+
+.event-status-badge.observing {
+    background: var(--brutal-yellow);
+    color: #000;
+}
+
+.event-status-badge.recovered {
+    background: var(--brutal-green);
+    color: #000;
+}
+
+.event-status-hint {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-left: 0.5rem;
+    color: #111827;
+}
 </style>
 {% endblock %}
 
@@ -211,7 +243,13 @@
                     <span class="auto-badge">自动生成</span>
                     {% endif %}
                 </h1>
-                <p class="mb-0" style="opacity: 0.9; font-size: 1.1rem;">{{ event.get_event_type_display }}</p>
+                <p class="mb-0" style="opacity: 0.9; font-size: 1.1rem;">
+                    {{ event.get_event_type_display }}
+                    <span class="event-status-badge {{ event.status }}">{{ event.get_status_display }}</span>
+                    {% if event.status == 'observing' %}
+                    <span class="event-status-hint">请确认状态</span>
+                    {% endif %}
+                </p>
             </div>
             <div class="d-flex gap-2">
                 <button class="btn btn-edit" onclick="editEvent()">
@@ -263,6 +301,15 @@
                     <div class="mb-3">
                         <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">事件类型</label>
                         <div>{{ event.get_event_type_display }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">事件状态</label>
+                        <div>
+                            <span class="event-status-badge {{ event.status }}">{{ event.get_status_display }}</span>
+                            {% if event.status == 'observing' %}
+                            <span class="event-status-hint">建议确认为“治愈”或“待处理”</span>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label" style="font-weight: 700; font-size: 0.875rem;">开始日期</label>
@@ -333,6 +380,14 @@
                             <option value="wellness" {% if event.event_type == 'wellness' %}selected{% endif %}>健康管理</option>
                             <option value="medication_course" {% if event.event_type == 'medication_course' %}selected{% endif %}>用药疗程</option>
                             <option value="other" {% if event.event_type == 'other' %}selected{% endif %}>其他</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEventStatus" class="form-label">事件状态 *</label>
+                        <select class="form-control" id="editEventStatus" required>
+                            <option value="observing" {% if event.status == 'observing' %}selected{% endif %}>观察中</option>
+                            <option value="pending" {% if event.status == 'pending' %}selected{% endif %}>待处理</option>
+                            <option value="recovered" {% if event.status == 'recovered' %}selected{% endif %}>治愈</option>
                         </select>
                     </div>
                     <div class="row">
@@ -504,6 +559,7 @@ function editEvent() {
 async function updateEvent() {
     const name = document.getElementById('editEventName').value;
     const eventType = document.getElementById('editEventType').value;
+    const eventStatus = document.getElementById('editEventStatus').value;
     const startDate = document.getElementById('editStartDate').value;
     const endDate = document.getElementById('editEndDate').value;
     const description = document.getElementById('editDescription').value;
@@ -523,6 +579,7 @@ async function updateEvent() {
             body: JSON.stringify({
                 name: name,
                 event_type: eventType,
+                status: eventStatus,
                 start_date: startDate,
                 end_date: endDate || null,
                 description: description

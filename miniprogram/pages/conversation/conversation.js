@@ -5,6 +5,7 @@
 
 const api = require('../../utils/api.js')
 const util = require('../../utils/util.js')
+const config = require('../../config.js')
 
 function buildWelcomeMessage() {
   return '您好，我是 AI 健康助手。\n\n您可以直接提问，也可以附加体检报告和药单信息，我会结合历史对话给出连续建议。'
@@ -21,6 +22,9 @@ Page({
 
     inputText: '',
     sending: false,
+    userAvatarUrl: '',
+    userAvatarLoadFailed: false,
+    userDisplayInitial: '我',
 
     reports: [],
     selectedReportIds: [],
@@ -28,7 +32,6 @@ Page({
     reportsLoading: false,
     reportsLoaded: false,
     reportsError: null,
-    showReportSelector: false,
 
     medications: [],
     selectedMedicationIds: [],
@@ -36,7 +39,16 @@ Page({
     medicationsLoading: false,
     medicationsLoaded: false,
     medicationsError: null,
-    showMedicationSelector: false,
+
+    activeSelector: '',
+    activeSelectorTitle: '',
+    activeSelectorNoSelection: false,
+    activeSelectorNoSelectionTitle: '',
+    activeSelectorNoSelectionDesc: '',
+    activeSelectorItems: [],
+    activeSelectorLoading: false,
+    activeSelectorError: '',
+    bindingSummary: '未绑定资料',
 
     showAttachmentMenu: false,
     isGenerating: false
@@ -47,6 +59,8 @@ Page({
     const conversationId = options.id ? parseInt(options.id, 10) : null
 
     this.restoreLastSelection()
+    this.updateBindingSummary()
+    this.loadUserAvatar()
 
     // 预加载可选数据，减少首次打开弹窗等待
     this.loadReports()
@@ -84,7 +98,57 @@ Page({
   },
 
   onUnload() {
-    // no-op
+    if (this._clearScrollToViewTimer) {
+      clearTimeout(this._clearScrollToViewTimer)
+      this._clearScrollToViewTimer = null
+    }
+  },
+
+  onShow() {
+    this.loadUserAvatar()
+  },
+
+  normalizeAvatarUrl(url) {
+    if (!url) return ''
+    const trimmed = String(url).trim()
+    if (!trimmed) return ''
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed
+    }
+    if (trimmed.startsWith('/')) {
+      return `${util.getBaseURL()}${trimmed}`
+    }
+    return trimmed
+  },
+
+  loadUserAvatar() {
+    try {
+      const app = getApp()
+      const cachedUserInfo = wx.getStorageSync(config.storageKeys.USER_INFO) || app.globalData.userInfo || {}
+      const localWechatAvatar = wx.getStorageSync('wechat_avatar') || ''
+
+      const avatarUrl = this.normalizeAvatarUrl(cachedUserInfo.avatar_url || localWechatAvatar || '')
+      const displayName = cachedUserInfo.first_name || cachedUserInfo.nickname || cachedUserInfo.username || ''
+      const userDisplayInitial = displayName ? String(displayName).trim().charAt(0) : '我'
+
+      this.setData({
+        userAvatarUrl: avatarUrl,
+        userAvatarLoadFailed: false,
+        userDisplayInitial: userDisplayInitial || '我'
+      })
+    } catch (err) {
+      console.error('[conversation] loadUserAvatar failed:', err)
+      this.setData({
+        userAvatarUrl: '',
+        userAvatarLoadFailed: false,
+        userDisplayInitial: '我'
+      })
+    }
+  },
+
+  onUserAvatarError(e) {
+    console.error('[conversation] user avatar load failed:', e)
+    this.setData({ userAvatarLoadFailed: true })
   },
 
   async loadConversation(conversationId) {
@@ -141,10 +205,11 @@ Page({
         reportsNoSelection: false,
         medicationsNoSelection: false,
         lastMessageId: messages.length ? messages[messages.length - 1].id : null
+      }, () => {
+        this.updateBindingSummary()
+        this.restoreReportSelection()
+        this.restoreMedicationSelection()
       })
-
-      this.restoreReportSelection()
-      this.restoreMedicationSelection()
 
       // 长文本延迟 markdown 转换
       setTimeout(() => {
@@ -251,9 +316,51 @@ Page({
     return text.length > 100 ? text.substring(0, 100) : text
   },
 
+  updateBindingSummary() {
+    const reportCount = this.data.selectedReportIds.length
+    const medicationCount = this.data.selectedMedicationIds.length
+    const bindingSummary = (reportCount === 0 && medicationCount === 0)
+      ? '未绑定资料'
+      : `已绑定 报告${reportCount} · 药单${medicationCount}`
+    this.setData({ bindingSummary })
+  },
+
+  syncActiveSelectorState() {
+    const type = this.data.activeSelector
+    if (!type) {
+      return
+    }
+
+    const isReport = type === 'report'
+    const source = isReport ? this.data.reports : this.data.medications
+    const activeSelectorItems = source.map((item) => ({
+      id: item.id,
+      selected: !!item.selected,
+      icon: isReport ? '检' : '药',
+      title: isReport ? item.hospital : item.medicine_name,
+      desc: isReport
+        ? `${item.checkup_date} · ${item.indicators_count} 项指标`
+        : (item.dosage || '用药信息')
+    }))
+
+    this.setData({
+      activeSelectorTitle: isReport ? '选择体检报告' : '选择药单',
+      activeSelectorNoSelection: isReport
+        ? (this.data.selectedReportIds.length === 0 && this.data.reportsNoSelection)
+        : (this.data.selectedMedicationIds.length === 0 && this.data.medicationsNoSelection),
+      activeSelectorNoSelectionTitle: isReport ? '不使用报告' : '不使用药单',
+      activeSelectorNoSelectionDesc: isReport ? '仅基于问题咨询' : '仅咨询健康问题',
+      activeSelectorItems,
+      activeSelectorLoading: isReport ? this.data.reportsLoading : this.data.medicationsLoading,
+      activeSelectorError: isReport ? (this.data.reportsError || '') : (this.data.medicationsError || '')
+    })
+  },
+
   async loadReports() {
     try {
-      this.setData({ reportsLoading: true, reportsError: null })
+      this.setData({ reportsLoading: true, reportsError: null }, () => {
+        this.syncActiveSelectorState()
+      })
       const res = await api.getCheckups({ page_size: 100 })
       const checkups = res.checkups || res.data || res.results || []
 
@@ -278,22 +385,26 @@ Page({
         reports,
         reportsLoading: false,
         reportsLoaded: true
+      }, () => {
+        this.restoreReportSelection()
       })
-
-      this.restoreReportSelection()
     } catch (err) {
       console.error('[conversation] loadReports failed:', err)
       this.setData({
         reportsLoading: false,
         reportsError: err.message || '加载报告失败',
         reportsLoaded: true
+      }, () => {
+        this.syncActiveSelectorState()
       })
     }
   },
 
   async loadMedications() {
     try {
-      this.setData({ medicationsLoading: true, medicationsError: null })
+      this.setData({ medicationsLoading: true, medicationsError: null }, () => {
+        this.syncActiveSelectorState()
+      })
       const res = await api.getMedications()
       const medications = (res.medications || []).map((m) => ({
         ...m,
@@ -308,15 +419,17 @@ Page({
         medications,
         medicationsLoading: false,
         medicationsLoaded: true
+      }, () => {
+        this.restoreMedicationSelection()
       })
-
-      this.restoreMedicationSelection()
     } catch (err) {
       console.error('[conversation] loadMedications failed:', err)
       this.setData({
         medicationsLoading: false,
         medicationsError: err.message || '加载药单失败',
         medicationsLoaded: true
+      }, () => {
+        this.syncActiveSelectorState()
       })
     }
   },
@@ -333,6 +446,9 @@ Page({
         selectedMedicationIds: lastSelection.selectedMedicationIds || [],
         reportsNoSelection: !!lastSelection.reportsNoSelection,
         medicationsNoSelection: !!lastSelection.medicationsNoSelection
+      }, () => {
+        this.updateBindingSummary()
+        this.syncActiveSelectorState()
       })
     } catch (err) {
       console.error('[conversation] restoreLastSelection failed:', err)
@@ -345,7 +461,9 @@ Page({
       ...r,
       selected: selectedSet.has(r.id)
     }))
-    this.setData({ reports })
+    this.setData({ reports }, () => {
+      this.syncActiveSelectorState()
+    })
   },
 
   restoreMedicationSelection() {
@@ -354,7 +472,9 @@ Page({
       ...m,
       selected: selectedSet.has(m.id)
     }))
-    this.setData({ medications })
+    this.setData({ medications }, () => {
+      this.syncActiveSelectorState()
+    })
   },
 
   saveCurrentSelection() {
@@ -366,157 +486,163 @@ Page({
         medicationsNoSelection: this.data.medicationsNoSelection,
         timestamp: Date.now()
       })
+      this.updateBindingSummary()
+      this.syncActiveSelectorState()
     } catch (err) {
       console.error('[conversation] saveCurrentSelection failed:', err)
     }
   },
 
-  toggleReportSelector() {
-    const willShow = !this.data.showReportSelector
-    if (willShow && !this.data.reportsLoaded) {
+  openSelector(type) {
+    if (type !== 'report' && type !== 'medication') {
+      return
+    }
+
+    this.setData({
+      showAttachmentMenu: false,
+      activeSelector: type
+    }, () => {
+      this.syncActiveSelectorState()
+    })
+
+    if (type === 'report' && !this.data.reportsLoaded) {
       this.loadReports()
     }
-    this.setData({ showReportSelector: willShow })
+    if (type === 'medication' && !this.data.medicationsLoaded) {
+      this.loadMedications()
+    }
   },
 
   openReportSelector() {
-    this.setData({ showAttachmentMenu: false })
-    if (!this.data.reportsLoaded) {
-      this.loadReports()
-    }
-    setTimeout(() => {
-      this.setData({ showReportSelector: true })
-    }, 100)
-  },
-
-  toggleReport(e) {
-    const id = e.currentTarget.dataset.id
-    const reports = this.data.reports.map((r) => {
-      if (r.id === id) {
-        return { ...r, selected: !r.selected }
-      }
-      return r
-    })
-
-    const selectedReportIds = reports.filter((r) => r.selected).map((r) => r.id)
-
-    this.setData({
-      reports,
-      selectedReportIds,
-      reportsNoSelection: false
-    })
-    this.saveCurrentSelection()
-  },
-
-  selectNoReports() {
-    const reports = this.data.reports.map((r) => ({ ...r, selected: false }))
-    this.setData({
-      reports,
-      selectedReportIds: [],
-      reportsNoSelection: true
-    })
-    this.saveCurrentSelection()
-    util.showToast('已设置为不使用报告')
-  },
-
-  toggleSelectAllReports() {
-    if (!this.data.reports.length) {
-      return
-    }
-
-    const allSelected = this.data.selectedReportIds.length === this.data.reports.length
-    const reports = this.data.reports.map((r) => ({
-      ...r,
-      selected: !allSelected
-    }))
-    const selectedReportIds = allSelected ? [] : reports.map((r) => r.id)
-
-    this.setData({
-      reports,
-      selectedReportIds,
-      reportsNoSelection: false
-    })
-    this.saveCurrentSelection()
-  },
-
-  toggleMedicationSelector() {
-    const willShow = !this.data.showMedicationSelector
-    if (willShow && !this.data.medicationsLoaded) {
-      this.loadMedications()
-    }
-    this.setData({ showMedicationSelector: willShow })
+    this.openSelector('report')
   },
 
   openMedicationSelector() {
-    this.setData({ showAttachmentMenu: false })
-    if (!this.data.medicationsLoaded) {
+    this.openSelector('medication')
+  },
+
+  closeSelector() {
+    this.setData({ activeSelector: '' })
+  },
+
+  retryActiveSelector() {
+    if (this.data.activeSelector === 'report') {
+      this.loadReports()
+      return
+    }
+    if (this.data.activeSelector === 'medication') {
       this.loadMedications()
     }
-    setTimeout(() => {
-      this.setData({ showMedicationSelector: true })
-    }, 100)
   },
 
-  selectNoMedications() {
-    const medications = this.data.medications.map((m) => ({ ...m, selected: false }))
-    this.setData({
-      medications,
-      selectedMedicationIds: [],
-      medicationsNoSelection: true
-    })
-    this.saveCurrentSelection()
-    util.showToast('已设置为不使用药单')
-  },
-
-  toggleMedication(e) {
-    const id = e.currentTarget.dataset.id
-    const medications = this.data.medications.map((m) => {
-      if (m.id === id) {
-        return { ...m, selected: !m.selected }
-      }
-      return m
-    })
-
-    const selectedMedicationIds = medications.filter((m) => m.selected).map((m) => m.id)
-
-    this.setData({
-      medications,
-      selectedMedicationIds,
-      medicationsNoSelection: false
-    })
-    this.saveCurrentSelection()
-  },
-
-  toggleSelectAllMedications() {
-    if (!this.data.medications.length) {
+  selectNoCurrent() {
+    if (this.data.activeSelector === 'report') {
+      const reports = this.data.reports.map((r) => ({ ...r, selected: false }))
+      this.setData({
+        reports,
+        selectedReportIds: [],
+        reportsNoSelection: true
+      }, () => {
+        this.saveCurrentSelection()
+      })
+      util.showToast('已设置为不使用报告')
       return
     }
 
-    const allSelected = this.data.selectedMedicationIds.length === this.data.medications.length
-    const medications = this.data.medications.map((m) => ({
-      ...m,
-      selected: !allSelected
-    }))
-    const selectedMedicationIds = allSelected ? [] : medications.map((m) => m.id)
+    if (this.data.activeSelector === 'medication') {
+      const medications = this.data.medications.map((m) => ({ ...m, selected: false }))
+      this.setData({
+        medications,
+        selectedMedicationIds: [],
+        medicationsNoSelection: true
+      }, () => {
+        this.saveCurrentSelection()
+      })
+      util.showToast('已设置为不使用药单')
+    }
+  },
 
-    this.setData({
-      medications,
-      selectedMedicationIds,
-      medicationsNoSelection: false
-    })
-    this.saveCurrentSelection()
+  toggleSelectorItem(e) {
+    const rawId = e.currentTarget.dataset.id
+    const isSameId = (id) => String(id) === String(rawId)
+
+    if (this.data.activeSelector === 'report') {
+      const reports = this.data.reports.map((r) => {
+        if (isSameId(r.id)) {
+          return { ...r, selected: !r.selected }
+        }
+        return r
+      })
+      const selectedReportIds = reports.filter((r) => r.selected).map((r) => r.id)
+      this.setData({
+        reports,
+        selectedReportIds,
+        reportsNoSelection: false
+      }, () => {
+        this.saveCurrentSelection()
+      })
+      return
+    }
+
+    if (this.data.activeSelector === 'medication') {
+      const medications = this.data.medications.map((m) => {
+        if (isSameId(m.id)) {
+          return { ...m, selected: !m.selected }
+        }
+        return m
+      })
+      const selectedMedicationIds = medications.filter((m) => m.selected).map((m) => m.id)
+      this.setData({
+        medications,
+        selectedMedicationIds,
+        medicationsNoSelection: false
+      }, () => {
+        this.saveCurrentSelection()
+      })
+    }
+  },
+
+  toggleSelectAllCurrent() {
+    if (this.data.activeSelector === 'report') {
+      if (!this.data.reports.length) {
+        return
+      }
+      const allSelected = this.data.selectedReportIds.length === this.data.reports.length
+      const reports = this.data.reports.map((r) => ({
+        ...r,
+        selected: !allSelected
+      }))
+      this.setData({
+        reports,
+        selectedReportIds: allSelected ? [] : reports.map((r) => r.id),
+        reportsNoSelection: false
+      }, () => {
+        this.saveCurrentSelection()
+      })
+      return
+    }
+
+    if (this.data.activeSelector === 'medication') {
+      if (!this.data.medications.length) {
+        return
+      }
+      const allSelected = this.data.selectedMedicationIds.length === this.data.medications.length
+      const medications = this.data.medications.map((m) => ({
+        ...m,
+        selected: !allSelected
+      }))
+      this.setData({
+        medications,
+        selectedMedicationIds: allSelected ? [] : medications.map((m) => m.id),
+        medicationsNoSelection: false
+      }, () => {
+        this.saveCurrentSelection()
+      })
+    }
   },
 
   onInputChange(e) {
     this.setData({ inputText: e.detail.value })
-  },
-
-  onInputFocus() {
-    // no-op
-  },
-
-  onInputBlur() {
-    // no-op
   },
 
   normalizeAdviceRequest(rawData = {}) {
@@ -713,10 +839,20 @@ Page({
       return
     }
 
-    // 触发 scroll-into-view 需要值发生变化
+    // 触发 scroll-into-view 需要值发生变化；随后清空避免锁定手势滚动
+    if (this._clearScrollToViewTimer) {
+      clearTimeout(this._clearScrollToViewTimer)
+      this._clearScrollToViewTimer = null
+    }
     this.setData({ scrollToView: '' })
     setTimeout(() => {
-      this.setData({ scrollToView: `msg-${id}` })
+      const target = `msg-${id}`
+      this.setData({ scrollToView: target })
+      this._clearScrollToViewTimer = setTimeout(() => {
+        if (this.data.scrollToView === target) {
+          this.setData({ scrollToView: '' })
+        }
+      }, 320)
     }, 20)
   },
 
@@ -797,10 +933,11 @@ Page({
         selectedMedicationIds: requestData.selected_medication_ids || [],
         reportsNoSelection: requestData.report_mode === 'no_reports',
         medicationsNoSelection: requestData.medication_mode === 'no_medications'
+      }, () => {
+        this.updateBindingSummary()
+        this.restoreReportSelection()
+        this.restoreMedicationSelection()
       })
-
-      this.restoreReportSelection()
-      this.restoreMedicationSelection()
       this.scrollToBottom(aiPlaceholderId)
 
       const res = await this.callAiAdvice(requestData)

@@ -510,6 +510,90 @@ p {
     font-size: 0.8125rem;
     color: #4b5563;
 }
+
+.dashboard-event-status {
+    border: 2px solid #000;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.dashboard-event-status.pending {
+    background: #FB923C;
+    color: #111827;
+}
+
+.dashboard-event-status.observing {
+    background: #FFD60A;
+    color: #111827;
+}
+
+.dashboard-event-status.recovered {
+    background: #06FFA5;
+    color: #111827;
+}
+
+.dashboard-event-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.dashboard-event-status-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dashboard-event-status-hint {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.dashboard-event-status-editor {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dashboard-event-status-editor .form-select {
+    border: 2px solid #000;
+    border-radius: 0;
+    box-shadow: 2px 2px 0 #000;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 120px;
+    height: auto;
+    line-height: 1.2;
+    padding: 0.35rem 1.75rem 0.35rem 0.55rem;
+}
+
+.dashboard-status-save-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.72rem;
+    line-height: 1.1;
+}
+
+.dashboard-status-feedback {
+    min-height: 1rem;
+    margin-top: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.dashboard-status-feedback.success {
+    color: #047857;
+}
+
+.dashboard-status-feedback.error {
+    color: #b91c1c;
+}
+
+.dashboard-status-feedback.pending {
+    color: #374151;
+}
 </style>
 {% endblock %}
 
@@ -757,6 +841,27 @@ p {
                                             <div class="d-flex justify-content-between align-items-start mb-2">
                                                 <div class="fw-bold">{{ event.name }}</div>
                                                 <span class="badge bg-dark">{{ event.get_event_type_display }}</span>
+                                            </div>
+                                            <div class="dashboard-events-meta mb-1">
+                                                <div class="dashboard-event-status-row">
+                                                    <div class="dashboard-event-status-left">
+                                                        <span class="badge dashboard-event-status {{ event.status }}" id="eventStatusBadge-{{ event.id }}">{{ event.get_status_display }}</span>
+                                                        <span class="dashboard-event-status-hint {% if event.status != 'observing' %}d-none{% endif %}" id="eventStatusHint-{{ event.id }}">
+                                                            请确认状态
+                                                        </span>
+                                                    </div>
+                                                    <div class="dashboard-event-status-editor">
+                                                        <select class="form-select form-select-sm" id="eventStatusSelect-{{ event.id }}">
+                                                            <option value="observing" {% if event.status == 'observing' %}selected{% endif %}>观察中</option>
+                                                            <option value="pending" {% if event.status == 'pending' %}selected{% endif %}>待处理</option>
+                                                            <option value="recovered" {% if event.status == 'recovered' %}selected{% endif %}>治愈</option>
+                                                        </select>
+                                                        <button type="button" class="btn btn-outline-dark btn-sm dashboard-status-save-btn" id="eventStatusSaveBtn-{{ event.id }}" onclick="updateDashboardEventStatus({{ event.id }})">
+                                                            保存
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="dashboard-status-feedback" id="eventStatusFeedback-{{ event.id }}"></div>
                                             </div>
                                             <div class="dashboard-events-meta mb-1">
                                                 <i class="bi bi-calendar3"></i>
@@ -1077,6 +1182,104 @@ document.addEventListener('shown.bs.tab', function(e) {
         createIndicatorTypeTable(indicatorType);
     }
 });
+
+const EVENT_STATUS_LABELS = {
+    pending: '待处理',
+    observing: '观察中',
+    recovered: '治愈'
+};
+
+const EVENT_STATUS_CLASSES = ['pending', 'observing', 'recovered'];
+
+function buildEventDetailApiUrl(eventId) {
+    return `{% url "medical_records:api_event_detail" 0 %}`.replace('0', eventId);
+}
+
+function setDashboardStatusFeedback(eventId, message, level) {
+    const feedbackEl = document.getElementById(`eventStatusFeedback-${eventId}`);
+    if (!feedbackEl) return;
+
+    feedbackEl.classList.remove('success', 'error', 'pending');
+    if (!message) {
+        feedbackEl.textContent = '';
+        return;
+    }
+
+    feedbackEl.textContent = message;
+    feedbackEl.classList.add(level || 'pending');
+}
+
+function setDashboardEventStatusUI(eventId, status) {
+    const badgeEl = document.getElementById(`eventStatusBadge-${eventId}`);
+    const hintEl = document.getElementById(`eventStatusHint-${eventId}`);
+    const selectEl = document.getElementById(`eventStatusSelect-${eventId}`);
+
+    if (badgeEl) {
+        EVENT_STATUS_CLASSES.forEach(statusClass => badgeEl.classList.remove(statusClass));
+        badgeEl.classList.add(status);
+        badgeEl.textContent = EVENT_STATUS_LABELS[status] || status;
+    }
+
+    if (hintEl) {
+        if (status === 'observing') {
+            hintEl.classList.remove('d-none');
+        } else {
+            hintEl.classList.add('d-none');
+        }
+    }
+
+    if (selectEl && selectEl.value !== status) {
+        selectEl.value = status;
+    }
+}
+
+async function updateDashboardEventStatus(eventId) {
+    const selectEl = document.getElementById(`eventStatusSelect-${eventId}`);
+    const saveBtnEl = document.getElementById(`eventStatusSaveBtn-${eventId}`);
+    if (!selectEl || !saveBtnEl) return;
+
+    const originalBtnHtml = saveBtnEl.innerHTML;
+    const selectedStatus = selectEl.value;
+
+    saveBtnEl.disabled = true;
+    selectEl.disabled = true;
+    saveBtnEl.innerHTML = '保存中...';
+    setDashboardStatusFeedback(eventId, '正在保存状态...', 'pending');
+
+    try {
+        const response = await fetch(buildEventDetailApiUrl(eventId), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                status: selectedStatus
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || '保存失败');
+        }
+
+        const savedStatus = data.event && data.event.status ? data.event.status : selectedStatus;
+        setDashboardEventStatusUI(eventId, savedStatus);
+        setDashboardStatusFeedback(eventId, `已更新为${EVENT_STATUS_LABELS[savedStatus] || savedStatus}`, 'success');
+
+        window.setTimeout(() => {
+            setDashboardStatusFeedback(eventId, '', 'pending');
+        }, 1800);
+    } catch (error) {
+        console.error('更新事件状态失败:', error);
+        setDashboardStatusFeedback(eventId, `更新失败：${error.message || '请稍后重试'}`, 'error');
+    } finally {
+        saveBtnEl.disabled = false;
+        selectEl.disabled = false;
+        saveBtnEl.innerHTML = originalBtnHtml;
+    }
+}
 
 // 首页触发事件自动聚类
 async function autoClusterDashboardEvents() {

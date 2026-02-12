@@ -603,6 +603,14 @@ class HealthEvent(models.Model):
         ('medication_course', '用药疗程'),
         ('other', '其他'),
     ]
+    STATUS_PENDING = 'pending'
+    STATUS_OBSERVING = 'observing'
+    STATUS_RECOVERED = 'recovered'
+    EVENT_STATUS_CHOICES = [
+        (STATUS_PENDING, '待处理'),
+        (STATUS_OBSERVING, '观察中'),
+        (STATUS_RECOVERED, '治愈'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户', related_name='health_events')
     name = models.CharField(max_length=200, verbose_name='事件名称')
@@ -610,6 +618,7 @@ class HealthEvent(models.Model):
     start_date = models.DateField(verbose_name='开始日期')
     end_date = models.DateField(blank=True, null=True, verbose_name='结束日期')
     event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES, default='other', verbose_name='事件类型')
+    status = models.CharField(max_length=20, choices=EVENT_STATUS_CHOICES, default=STATUS_OBSERVING, verbose_name='状态')
     is_auto_generated = models.BooleanField(default=False, verbose_name='是否自动生成')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
@@ -621,6 +630,7 @@ class HealthEvent(models.Model):
         indexes = [
             models.Index(fields=['user', '-start_date']),
             models.Index(fields=['event_type']),
+            models.Index(fields=['status']),
             models.Index(fields=['is_auto_generated']),
         ]
 

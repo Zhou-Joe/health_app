@@ -8,10 +8,22 @@
 
   <!-- 用户信息卡片 -->
   <view class="user-card">
-    <view class="avatar-wrapper" bindtap="chooseAvatar">
-      <image wx:if="{{userInfo.avatar_url}}"
+    <button wx:if="{{canChooseAvatar}}"
+            class="avatar-wrapper avatar-btn"
+            open-type="chooseAvatar"
+            bindchooseavatar="onChooseAvatar">
+      <image wx:if="{{userInfo.avatar_url && !avatarLoadFailed}}"
              class="avatar-image"
              src="{{userInfo.avatar_url}}"
+             binderror="onAvatarError"
+             mode="aspectFill"></image>
+      <text wx:else class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
+    </button>
+    <view wx:else class="avatar-wrapper" bindtap="chooseAvatar">
+      <image wx:if="{{userInfo.avatar_url && !avatarLoadFailed}}"
+             class="avatar-image"
+             src="{{userInfo.avatar_url}}"
+             binderror="onAvatarError"
              mode="aspectFill"></image>
       <text wx:else class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
     </view>
@@ -78,7 +90,7 @@
           <text class="item-label">关于</text>
         </view>
         <view class="item-right">
-          <text class="item-value">v1.8</text>
+          <text class="item-value">v2.0</text>
         </view>
       </view>
     </view>

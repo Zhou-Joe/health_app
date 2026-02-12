@@ -103,7 +103,6 @@ page {
 .app-theme .section-list,
 .app-theme .search-box,
 .app-theme .chat-meta,
-.app-theme .message-bubble .bubble-content,
 .app-theme .user-card,
 .app-theme .header-card {
   background: var(--app-surface) !important;

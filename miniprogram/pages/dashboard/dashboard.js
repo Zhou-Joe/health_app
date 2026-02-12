@@ -10,6 +10,7 @@ const util = require('../../utils/util.js')
 Page({
   data: {
     userInfo: {},
+    avatarLoadFailed: false,
     // 日期显示
     currentDay: '',
     currentMonth: '',
@@ -17,6 +18,7 @@ Page({
     healthScore: 85,
     healthTrend: 'up',
     scoreComment: '健康状况良好',
+    latestCheckupDate: '',
     // 统计数据
     stats: {
       checkupCount: 0,
@@ -55,6 +57,7 @@ Page({
     // 从其他页面返回时刷新数据
     this.initDateDisplay()
     this.calculateHealthScore()
+    this.setData({ avatarLoadFailed: false })
     this.loadData()
   },
 
@@ -86,27 +89,47 @@ Page({
   /**
    * 计算健康评分
    */
-  calculateHealthScore() {
-    // 基于异常指标数量计算评分
-    const abnormalCount = this.data.abnormalIndicators.length || 0
-    const baseScore = 95
-    const score = Math.max(60, baseScore - abnormalCount * 5)
+  calculateHealthScore({ abnormalCount, latestCheckupDate } = {}) {
+    const totalAbnormal = Number.isFinite(abnormalCount)
+      ? abnormalCount
+      : Number(this.data.stats.abnormalCount || 0)
+    const latestDate = latestCheckupDate || this.data.latestCheckupDate || ''
 
+    // 无体检数据时给出中性分与明确提示，避免误导为高分。
+    if (!latestDate) {
+      this.setData({
+        healthScore: 78,
+        healthTrend: 'stable',
+        scoreComment: '暂无体检数据，请先上传报告'
+      })
+      return
+    }
+
+    // 分段扣分：前5个异常每个扣4分，之后每个扣2分
+    const firstTier = Math.min(totalAbnormal, 5)
+    const secondTier = Math.max(totalAbnormal - 5, 0)
+    const abnormalPenalty = firstTier * 4 + secondTier * 2
+
+    // 新鲜度扣分：超过90天未体检开始扣分，每30天+1，最多10分
+    const daysSinceLastCheckup = this.getDaysSinceDate(latestDate)
+    const stalePenalty = Math.min(10, Math.max(0, Math.floor((daysSinceLastCheckup - 90) / 30)))
+
+    const score = Math.max(40, Math.min(100, 100 - abnormalPenalty - stalePenalty))
     let trend = 'stable'
     let comment = '健康状况良好'
 
     if (score >= 90) {
-      comment = '非常健康，继续保持'
       trend = 'up'
+      comment = '健康状态优秀，继续保持'
     } else if (score >= 80) {
-      comment = '健康状况良好'
       trend = 'stable'
+      comment = '健康状况良好，建议持续复查'
     } else if (score >= 70) {
-      comment = '需要关注一些指标'
       trend = 'stable'
+      comment = '有风险信号，建议重点关注异常指标'
     } else {
-      comment = '建议咨询医生'
       trend = 'down'
+      comment = '建议尽快咨询医生并复查'
     }
 
     this.setData({
@@ -114,6 +137,36 @@ Page({
       healthTrend: trend,
       scoreComment: comment
     })
+  },
+
+  getDaysSinceDate(dateStr) {
+    if (!dateStr) return 365
+    const date = new Date(`${dateStr}T00:00:00`)
+    const ts = date.getTime()
+    if (!Number.isFinite(ts)) return 365
+    const now = Date.now()
+    const diff = Math.max(0, now - ts)
+    return Math.floor(diff / (24 * 60 * 60 * 1000))
+  },
+
+  getLatestCheckupDate(checkups = []) {
+    if (!Array.isArray(checkups) || checkups.length === 0) {
+      return ''
+    }
+
+    let latest = ''
+    let latestTs = 0
+    checkups.forEach((item) => {
+      const date = item?.checkup_date
+      if (!date) return
+      const ts = new Date(`${date}T00:00:00`).getTime()
+      if (Number.isFinite(ts) && ts > latestTs) {
+        latestTs = ts
+        latest = date
+      }
+    })
+
+    return latest
   },
 
   /**
@@ -149,7 +202,9 @@ Page({
     this.setData({ loading: true })
 
     try {
-      this.setData({ userInfo: app.globalData.userInfo })
+      const config = require('../../config.js')
+      const cachedUserInfo = wx.getStorageSync(config.storageKeys.USER_INFO) || app.globalData.userInfo || {}
+      this.setData({ userInfo: cachedUserInfo })
 
       // 并发请求多个接口
       const [checkupsRes, abnormalRes, conversationsRes, indicatorTypesRes, eventsRes] = await Promise.all([
@@ -162,6 +217,8 @@ Page({
 
       const checkups = checkupsRes.data || checkupsRes.results || []
       let indicatorCount = 0
+      const abnormalTotalCount = Number(abnormalRes.totalCount || 0)
+      const latestCheckupDate = this.getLatestCheckupDate(checkups)
 
       checkups.forEach(c => {
         indicatorCount += c.indicators_count || 0
@@ -177,16 +234,20 @@ Page({
           checkupCount: checkupsRes.total || checkupsRes.count || 0,
           indicatorCount: indicatorCount,
           conversationCount: conversationsRes.total || conversationsRes.count || 0,
-          abnormalCount: this.data.abnormalIndicators.length,
+          abnormalCount: abnormalTotalCount,
           eventCount: eventsRes.count || 0
         },
+        latestCheckupDate,
         trendTypes: trendTypes,
         currentTrendType: currentTrendType,
         currentTrendTypeName: currentTypeName
       })
 
       // 计算健康评分
-      this.calculateHealthScore()
+      this.calculateHealthScore({
+        abnormalCount: abnormalTotalCount,
+        latestCheckupDate
+      })
 
       // 加载第一个趋势类型的数据
       if (currentTrendType) {
@@ -200,6 +261,11 @@ Page({
     }
   },
 
+  onAvatarError(e) {
+    console.error('首页头像加载失败:', e)
+    this.setData({ avatarLoadFailed: true })
+  },
+
   /**
    * 加载异常指标
    */
@@ -207,13 +273,14 @@ Page({
     try {
       const res = await api.getIndicators({
         status: 'abnormal',
-        page_size: 20
+        page_size: 50
       })
 
-      let indicators = res.data || res.results || []
+      const rawIndicators = res.data || res.results || []
+      const totalCount = Number(res.total || res.count || rawIndicators.length || 0)
 
       // 客户端二次验证，确保只显示异常指标
-      indicators = indicators.filter(item => {
+      const indicators = rawIndicators.filter(item => {
         // 必须明确标记为 abnormal
         return item.status === 'abnormal'
       }).slice(0, 5) // 只取前5个
@@ -225,9 +292,12 @@ Page({
           checkup_date: util.formatDate(item.checkup_date, 'MM-DD')
         }))
       })
+
+      return { totalCount, indicators }
     } catch (err) {
       console.error('加载异常指标失败:', err)
       this.setData({ abnormalIndicators: [] })
+      return { totalCount: 0, indicators: [] }
     }
   },
 

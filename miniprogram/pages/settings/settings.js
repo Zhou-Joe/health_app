@@ -11,6 +11,8 @@ Page({
   data: {
     userInfo: {},
     userProfile: {},
+    canChooseAvatar: false,
+    avatarLoadFailed: false,
     showEditModal: false,
     editField: {},
     editValue: '',
@@ -26,10 +28,21 @@ Page({
     const day = String(today.getDate()).padStart(2, '0')
 
     this.setData({
-      today: `${year}-${month}-${day}`
+      today: `${year}-${month}-${day}`,
+      canChooseAvatar: wx.canIUse('button.open-type.chooseAvatar')
     })
 
     this.loadUserProfile()
+  },
+
+  async onChooseAvatar(e) {
+    const avatarUrl = this.normalizeAvatarUrl(e?.detail?.avatarUrl)
+    if (!avatarUrl) {
+      util.showToast('未获取到头像，请重试')
+      return
+    }
+    console.log('chooseAvatar返回:', avatarUrl)
+    await this.applyAvatar(avatarUrl)
   },
 
   /**
@@ -41,28 +54,8 @@ Page({
         desc: '用于完善用户资料'
       })
 
-      const avatarUrl = res.userInfo.avatarUrl
-      console.log('获取到头像:', avatarUrl)
-
-      // 保存到本地存储
-      wx.setStorageSync('wechat_avatar', avatarUrl)
-
-      // 同步到后端，确保跨设备/重新登录后仍能显示
-      await api.completeProfile({ avatar_url: avatarUrl })
-
-      const mergedUserInfo = {
-        ...(app.globalData.userInfo || {}),
-        avatar_url: avatarUrl
-      }
-      app.globalData.userInfo = mergedUserInfo
-      wx.setStorageSync(config.storageKeys.USER_INFO, mergedUserInfo)
-
-      // 更新页面显示
-      this.setData({
-        'userInfo.avatar_url': avatarUrl
-      })
-
-      util.showToast('头像已更新')
+      const avatarUrl = this.normalizeAvatarUrl(res.userInfo.avatarUrl)
+      await this.applyAvatar(avatarUrl)
     } catch (err) {
       console.log('获取头像失败:', err)
       // 用户取消授权
@@ -71,6 +64,35 @@ Page({
       } else {
         util.showToast('获取头像失败')
       }
+    }
+  },
+
+  async applyAvatar(avatarUrl) {
+    console.log('获取到头像:', avatarUrl)
+
+    // 保存到本地存储
+    wx.setStorageSync('wechat_avatar', avatarUrl)
+
+    // 先更新本地显示，避免后端同步失败时页面不更新
+    const mergedUserInfo = {
+      ...(app.globalData.userInfo || {}),
+      avatar_url: avatarUrl
+    }
+    app.globalData.userInfo = mergedUserInfo
+    wx.setStorageSync(config.storageKeys.USER_INFO, mergedUserInfo)
+
+    this.setData({
+      'userInfo.avatar_url': avatarUrl,
+      avatarLoadFailed: false
+    })
+
+    // 再同步到后端，确保跨设备/重新登录后仍能显示
+    try {
+      await api.completeProfile({ avatar_url: avatarUrl })
+      util.showToast('头像已更新')
+    } catch (syncErr) {
+      console.warn('头像后端同步失败:', syncErr)
+      util.showToast('头像已本地更新，云端同步失败')
     }
   },
 
@@ -118,14 +140,35 @@ Page({
 
       this.setData({
         userProfile,
-        userInfo: user
+        userInfo: user,
+        avatarLoadFailed: false
       })
 
       app.globalData.userInfo = user
       wx.setStorageSync(config.storageKeys.USER_INFO, user)
     } catch (err) {
       console.error('加载用户信息失败:', err)
+      const cachedUser = wx.getStorageSync(config.storageKeys.USER_INFO) || {}
+      const localAvatar = wx.getStorageSync('wechat_avatar') || ''
+      if (!cachedUser.avatar_url && localAvatar) {
+        cachedUser.avatar_url = localAvatar
+      }
+      this.setData({
+        userInfo: cachedUser,
+        avatarLoadFailed: false
+      })
     }
+  },
+
+  normalizeAvatarUrl(url) {
+    if (!url) return ''
+    return String(url).trim()
+  },
+
+  onAvatarError(e) {
+    console.error('头像加载失败:', e)
+    this.setData({ avatarLoadFailed: true })
+    util.showToast('头像加载失败，请配置图片域名')
   },
 
   /**
@@ -297,7 +340,7 @@ Page({
   showAbout() {
     wx.showModal({
       title: '关于健康档案',
-      content: '版本：2.0.0\n\n个人健康管理系统，基于AI技术提供智能健康建议。',
+      content: '版本：2.0\n\n个人健康管理系统，基于AI技术提供智能健康建议。',
       showCancel: false,
       confirmText: '知道了'
     })

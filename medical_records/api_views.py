@@ -3311,6 +3311,29 @@ def api_conversation_resources(request, conversation_id):
 # 健康事件聚合 API
 # ============================================================================
 
+def _valid_event_statuses():
+    return {choice[0] for choice in HealthEvent.EVENT_STATUS_CHOICES}
+
+
+def _serialize_event(event):
+    return {
+        'id': event.id,
+        'name': event.name,
+        'description': event.description,
+        'event_type': event.event_type,
+        'event_type_display': event.get_event_type_display(),
+        'status': event.status,
+        'status_display': event.get_status_display(),
+        'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
+        'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
+        'duration_days': event.duration_days,
+        'item_count': event.get_item_count(),
+        'is_auto_generated': event.is_auto_generated,
+        'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'updated_at': event.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+
+
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def api_events(request):
@@ -3321,6 +3344,7 @@ def api_events(request):
     if request.method == 'GET':
         # 获取查询参数
         event_type = request.GET.get('event_type')
+        status = request.GET.get('status')
         is_auto = request.GET.get('is_auto_generated')
         limit = int(request.GET.get('limit', 50))
 
@@ -3329,6 +3353,8 @@ def api_events(request):
 
         if event_type:
             events = events.filter(event_type=event_type)
+        if status:
+            events = events.filter(status=status)
         if is_auto is not None:
             is_auto_bool = is_auto.lower() == 'true'
             events = events.filter(is_auto_generated=is_auto_bool)
@@ -3338,19 +3364,7 @@ def api_events(request):
         # 序列化数据
         events_data = []
         for event in events:
-            events_data.append({
-                'id': event.id,
-                'name': event.name,
-                'description': event.description,
-                'event_type': event.event_type,
-                'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
-                'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
-                'duration_days': event.duration_days,
-                'item_count': event.get_item_count(),
-                'is_auto_generated': event.is_auto_generated,
-                'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'updated_at': event.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
-            })
+            events_data.append(_serialize_event(event))
 
         return JsonResponse({
             'success': True,
@@ -3367,6 +3381,7 @@ def api_events(request):
             start_date = data.get('start_date')
             end_date = data.get('end_date')
             event_type = data.get('event_type', 'other')
+            status = data.get('status', HealthEvent.STATUS_OBSERVING)
 
             if not name:
                 return JsonResponse({
@@ -3378,6 +3393,13 @@ def api_events(request):
                 return JsonResponse({
                     'success': False,
                     'error': '开始日期不能为空'
+                }, status=400)
+
+            valid_statuses = _valid_event_statuses()
+            if status not in valid_statuses:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'无效状态: {status}，支持的状态: {", ".join(sorted(valid_statuses))}'
                 }, status=400)
 
             from datetime import datetime
@@ -3392,23 +3414,13 @@ def api_events(request):
                 start_date=start_date,
                 end_date=end_date,
                 event_type=event_type,
+                status=status,
                 is_auto_generated=False
             )
 
             return JsonResponse({
                 'success': True,
-                'event': {
-                    'id': event.id,
-                    'name': event.name,
-                    'description': event.description,
-                    'event_type': event.event_type,
-                    'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
-                    'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
-                    'duration_days': event.duration_days,
-                    'item_count': 0,
-                    'is_auto_generated': event.is_auto_generated,
-                    'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                }
+                'event': _serialize_event(event)
             })
 
         except Exception as e:
@@ -3511,19 +3523,7 @@ def api_event_detail(request, event_id):
 
             return JsonResponse({
                 'success': True,
-                'event': {
-                    'id': event.id,
-                    'name': event.name,
-                    'description': event.description,
-                    'event_type': event.event_type,
-                    'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
-                    'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
-                    'duration_days': event.duration_days,
-                    'item_count': event.get_item_count(),
-                    'is_auto_generated': event.is_auto_generated,
-                    'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                    'updated_at': event.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
-                },
+                'event': _serialize_event(event),
                 'items': items_data
             })
 
@@ -3538,6 +3538,15 @@ def api_event_detail(request, event_id):
                     event.description = data['description']
                 if 'event_type' in data:
                     event.event_type = data['event_type']
+                if 'status' in data:
+                    new_status = data['status']
+                    valid_statuses = _valid_event_statuses()
+                    if new_status not in valid_statuses:
+                        return JsonResponse({
+                            'success': False,
+                            'error': f'无效状态: {new_status}，支持的状态: {", ".join(sorted(valid_statuses))}'
+                        }, status=400)
+                    event.status = new_status
                 if 'start_date' in data:
                     from datetime import datetime
                     event.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
@@ -3552,17 +3561,7 @@ def api_event_detail(request, event_id):
 
                 return JsonResponse({
                     'success': True,
-                    'event': {
-                        'id': event.id,
-                        'name': event.name,
-                        'description': event.description,
-                        'event_type': event.event_type,
-                        'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
-                        'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
-                        'duration_days': event.duration_days,
-                        'item_count': event.get_item_count(),
-                        'is_auto_generated': event.is_auto_generated,
-                    }
+                    'event': _serialize_event(event)
                 })
 
             except Exception as e:

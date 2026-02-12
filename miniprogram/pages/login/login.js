@@ -88,18 +88,15 @@ Page({
       }
 
       // 2. 获取用户信息（可选）
+      // 注意：头像统一走 settings 页的 chooseAvatar，避免登录阶段拿到默认头像覆盖用户真实头像
       let userInfo = {}
       try {
         const userProfile = await wx.getUserProfile({
           desc: '用于完善用户资料'
         })
         userInfo = {
-          nickname: userProfile.userInfo.nickName,
-          avatarUrl: userProfile.userInfo.avatarUrl
+          nickname: userProfile.userInfo.nickName
         }
-
-        // 保存微信头像到本地存储
-        wx.setStorageSync('wechat_avatar', userProfile.userInfo.avatarUrl)
       } catch (err) {
         userInfo = {
           nickname: '微信用户'
@@ -112,13 +109,8 @@ Page({
         ...userInfo
       })
 
-      const mergedUser = {
-        ...(res.user || {}),
-        avatar_url: (res.user && res.user.avatar_url) || userInfo.avatarUrl || ''
-      }
-
       // 4. 保存登录信息
-      app.setLoginInfo(res.token, mergedUser)
+      app.setLoginInfo(res.token, res.user)
 
       // 5. 判断是否需要完善个人信息
       if (res.need_complete_profile) {

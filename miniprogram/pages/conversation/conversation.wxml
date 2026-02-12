@@ -1,203 +1,178 @@
 <!-- pages/conversation/conversation.wxml -->
-<view class="chat-container app-theme">
-  <view class="bg-decoration"></view>
+<view class="conversation-page app-theme">
+  <view class="ambient-layer ambient-a"></view>
+  <view class="ambient-layer ambient-b"></view>
 
-  <view class="chat-header">
-    <view class="header-back" bindtap="goBack">
-      <text class="back-icon">‹</text>
-    </view>
-
-    <view class="header-center">
-      <image class="ai-avatar" src="/images/doctor-avatar.svg" mode="aspectFit"></image>
-      <text class="header-title">AI 健康医生</text>
-      <text class="header-subtitle">连续对话 · 智能分析</text>
-    </view>
-
-    <view class="header-right">
-      <view class="header-btn" bindtap="toggleReportSelector">
-        <text class="btn-text">报告</text>
+  <view class="top-shell">
+    <view class="topbar">
+      <view class="icon-btn" bindtap="goBack">
+        <text class="icon-text">‹</text>
       </view>
-      <view class="header-btn" bindtap="toggleMedicationSelector">
-        <text class="btn-text">药单</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="chat-meta">
-    <view class="meta-chip mode {{conversationMode === 'continue' ? 'continue' : ''}}">
-      <text>{{conversationMode === 'continue' ? '继续对话' : '新对话'}}</text>
-    </view>
-    <view class="meta-chip">
-      <text>报告 {{selectedReportIds.length}}</text>
-    </view>
-    <view class="meta-chip">
-      <text>药单 {{selectedMedicationIds.length}}</text>
-    </view>
-  </view>
-
-  <scroll-view class="message-list" scroll-y scroll-into-view="{{scrollToView}}" scroll-with-animation>
-    <view class="message-wrapper" wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}">
-      <view class="message-bubble user-message" wx:if="{{item.role === 'user'}}">
-        <view class="bubble-content" bindtap="toggleExpand" data-index="{{index}}">
-          <text class="message-text">{{item.content}}</text>
-          <view class="bubble-tail"></view>
+      <view class="topbar-center">
+        <view class="doctor-badge">
+          <image class="doctor-avatar" src="/images/tabbar/ai-active.png" mode="aspectFill"></image>
+          <text class="doctor-label">AI</text>
+        </view>
+        <view class="title-wrap">
+          <text class="conv-title">AI 健康医生</text>
+          <text class="conv-subtitle">连续对话 · 智能分析</text>
         </view>
       </view>
+      <view class="icon-btn top-action-btn" bindtap="showAttachmentMenu">
+        <text class="action-label">资料</text>
+      </view>
+    </view>
 
-      <view class="message-bubble ai-message" wx:else>
-        <view class="ai-indicator"></view>
-        <view class="bubble-content {{item.expanded ? 'expanded' : ''}}" bindtap="toggleExpand" data-index="{{index}}">
-          <text class="message-text" wx:if="{{!item.expanded}}">{{item.previewText}}</text>
-          <rich-text class="message-html" wx:else nodes="{{item.markdownData}}"></rich-text>
-          <view class="bubble-tail"></view>
-          <view class="expand-hint" wx:if="{{!item.expanded && item.content && item.content.length > 100}}">
-            <text>点击展开</text>
+    <view class="meta-strip">
+      <view class="mode-pill {{conversationMode === 'continue' ? 'continue' : ''}}">
+        <text>{{conversationMode === 'continue' ? '继续对话' : '新对话'}}</text>
+      </view>
+      <view class="binding-pill">
+        <text>{{bindingSummary}}</text>
+      </view>
+    </view>
+  </view>
+
+  <scroll-view class="chat-scroll" scroll-y enable-flex="true" scroll-into-view="{{scrollToView}}" scroll-with-animation>
+    <view class="chat-track">
+      <view class="msg-row {{item.role === 'user' ? 'outgoing' : 'incoming'}}" wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}">
+        <view class="msg-avatar ai" wx:if="{{item.role === 'ai'}}">
+          <image class="msg-ai-avatar" src="/images/tabbar/ai-active.png" mode="aspectFill"></image>
+        </view>
+
+        <view class="msg-main">
+          <view class="msg-card msg-user-card" wx:if="{{item.role === 'user'}}">
+            <text class="msg-text user-text">{{item.content}}</text>
+          </view>
+
+          <view class="msg-card ai-card {{item.expanded ? 'expanded' : ''}}" wx:else bindtap="toggleExpand" data-index="{{index}}">
+            <text class="msg-text ai-text" wx:if="{{!item.expanded}}">{{item.previewText}}</text>
+            <rich-text class="msg-rich" wx:else nodes="{{item.markdownData}}"></rich-text>
+            <view class="expand-tip" wx:if="{{!item.expanded && item.content && item.content.length > 100}}">
+              <text>展开查看完整建议</text>
+            </view>
+          </view>
+          <view class="msg-time">
+            <text>{{item.created_at}}</text>
           </view>
         </view>
+
+        <view class="msg-avatar self" wx:if="{{item.role === 'user'}}">
+          <image
+            wx:if="{{userAvatarUrl && !userAvatarLoadFailed}}"
+            class="msg-user-avatar"
+            src="{{userAvatarUrl}}"
+            mode="aspectFit"
+            binderror="onUserAvatarError"
+          ></image>
+          <text wx:else>{{userDisplayInitial}}</text>
+        </view>
       </view>
 
-      <view class="message-time">
-        <text>{{item.created_at}}</text>
+      <view class="thinking-row" wx:if="{{isGenerating}}" id="msg-thinking">
+        <view class="thinking-pulse">
+          <view class="pulse-dot pulse-dot-1"></view>
+          <view class="pulse-dot pulse-dot-2"></view>
+          <view class="pulse-dot pulse-dot-3"></view>
+        </view>
+        <text class="thinking-label">AI 正在分析中...</text>
       </view>
-    </view>
-
-    <view class="thinking-indicator" wx:if="{{isGenerating}}" id="msg-thinking">
-      <view class="thinking-dots">
-        <view class="dot dot-1"></view>
-        <view class="dot dot-2"></view>
-        <view class="dot dot-3"></view>
-      </view>
-      <text class="thinking-text">AI 正在思考...</text>
     </view>
   </scroll-view>
 
-  <view class="input-area">
-    <view class="attach-btn" bindtap="showAttachmentMenu">
-      <text class="attach-icon">+</text>
-    </view>
-
-    <view class="input-wrapper">
-      <textarea
-        class="message-input"
-        value="{{inputText}}"
-        bindinput="onInputChange"
-        bindfocus="onInputFocus"
-        bindblur="onInputBlur"
-        placeholder="输入你的健康问题..."
-        maxlength="1000"
-        auto-height
-        adjust-position="{{true}}"
-        show-confirm-bar="{{false}}"
-        cursor-spacing="24"
-      />
-    </view>
-
-    <view class="send-btn {{inputText.trim().length > 0 && !sending ? 'active' : ''}}" bindtap="sendMessage">
-      <text class="send-icon">发送</text>
-    </view>
-  </view>
-
-  <view class="attachment-menu" wx:if="{{showAttachmentMenu}}" bindtap="hideAttachmentMenu">
-    <view class="menu-mask" bindtap="hideAttachmentMenu"></view>
-    <view class="menu-content" catchtap="stopPropagation">
-      <view class="menu-item" bindtap="openReportSelector">
-        <view class="menu-icon">报</view>
-        <text class="menu-text">体检报告</text>
-        <text class="menu-badge" wx:if="{{selectedReportIds.length > 0}}">{{selectedReportIds.length}}</text>
+  <view class="composer-shell">
+    <view class="composer">
+      <view class="attach-trigger" bindtap="showAttachmentMenu">
+        <text class="attach-symbol">＋</text>
       </view>
 
-      <view class="menu-item" bindtap="openMedicationSelector">
-        <view class="menu-icon">药</view>
-        <text class="menu-text">药单信息</text>
-        <text class="menu-badge" wx:if="{{selectedMedicationIds.length > 0}}">{{selectedMedicationIds.length}}</text>
+      <view class="composer-input-wrap">
+        <textarea
+          class="composer-input"
+          value="{{inputText}}"
+          bindinput="onInputChange"
+          placeholder="告诉我你现在的症状、疑问或目标..."
+          maxlength="1000"
+          auto-height
+          adjust-position="{{true}}"
+          show-confirm-bar="{{false}}"
+          cursor-spacing="24"
+        />
+      </view>
+
+      <view class="send-trigger {{inputText.trim().length > 0 && !sending ? 'active' : ''}}" bindtap="sendMessage">
+        <text class="send-label">发送</text>
       </view>
     </view>
   </view>
 
-  <view class="bottom-sheet" wx:if="{{showReportSelector}}">
-    <view class="sheet-mask" bindtap="toggleReportSelector"></view>
-    <view class="sheet-content" catchtap="stopPropagation">
-      <view class="sheet-handle"></view>
-      <view class="sheet-header">
-        <text class="sheet-title">选择体检报告</text>
-        <view class="sheet-actions">
-          <text class="sheet-btn" bindtap="toggleSelectAllReports">全选</text>
-          <text class="sheet-btn primary" bindtap="toggleReportSelector">完成</text>
+  <view class="overlay-menu" wx:if="{{showAttachmentMenu}}" bindtap="hideAttachmentMenu">
+    <view class="overlay-mask" bindtap="hideAttachmentMenu"></view>
+    <view class="menu-panel" catchtap="stopPropagation">
+      <view class="menu-head">
+        <text class="menu-title">添加参考资料</text>
+      </view>
+      <view class="menu-grid">
+        <view class="menu-option" bindtap="openReportSelector">
+          <view class="option-icon">检</view>
+          <text class="option-title">体检报告</text>
+          <text class="option-count" wx:if="{{selectedReportIds.length > 0}}">{{selectedReportIds.length}}</text>
+        </view>
+        <view class="menu-option" bindtap="openMedicationSelector">
+          <view class="option-icon">药</view>
+          <text class="option-title">药单信息</text>
+          <text class="option-count" wx:if="{{selectedMedicationIds.length > 0}}">{{selectedMedicationIds.length}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="selector-overlay" wx:if="{{activeSelector}}">
+    <view class="selector-mask" bindtap="closeSelector"></view>
+    <view class="selector-panel" catchtap="stopPropagation">
+      <view class="selector-handle"></view>
+      <view class="selector-head">
+        <text class="selector-title">{{activeSelectorTitle}}</text>
+        <view class="selector-actions">
+          <text class="selector-btn" bindtap="toggleSelectAllCurrent">全选</text>
+          <text class="selector-btn primary" bindtap="closeSelector">完成</text>
         </view>
       </view>
 
-      <scroll-view class="sheet-list" scroll-y>
-        <view class="sheet-item {{selectedReportIds.length === 0 && reportsNoSelection ? 'selected' : ''}}" bindtap="selectNoReports">
-          <view class="item-icon">无</view>
-          <view class="item-content">
-            <text class="item-title">不使用报告</text>
-            <text class="item-desc">仅基于问题咨询</text>
+      <view class="selector-status" wx:if="{{activeSelectorLoading}}">
+        <text>加载中...</text>
+      </view>
+      <view class="selector-status error" wx:elif="{{activeSelectorError}}">
+        <text>{{activeSelectorError}}</text>
+        <text class="retry-action" bindtap="retryActiveSelector">重试</text>
+      </view>
+
+      <scroll-view class="selector-list" wx:else scroll-y>
+        <view class="selector-item {{activeSelectorNoSelection ? 'selected' : ''}}" bindtap="selectNoCurrent">
+          <view class="selector-item-icon">无</view>
+          <view class="selector-item-content">
+            <text class="selector-item-title">{{activeSelectorNoSelectionTitle}}</text>
+            <text class="selector-item-desc">{{activeSelectorNoSelectionDesc}}</text>
           </view>
-          <view class="item-check {{selectedReportIds.length === 0 && reportsNoSelection ? 'checked' : ''}}">
-            <text class="check-icon">✓</text>
+          <view class="selector-check {{activeSelectorNoSelection ? 'checked' : ''}}">
+            <text class="selector-check-text">✓</text>
           </view>
         </view>
 
         <view
-          class="sheet-item {{report.selected ? 'selected' : ''}}"
-          wx:for="{{reports}}"
+          class="selector-item {{item.selected ? 'selected' : ''}}"
+          wx:for="{{activeSelectorItems}}"
           wx:key="id"
-          wx:for-item="report"
-          bindtap="toggleReport"
-          data-id="{{report.id}}"
+          bindtap="toggleSelectorItem"
+          data-id="{{item.id}}"
         >
-          <view class="item-icon">检</view>
-          <view class="item-content">
-            <text class="item-title">{{report.hospital}}</text>
-            <text class="item-desc">{{report.checkup_date}} · {{report.indicators_count}} 项指标</text>
+          <view class="selector-item-icon">{{item.icon}}</view>
+          <view class="selector-item-content">
+            <text class="selector-item-title">{{item.title}}</text>
+            <text class="selector-item-desc">{{item.desc}}</text>
           </view>
-          <view class="item-check {{report.selected ? 'checked' : ''}}">
-            <text class="check-icon">✓</text>
-          </view>
-        </view>
-      </scroll-view>
-    </view>
-  </view>
-
-  <view class="bottom-sheet" wx:if="{{showMedicationSelector}}">
-    <view class="sheet-mask" bindtap="toggleMedicationSelector"></view>
-    <view class="sheet-content" catchtap="stopPropagation">
-      <view class="sheet-handle"></view>
-      <view class="sheet-header">
-        <text class="sheet-title">选择药单</text>
-        <view class="sheet-actions">
-          <text class="sheet-btn" bindtap="toggleSelectAllMedications">全选</text>
-          <text class="sheet-btn primary" bindtap="toggleMedicationSelector">完成</text>
-        </view>
-      </view>
-
-      <scroll-view class="sheet-list" scroll-y>
-        <view class="sheet-item {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'selected' : ''}}" bindtap="selectNoMedications">
-          <view class="item-icon">无</view>
-          <view class="item-content">
-            <text class="item-title">不使用药单</text>
-            <text class="item-desc">仅咨询健康问题</text>
-          </view>
-          <view class="item-check {{selectedMedicationIds.length === 0 && medicationsNoSelection ? 'checked' : ''}}">
-            <text class="check-icon">✓</text>
-          </view>
-        </view>
-
-        <view
-          class="sheet-item {{medication.selected ? 'selected' : ''}}"
-          wx:for="{{medications}}"
-          wx:key="id"
-          wx:for-item="medication"
-          bindtap="toggleMedication"
-          data-id="{{medication.id}}"
-        >
-          <view class="item-icon">药</view>
-          <view class="item-content">
-            <text class="item-title">{{medication.medicine_name}}</text>
-            <text class="item-desc">{{medication.dosage}}</text>
-          </view>
-          <view class="item-check {{medication.selected ? 'checked' : ''}}">
-            <text class="check-icon">✓</text>
+          <view class="selector-check {{item.selected ? 'checked' : ''}}">
+            <text class="selector-check-text">✓</text>
           </view>
         </view>
       </scroll-view>

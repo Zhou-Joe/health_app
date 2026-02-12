@@ -22,9 +22,10 @@
 
     <view class="avatar-section" bindtap="goToSettings">
       <view class="avatar-ring">
-        <image wx:if="{{userInfo.avatar_url}}"
+        <image wx:if="{{userInfo.avatar_url && !avatarLoadFailed}}"
                class="avatar-image"
                src="{{userInfo.avatar_url}}"
+               binderror="onAvatarError"
                mode="aspectFill"></image>
         <text wx:else class="avatar-emoji">{{userInfo.avatar || '✨'}}</text>
       </view>

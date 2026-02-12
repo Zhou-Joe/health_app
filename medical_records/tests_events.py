@@ -33,6 +33,7 @@ class HealthEventModelTest(TestCase):
         self.assertEqual(self.event.user, self.user)
         self.assertEqual(self.event.name, '测试事件')
         self.assertEqual(self.event.event_type, 'illness')
+        self.assertEqual(self.event.status, HealthEvent.STATUS_OBSERVING)
         self.assertFalse(self.event.is_auto_generated)
 
     def test_duration_days_property(self):
@@ -333,6 +334,49 @@ class EventAPITest(TestCase):
         data = response.json()
         self.assertTrue(data['success'])
         self.assertEqual(data['event']['name'], '新事件')
+        self.assertEqual(data['event']['status'], HealthEvent.STATUS_OBSERVING)
+
+    def test_api_event_update_status(self):
+        """测试更新事件状态 API"""
+        event = HealthEvent.objects.create(
+            user=self.user,
+            name='测试事件',
+            event_type='illness',
+            start_date=date.today()
+        )
+
+        response = self.client.put(
+            f'/api/events/{event.id}/',
+            data=json.dumps({'status': HealthEvent.STATUS_RECOVERED}),
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['event']['status'], HealthEvent.STATUS_RECOVERED)
+
+        event.refresh_from_db()
+        self.assertEqual(event.status, HealthEvent.STATUS_RECOVERED)
+
+    def test_api_event_update_invalid_status(self):
+        """测试更新无效事件状态 API"""
+        event = HealthEvent.objects.create(
+            user=self.user,
+            name='测试事件',
+            event_type='illness',
+            start_date=date.today()
+        )
+
+        response = self.client.put(
+            f'/api/events/{event.id}/',
+            data=json.dumps({'status': 'invalid_status'}),
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data['success'])
 
     def test_api_event_detail(self):
         """测试获取事件详情 API"""
