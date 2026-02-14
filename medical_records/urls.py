@@ -43,6 +43,7 @@ urlpatterns = [
     path('api/hospitals/common/', api_views.get_common_hospitals, name='api_common_hospitals'),
     path('api/check-services/', api_views.check_services_status, name='api_check_services'),
     path('api/checkups/', api_views.get_user_checkups, name='api_user_checkups'),
+    path('api/checkups/<int:checkup_id>/', api_views.get_checkup_detail, name='api_checkup_detail'),
     path('api/integrate-data/', api_views.integrate_data, name='api_integrate_data'),
     path('api/apply-integration/', api_views.apply_integration, name='api_apply_integration'),
     path('api/stream-advice/', api_views.stream_ai_advice, name='api_stream_ai_advice'),

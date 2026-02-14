@@ -37,7 +37,10 @@
       "Bash(convert:*)",
       "Bash(pip3:*)",
       "Bash(file:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(ping:*)",
+      "Bash(sudo find:*)",
+      "Bash(sudo:*)"
     ],
     "deny": [],
     "ask": []

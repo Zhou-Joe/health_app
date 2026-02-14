@@ -4,96 +4,45 @@
 
 {% block extra_css %}
 <style>
-/* ═══════════════════════════════════════════════════════════
-   NEO-BRUTALIST MEDICAL - 新野兽派手动输入页面
-   ═══════════════════════════════════════════════════════════ */
-
-:root {
-    --brutal-yellow: #FFD60A;
-    --brutal-cyan: #14b8a6;
-    --brutal-pink: #FF5C8D;
-    --brutal-blue: #4C8BF5;
-    --brutal-green: #06FFA5;
-    --border-thick: 3px solid #000;
-    --shadow-hard: 6px 6px 0px #000;
-    --shadow-hard-sm: 4px 4px 0px #000;
-}
-
-body {
-    background: #FAFAFA;
-    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
-    color: #000;
-    overflow-x: hidden;
-}
-
-/* 棋盘格背景 */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image:
-        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.container-fluid {
-    position: relative;
-    z-index: 1;
-}
-
-h1 {
-    font-size: 2.5rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: -0.03em;
-    margin-bottom: 0.5rem;
-}
-
-h1 i {
-    display: none;
-}
+/* 手动输入页面样式 - 专业医疗+有机自然风格 */
 
 .input-card {
-    border: var(--border-thick);
-    border-radius: 0;
-    box-shadow: var(--shadow-hard);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
-    background: #FFF;
+    transition: var(--transition);
+}
+
+.input-card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .input-card .card-header {
-    background: var(--brutal-cyan);
-    color: #000;
+    background: linear-gradient(135deg, var(--primary-soft) 0%, #e0f2fe 100%);
+    color: var(--primary-dark);
     border: none;
-    padding: 2rem 2rem 1.5rem;
-    border-bottom: var(--border-thick);
+    padding: 1.5rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .input-card .card-body {
-    padding: 2rem;
+    padding: 1.5rem;
 }
 
 .section-header {
-    background: var(--brutal-yellow);
-    border: var(--border-thick);
-    padding: 1.5rem;
+    background: var(--bg-soft);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
     margin-bottom: 1.5rem;
-    box-shadow: var(--shadow-hard-sm);
-    border-radius: 0;
+    box-shadow: var(--shadow-sm);
 }
 
 .mode-toggle {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
 }
 
 .mode-toggle .btn-check {
@@ -102,163 +51,162 @@ h1 i {
 
 .mode-toggle .btn {
     flex: 1;
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 0.875rem 1rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition: all 0.1s ease;
-    background: #FFF;
-    color: #000;
-    box-shadow: var(--shadow-hard-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition: var(--transition);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
 }
 
 .mode-toggle .btn:hover {
-    background: var(--brutal-yellow);
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    background: var(--bg-soft);
+    border-color: var(--primary-light);
+    color: var(--primary);
 }
 
 .mode-toggle .btn-check:checked + .btn {
-    background: var(--brutal-cyan);
-    color: #000;
-    border-color: #000;
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
 }
 
 .form-control, .form-select {
-    background: #FFF;
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 0.75rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.625rem 0.875rem;
     font-size: 0.9375rem;
-    transition: all 0.1s ease;
-    box-shadow: var(--shadow-hard-sm);
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: #000;
-    box-shadow: 6px 6px 0px var(--brutal-yellow);
-    background: #FFF;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+    background: var(--bg-card);
     outline: none;
 }
 
 .form-label {
-    font-weight: 800;
+    font-weight: 500;
     font-size: 0.875rem;
-    color: #000;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .btn-primary {
-    background: var(--brutal-cyan);
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 0.75rem 1.5rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    box-shadow: var(--shadow-hard-sm);
-    color: #000;
+    background: var(--primary);
+    border-color: var(--primary);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+    color: #fff;
+    transition: var(--transition);
 }
 
 .btn-primary:hover {
-    background: var(--brutal-green);
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
-    background: #FFF;
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 0.75rem 1.5rem;
-    font-weight: 800;
-    color: #000;
-    box-shadow: var(--shadow-hard-sm);
+    background: var(--bg-soft);
+    border-color: var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
 }
 
 .btn-secondary:hover {
-    background: var(--brutal-yellow);
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    background: var(--bg-muted);
+    border-color: var(--secondary-light);
+    color: var(--text-primary);
 }
 
 .history-table {
-    border: var(--border-thick);
-    border-radius: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
     overflow: hidden;
 }
 
 .history-table thead th {
-    background: #000;
-    color: #FFF;
-    font-weight: 800;
+    background: var(--bg-soft);
+    color: var(--text-primary);
+    font-weight: 600;
     font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
     border: none;
-    padding: 1rem;
+    padding: 0.875rem 1rem;
 }
 
 .history-table tbody td {
     padding: 0.875rem 1rem;
-    border-bottom: 2px solid #000;
+    border-bottom: 1px solid var(--border-light);
     vertical-align: middle;
 }
 
 .history-table tbody tr:nth-child(even) {
-    background: #F5F5F5;
+    background: var(--bg-soft);
 }
 
 .history-table tbody tr:hover {
-    background: var(--brutal-yellow);
+    background: var(--primary-soft);
 }
 
 .help-card {
-    background: var(--brutal-blue);
-    border: var(--border-thick);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-hard-sm);
-    border-radius: 0;
-    color: #FFF;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #bae6fd;
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.help-card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .help-card h6 {
-    color: #FFF;
-    font-weight: 900;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: var(--primary-dark);
+    font-weight: 600;
+    margin-bottom: 0.875rem;
 }
 
 .help-card ul {
     font-size: 0.875rem;
-    color: #FFF;
+    color: var(--text-secondary);
     margin-bottom: 0;
 }
 
 .help-card li {
     margin-bottom: 0.375rem;
-    font-weight: 600;
+}
+
+.help-card li strong {
+    color: var(--text-primary);
 }
 
 .input-group-text {
-    background: #FFF;
-    border: var(--border-thick);
+    background: var(--bg-soft);
+    border: 1px solid var(--border-color);
     border-right: none;
-    border-radius: 0;
-    color: #000;
-    font-weight: 700;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .input-group .form-control {
     border-left: none;
-    border-radius: 0;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .input-group .form-control:focus {
@@ -280,10 +228,10 @@ h1 i {
 <div class="container-fluid" style="max-width: 1000px;">
     <!-- 页面标题 -->
     <div class="mb-4">
-        <h1 class="fw-bold mb-2" style="color: #1e293b;">
+        <h1 class="fw-bold mb-2" style="color: var(--text-primary);">
             <i class="bi bi-pencil-square" style="color: var(--primary);"></i> 手动输入健康指标
         </h1>
-        <p style="color: #64748b; font-size: 1rem;">精确记录您的健康数据，构建完整健康档案</p>
+        <p style="color: var(--text-secondary); font-size: 1rem;">精确记录您的健康数据，构建完整健康档案</p>
     </div>
 
     <!-- 主输入卡片 -->
@@ -349,7 +297,7 @@ h1 i {
                         <label for="existing_checkup" class="form-label">
                             <i class="bi bi-journal-medical"></i> 选择已有体检报告 <span class="text-danger">*</span>
                         </label>
-                        <select class="form-select" id="existing_checkup" name="existing_checkup">
+                        <select class="form-select" id="existing_checkup" name="existing_checkup" onchange="loadSelectedCheckup()">
                             <option value="">-- 请选择体检报告 --</option>
                             <option value="" disabled><i class="bi bi-arrow-repeat spin"></i> 加载中...</option>
                         </select>
@@ -357,7 +305,7 @@ h1 i {
                     </div>
                 </div>
 
-                <hr style="border-color: #e2e8f0; margin: 2rem 0;">
+                <hr style="border-color: var(--border-color); margin: 2rem 0;">
 
                 <!-- 健康指标信息 -->
                 <div class="row mb-3">
@@ -466,7 +414,7 @@ h1 i {
     <!-- 最近录入的指标 -->
     {% if recent_indicators %}
     <div class="input-card mb-4">
-        <div class="card-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); color: var(--primary-dark);">
+        <div class="card-header" style="background: linear-gradient(135deg, var(--primary-soft) 0%, #e0f2fe 100%); color: var(--primary-dark);">
             <h5 class="mb-0 fw-bold">
                 <i class="bi bi-clock-history"></i> 最近手动录入的指标
             </h5>
@@ -488,10 +436,10 @@ h1 i {
                         {% for indicator in recent_indicators %}
                         <tr>
                             <td><strong>{{ indicator.indicator_name }}</strong></td>
-                            <td style="color: var(--primary); font-weight: 700;">{{ indicator.value }}</td>
+                            <td style="color: var(--primary); font-weight: 600;">{{ indicator.value }}</td>
                             <td class="text-muted">{{ indicator.unit|default:"-" }}</td>
                             <td>
-                                <span class="badge" style="background: #f0fdfa; color: var(--primary-dark);">{{ indicator.get_indicator_type_display }}</span>
+                                <span class="badge" style="background: var(--primary-soft); color: var(--primary-dark);">{{ indicator.get_indicator_type_display }}</span>
                             </td>
                             <td>
                                 {% if indicator.status == 'normal' %}
@@ -596,36 +544,52 @@ async function loadExistingCheckups() {
                 result.checkups.forEach(checkup => {
                     const option = document.createElement('option');
                     option.value = checkup.id;
-
-                    // 计算该报告已有的指标数量
-                    const indicatorCount = checkup.indicator_count || 0;
-                    const indicatorText = indicatorCount > 0 ? ` (${indicatorCount}个指标)` : '';
-
-                    // 添加报告描述
-                    let descText = '';
-                    if (checkup.notes) {
-                        descText = ` [${checkup.notes}]`;
-                    }
-
-                    option.textContent = `${checkup.checkup_date} - ${checkup.hospital}${descText}${indicatorText}`;
+                    option.textContent = `${checkup.checkup_date} - ${checkup.hospital || '未知机构'}`;
                     selectElement.appendChild(option);
                 });
             } else {
-                // 用户没有历史报告
-                selectElement.innerHTML = '<option value="">暂无历史报告</option>';
+                selectElement.innerHTML = '<option value="">暂无体检报告</option>';
             }
         } else {
             selectElement.innerHTML = '<option value="">加载失败</option>';
         }
     } catch (error) {
-        console.error('加载已有报告失败:', error);
-        selectElement.innerHTML = '<option value="">网络错误</option>';
+        console.error('加载体检报告失败:', error);
+        selectElement.innerHTML = '<option value="">加载失败</option>';
     }
 }
 
-// 加载医院下拉列表
+// 加载选中的体检报告详情
+async function loadSelectedCheckup() {
+    const selectElement = document.getElementById('existing_checkup');
+    const checkupId = selectElement.value;
+    
+    if (!checkupId) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/checkups/${checkupId}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('checkup_date').value = result.checkup.checkup_date;
+                document.getElementById('hospital').value = result.checkup.hospital || '';
+            }
+        }
+    } catch (error) {
+        console.error('加载体检报告详情失败:', error);
+    }
+}
+
+// 加载医院历史记录
 async function loadHospitalDropdown() {
-    const hospitalDropdown = document.getElementById('hospitalDropdown');
+    const dropdown = document.getElementById('hospitalDropdown');
 
     try {
         const response = await fetch('{% url "medical_records:api_common_hospitals" %}', {
@@ -637,59 +601,28 @@ async function loadHospitalDropdown() {
         if (response.ok) {
             const result = await response.json();
             if (result.success && result.hospitals.length > 0) {
-                // 清空加载提示
-                hospitalDropdown.innerHTML = '';
-
-                // 添加用户历史记录的医院选项
+                dropdown.innerHTML = '';
                 result.hospitals.forEach(hospital => {
                     const li = document.createElement('li');
-
-                    // 创建使用次数徽章
-                    let usageBadge = '';
-                    if (hospital.usage_count > 1) {
-                        usageBadge = `<span class="badge ms-2" style="background: var(--primary); color: white;">${hospital.usage_count}次</span>`;
-                    }
-
-                    li.innerHTML = `
-                        <a class="dropdown-item hospital-preset" href="#" data-hospital="${hospital.name}">
-                            <div>
-                                <strong>${hospital.name}</strong>
-                                ${usageBadge}
-                                <div class="small text-muted mt-1">最后使用: ${hospital.last_used}</div>
-                            </div>
-                        </a>
-                    `;
-
-                    hospitalDropdown.appendChild(li);
+                    const hospitalName = hospital.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    li.innerHTML = `<a class="dropdown-item" href="#" onclick="selectHospital('${hospitalName}'); return false;">${hospital.name} <small class="text-muted">(${hospital.usage_count}次)</small></a>`;
+                    dropdown.appendChild(li);
                 });
-
-                // 重新设置点击事件
-                setupHospitalClickEvents();
             } else {
-                // 用户没有历史记录
-                hospitalDropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">暂无历史记录</a></li>';
+                dropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">暂无历史记录</a></li>';
             }
         } else {
-            hospitalDropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">加载失败</a></li>';
+            dropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">加载失败</a></li>';
         }
     } catch (error) {
-        console.error('加载历史记录失败:', error);
-        hospitalDropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">网络错误</a></li>';
+        console.error('加载医院历史记录失败:', error);
+        dropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">加载失败</a></li>';
     }
 }
 
-// 设置医院点击事件
-function setupHospitalClickEvents() {
-    const hospitalPresets = document.querySelectorAll('.hospital-preset');
-    hospitalPresets.forEach(preset => {
-        preset.addEventListener('click', function(e) {
-            e.preventDefault();
-            const hospitalName = this.getAttribute('data-hospital');
-            document.getElementById('hospital').value = hospitalName;
-        });
-    });
+// 选择医院
+function selectHospital(hospitalName) {
+    document.getElementById('hospital').value = hospitalName;
 }
 </script>
-</body>
-</html>
 {% endblock %}

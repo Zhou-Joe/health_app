@@ -260,22 +260,189 @@ def dashboard(request):
             'progress_percentage': med.progress_percentage
         })
 
-    # 计算健康评分
+    # 计算健康评分和统计数据
     health_score = 85  # 默认分数
+    total_indicators = 0
+    normal_indicators_count = 0
+    warning_indicators_count = 0
+    
     if latest_checkup:
         total_indicators = HealthIndicator.objects.filter(checkup=latest_checkup).count()
-        normal_indicators = HealthIndicator.objects.filter(
+        normal_indicators_count = HealthIndicator.objects.filter(
             checkup=latest_checkup,
             status='normal'
         ).count()
+        warning_indicators_count = HealthIndicator.objects.filter(
+            checkup=latest_checkup,
+            status__in=['attention', 'abnormal']
+        ).count()
         if total_indicators > 0:
-            health_score = int((normal_indicators / total_indicators) * 100)
+            health_score = int((normal_indicators_count / total_indicators) * 100)
+
+    # 计算本月新增记录数
+    today = timezone.now().date()
+    first_day_of_month = today.replace(day=1)
+    monthly_records = HealthCheckup.objects.filter(
+        user=user,
+        checkup_date__gte=first_day_of_month
+    ).count()
+
+    # 计算距上次记录天数
+    days_since_last_record = 999
+    if latest_checkup:
+        days_since_last_record = (today - latest_checkup.checkup_date).days
+
+    # 计算正常指标百分比
+    normal_percentage = 0
+    if total_indicators > 0:
+        normal_percentage = int((normal_indicators_count / total_indicators) * 100)
 
     # 最近健康事件（用于首页整合展示）
     recent_events = HealthEvent.objects.filter(user=user).annotate(
         item_count=Count('event_items')
-    ).order_by('-start_date')[:6]
+    ).order_by('-start_date')[:10]
     total_events = HealthEvent.objects.filter(user=user).count()
+
+    # 准备健康事件数据（用于S型时间轴）
+    health_events = []
+    for event in recent_events:
+        event_items = event.event_items.all()[:5]
+        items_summary = []
+        for item in event_items:
+            items_summary.append({
+                'summary': item.item_summary,
+                'added_by': item.added_by
+            })
+        
+        health_events.append({
+            'id': event.id,
+            'date': event.start_date,
+            'end_date': event.end_date,
+            'title': event.name,
+            'description': event.description or '',
+            'type': event.event_type,
+            'status': event.status,
+            'item_count': event.item_count,
+            'items': items_summary,
+            'duration_days': event.duration_days,
+            'is_auto_generated': event.is_auto_generated
+        })
+
+    # 准备健康指标趋势数据 - 按大类分组，每个指标单独一个表格
+    indicator_trends = []
+
+    # 定义指标分类映射
+    category_mapping = {
+        'blood_pressure': '血压指标',
+        'heart_rate': '心率指标',
+        'blood_sugar': '血糖指标',
+        'weight': '体重指标',
+        'height': '身高指标',
+        'temperature': '体温指标',
+        'oxygen': '血氧指标',
+        'cholesterol': '胆固醇指标',
+        'liver_function': '肝功能指标',
+        'kidney_function': '肾功能指标',
+        'blood_routine': '血常规指标',
+        'urine_routine': '尿常规指标',
+        'other_exam': '其他检查',
+    }
+
+    # 获取所有指标类型
+    all_indicator_types = HealthIndicator.objects.filter(
+        checkup__user=user
+    ).values_list('indicator_type', flat=True).distinct()
+
+    for indicator_type in all_indicator_types:
+        # 获取该类型下所有不同的指标名称
+        indicator_names = HealthIndicator.objects.filter(
+            checkup__user=user,
+            indicator_type=indicator_type
+        ).values_list('indicator_name', flat=True).distinct()
+
+        if indicator_names:
+            category_name = category_mapping.get(indicator_type, indicator_type)
+            indicators_list = []
+
+            for indicator_name in indicator_names:
+                # 获取该指标的所有历史记录
+                records = HealthIndicator.objects.filter(
+                    checkup__user=user,
+                    indicator_type=indicator_type,
+                    indicator_name=indicator_name
+                ).select_related('checkup').order_by('-checkup__checkup_date')[:20]
+
+                if records:
+                    records_list = []
+                    for record in records:
+                        records_list.append({
+                            'date': record.checkup.checkup_date,
+                            'value': record.value,
+                            'unit': record.unit,
+                            'reference_range': record.reference_range,
+                            'status': record.status,
+                        })
+
+                    # 计算趋势：比较最新值和上一次的值
+                    trend = None
+                    if len(records_list) >= 2:
+                        try:
+                            # 尝试提取数值进行比较
+                            import re
+                            
+                            def extract_number(value_str):
+                                """从字符串中提取数值"""
+                                if not value_str:
+                                    return None
+                                # 处理血压格式如 "120/80"
+                                if '/' in str(value_str):
+                                    parts = str(value_str).split('/')
+                                    if len(parts) == 2:
+                                        try:
+                                            return float(parts[0].strip())
+                                        except:
+                                            return None
+                                # 提取普通数值
+                                match = re.search(r'-?\d+\.?\d*', str(value_str))
+                                if match:
+                                    return float(match.group())
+                                return None
+                            
+                            latest_val = extract_number(records_list[0]['value'])
+                            prev_val = extract_number(records_list[1]['value'])
+                            
+                            if latest_val is not None and prev_val is not None:
+                                diff = latest_val - prev_val
+                                if diff > 0:
+                                    trend = 'up'
+                                elif diff < 0:
+                                    trend = 'down'
+                                else:
+                                    trend = 'stable'
+                        except Exception:
+                            trend = None
+
+                    indicators_list.append({
+                        'name': indicator_name,
+                        'records': records_list,
+                        'trend': trend
+                    })
+
+            if indicators_list:
+                indicator_trends.append({
+                    'category_name': category_name,
+                    'indicator_type': indicator_type,
+                    'indicators': indicators_list
+                })
+
+    # 获取AI建议摘要
+    ai_advice = None
+    latest_advice = HealthAdvice.objects.filter(user=user).order_by('-created_at').first()
+    if latest_advice:
+        ai_advice = {
+            'summary': latest_advice.answer[:200] + '...' if len(latest_advice.answer) > 200 else latest_advice.answer,
+            'tips': latest_advice.answer.split('\n')[:3] if '\n' in latest_advice.answer else [latest_advice.answer[:100]]
+        }
 
     context = {
         # 侧边栏数据
@@ -287,18 +454,31 @@ def dashboard(request):
 
         # 动态指标分类映射
         'indicator_type_mapping': json.dumps(indicator_type_mapping),
-        'indicator_type_list': json.dumps(indicator_type_list),  # 新增：指标类型列表
+        'indicator_type_list': json.dumps(indicator_type_list),
 
-        # 统计数据
+        # 统计数据 - 用于统计卡片
+        'total_records': total_checkups,
+        'monthly_records': monthly_records,
+        'normal_indicators': normal_indicators_count,
+        'warning_indicators': warning_indicators_count,
+        'days_since_last_record': days_since_last_record,
+        'normal_percentage': normal_percentage,
+        
+        # 原有统计数据
         'total_checkups': total_checkups,
         'health_score': health_score,
         'latest_checkup': latest_checkup,
+
+        # 图表数据（兼容旧模板）
+        'chart_labels': json.dumps([]),
+        'systolic_data': json.dumps([]),
+        'diastolic_data': json.dumps([]),
 
         # 关键指标概览
         'key_indicators': _get_key_indicators_summary(user),
 
         # 我的体检报告卡片数据
-        'all_checkups': checkups_with_stats,  # 使用带统计的数据
+        'all_checkups': checkups_with_stats,
 
         # 用药提醒
         'medication_reminders': medication_reminders_with_status,
@@ -307,6 +487,13 @@ def dashboard(request):
         # 健康事件
         'recent_events': recent_events,
         'total_events': total_events,
+        'health_events': health_events,
+
+        # 健康指标趋势数据（按大类分组）
+        'indicator_trends': indicator_trends,
+
+        # AI建议
+        'ai_advice': ai_advice,
     }
 
     return render(request, 'medical_records/dashboard.html', context)

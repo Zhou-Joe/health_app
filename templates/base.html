@@ -6,67 +6,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}个人健康管理系统{% endblock %}</title>
 
-    <!-- Fonts: Outfit for headings, Noto Sans SC for Chinese -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
         :root {
-            /* Neo-Brutalist Color Palette */
-            --brutal-yellow: #FFD60A;
-            --brutal-cyan: #14b8a6;
-            --brutal-pink: #FF5C8D;
-            --brutal-blue: #4C8BF5;
-            --brutal-green: #06FFA5;
-            --brutal-red: #FF4757;
-            --brutal-orange: #FF9500;
-            --brutal-purple: #9B59B6;
-
-            /* Neo-Brutalist Structural */
-            --border-thick: 3px solid #000;
-            --shadow-hard: 6px 6px 0px #000;
-            --shadow-hard-sm: 4px 4px 0px #000;
-            --shadow-hard-lg: 8px 8px 0px #000;
-
-            /* Color Palette */
-            --primary-dark: #0d9488;
-            --primary: #14b8a6;
-            --primary-light: #2dd4bf;
+            /* 医疗专业配色 - 自然有机 */
+            --primary: #0d9488;
+            --primary-light: #14b8a6;
+            --primary-dark: #0f766e;
+            --primary-soft: #ccfbf1;
+            
             --secondary: #64748b;
-            --accent: #f59e0b;
+            --secondary-light: #94a3b8;
+            
+            --accent: #059669;
+            --accent-light: #34d399;
+            
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
             --info: #3b82f6;
 
-            /* Neutrals */
+            /* 中性色 */
             --bg-body: #f8fafc;
             --bg-card: #ffffff;
-            --bg-glass: rgba(255, 255, 255, 0.85);
-            --border-light: #e2e8f0;
-            --border-medium: #cbd5e1;
-            --text-primary: #0f172a;
-            --text-secondary: #475569;
+            --bg-soft: #f1f5f9;
+            --bg-muted: #e2e8f0;
+
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
             --text-muted: #94a3b8;
+            --text-light: #cbd5e1;
 
-            /* Shadows */
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.1);
-            --shadow-glow: 0 0 20px rgba(20, 184, 166, 0.15);
+            --border-color: #e2e8f0;
+            --border-light: #f1f5f9;
 
-            /* Spacing */
-            --navbar-height: 80px;
+            /* 阴影 */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+            /* 圆角 */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+
+            --font-body: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+
+            --navbar-height: 70px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -76,83 +74,75 @@
         }
 
         body {
-            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: var(--font-body);
             background: var(--bg-body);
             color: var(--text-primary);
             line-height: 1.6;
+            font-weight: 400;
             -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Navigation - 新野兽派风格 */
+        /* 导航栏 */
         .navbar {
-            height: 80px;
-            background: #FFF;
-            border-bottom: var(--border-thick);
-            box-shadow: var(--shadow-hard-sm);
-            transition: all 0.1s ease;
+            height: var(--navbar-height);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
             padding: 0 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            transition: var(--transition);
         }
 
         .navbar.scrolled {
-            box-shadow: var(--shadow-hard);
+            box-shadow: var(--shadow-md);
         }
 
         .navbar-brand {
-            font-weight: 900;
-            font-size: 1.5rem;
-            color: #000 !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 600;
+            font-size: 1.25rem;
+            color: var(--text-primary) !important;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            transition: all 0.1s ease;
+            gap: 0.625rem;
+            transition: var(--transition);
         }
 
         .navbar-brand:hover {
-            transform: translateY(-2px);
+            color: var(--primary) !important;
         }
 
         .navbar-brand i {
-            font-size: 1.75rem;
-            color: var(--brutal-cyan);
+            font-size: 1.5rem;
+            color: var(--primary);
         }
 
         .navbar-nav {
-            gap: 0;
+            gap: 0.25rem;
         }
 
         .nav-link {
-            font-weight: 800;
+            font-weight: 500;
             font-size: 0.875rem;
-            color: #000 !important;
-            padding: 0.75rem 1rem !important;
-            border: 2px solid transparent;
-            border-radius: 0;
-            transition: all 0.1s ease;
-            position: relative;
+            color: var(--text-secondary) !important;
+            padding: 0.5rem 0.875rem !important;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
             display: flex;
             align-items: center;
             gap: 0.375rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .nav-link:hover {
-            color: #000 !important;
-            background: var(--brutal-yellow);
-            border-color: #000;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hard-sm);
+            color: var(--primary) !important;
+            background: var(--primary-soft);
         }
 
         .nav-link.active {
-            color: #000 !important;
-            background: var(--brutal-cyan);
-            border-color: #000;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hard-sm);
+            color: var(--primary) !important;
+            background: var(--primary-soft);
         }
 
         .nav-link i {
@@ -160,216 +150,164 @@
         }
 
         .navbar-toggler {
-            border: var(--border-thick);
-            background: #FFF;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
             padding: 0.5rem;
-            transition: all 0.1s ease;
+            border-radius: var(--radius-sm);
         }
 
-        .navbar-toggler:hover {
-            background: var(--brutal-yellow);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hard-sm);
-        }
-
-        .navbar-toggler:focus {
-            box-shadow: var(--shadow-hard-sm);
-            outline: none;
-        }
-
-        /* User Dropdown - 新野兽派风格 */
         .user-dropdown-toggle {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem !important;
-            background: var(--brutal-cyan) !important;
-            color: #000 !important;
-            border: 2px solid #000;
-            border-radius: 0;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.1s ease;
-            box-shadow: var(--shadow-hard-sm);
+            padding: 0.5rem 0.875rem !important;
+            background: var(--bg-soft) !important;
+            color: var(--text-primary) !important;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: var(--transition);
         }
 
         .user-dropdown-toggle:hover {
-            background: var(--brutal-green) !important;
-            transform: translateY(-2px);
-            box-shadow: 6px 6px 0px #000;
-        }
-
-        .user-dropdown-toggle::after {
-            margin-left: 0.25rem;
+            background: var(--bg-muted) !important;
+            border-color: var(--primary-light);
         }
 
         .dropdown-menu {
-            border: var(--border-thick);
-            border-radius: 0;
-            box-shadow: var(--shadow-hard);
-            padding: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem;
             min-width: 200px;
-            background: #FFF;
-        }
-
-        @keyframes dropdownFade {
-            from {
-                opacity: 0;
-                transform: translateY(-8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .dropdown-item {
-            padding: 0.875rem 1rem;
-            border-radius: 0;
+            padding: 0.625rem 0.875rem;
+            border-radius: var(--radius-sm);
             font-size: 0.875rem;
-            color: #000;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            transition: all 0.1s ease;
+            color: var(--text-secondary);
+            transition: var(--transition);
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            border-bottom: 2px solid #000;
-        }
-
-        .dropdown-item:last-child {
-            border-bottom: none;
         }
 
         .dropdown-item:hover {
-            background: var(--brutal-yellow);
-            color: #000;
-            transform: translateX(-4px);
-            box-shadow: var(--shadow-hard-sm);
+            background: var(--bg-soft);
+            color: var(--text-primary);
         }
 
         .dropdown-item i {
-            font-size: 1.125rem;
-            opacity: 1;
+            font-size: 1rem;
+            color: var(--primary);
         }
 
         .dropdown-divider {
-            margin: 0;
-            border-top: var(--border-thick);
+            margin: 0.5rem 0;
+            border-top: 1px solid var(--border-color);
         }
 
-        /* Messages */
+        /* 警告框 */
         .alert {
             border: none;
-            border-radius: 12px;
+            border-radius: var(--radius-md);
             padding: 1rem 1.25rem;
-            font-size: 0.9375rem;
-            box-shadow: var(--shadow-sm);
-            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
             animation: alertSlide 0.3s ease;
         }
 
         @keyframes alertSlide {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .alert-success {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);
-            color: var(--success);
+            background: #ecfdf5;
+            color: #065f46;
             border-left: 3px solid var(--success);
         }
 
         .alert-info {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
-            color: var(--info);
+            background: #eff6ff;
+            color: #1e40af;
             border-left: 3px solid var(--info);
         }
 
         .alert-warning {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
-            color: var(--warning);
+            background: #fffbeb;
+            color: #92400e;
             border-left: 3px solid var(--warning);
         }
 
         .alert-danger {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
-            color: var(--danger);
+            background: #fef2f2;
+            color: #991b1b;
             border-left: 3px solid var(--danger);
         }
 
         .btn-close {
-            opacity: 0.5;
-            transition: opacity 0.2s ease;
+            opacity: 0.4;
+            transition: var(--transition);
         }
 
         .btn-close:hover {
-            opacity: 1;
+            opacity: 0.8;
         }
 
-        /* Main Content */
         main {
             min-height: calc(100vh - var(--navbar-height) - 80px);
-            padding-top: calc(var(--navbar-height) + 2rem);
+            padding-top: calc(var(--navbar-height) + 2.5rem);
         }
 
-        /* Footer */
         footer {
-            background: #FFF;
-            border-top: var(--border-thick);
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
             padding: 2rem 0;
-            margin-top: 4rem;
+            margin-top: 5rem;
         }
 
         footer p {
-            font-size: 0.875rem;
-            color: #666;
-            font-weight: 600;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
         }
 
-        /* Custom Scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
-            background: var(--border-light);
+            background: var(--bg-soft);
         }
 
         ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 4px;
+            background: var(--text-light);
+            border-radius: 3px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
+            background: var(--text-muted);
         }
 
-        /* Page Transitions */
         .fade-in {
             animation: fadeIn 0.4s ease;
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Responsive */
+        .section-title {
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
         @media (max-width: 991.98px) {
             .navbar {
                 padding: 0 1rem;
@@ -378,24 +316,28 @@
             .navbar-collapse {
                 background: var(--bg-card);
                 padding: 1rem;
-                border-radius: 12px;
+                border-radius: var(--radius-md);
                 box-shadow: var(--shadow-lg);
                 margin-top: 1rem;
+                border: 1px solid var(--border-color);
             }
 
             .nav-link {
                 padding: 0.75rem 1rem !important;
             }
         }
+
+        @media (max-width: 576px) {
+            .navbar-brand span {
+                display: none;
+            }
+        }
     </style>
 
-    <!-- 自定义CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    {% block extra_css %}
-    {% endblock %}
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- 导航栏 -->
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container-fluid">
             <a class="navbar-brand" href="{% url 'medical_records:dashboard' %}">
@@ -509,7 +451,6 @@
         </div>
     </nav>
 
-    <!-- 消息提示 -->
     {% if messages %}
         <div class="container" style="margin-top: calc(var(--navbar-height) + 1rem);">
             {% for message in messages %}
@@ -521,24 +462,19 @@
         </div>
     {% endif %}
 
-    <!-- 主要内容 -->
     <main class="container fade-in">
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- 页脚 -->
     <footer>
         <div class="container text-center">
             <p class="mb-0">&copy; 2026 个人健康管理系统 · 保留所有权利</p>
         </div>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Navbar scroll effect
         const navbar = document.querySelector('.navbar');
         if (navbar) {
             window.addEventListener('scroll', () => {
@@ -550,21 +486,19 @@
             });
         }
 
-        // Active nav link highlighting
         document.addEventListener('DOMContentLoaded', function() {
             const currentPath = window.location.pathname;
             const navLinks = document.querySelectorAll('.nav-link');
 
             navLinks.forEach(link => {
                 const href = link.getAttribute('href');
-                if (href && currentPath.startsWith(href) && href !== '{% url "medical_records:dashboard" %}') {
+                if (href && currentPath.startsWith(href) && href !== '/') {
                     link.classList.add('active');
                 }
             });
         });
     </script>
 
-    {% block extra_js %}
-    {% endblock %}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

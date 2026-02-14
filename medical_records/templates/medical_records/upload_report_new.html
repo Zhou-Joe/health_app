@@ -4,158 +4,153 @@
 
 {% block extra_css %}
 <style>
-/* ═══════════════════════════════════════════════════════════
-   NEO-BRUTALIST MEDICAL - 新野兽派智能上传页面
-   ═══════════════════════════════════════════════════════════ */
-
-:root {
-    --brutal-yellow: #FFD60A;
-    --brutal-cyan: #14b8a6;
-    --brutal-pink: #FF5C8D;
-    --brutal-blue: #4C8BF5;
-    --brutal-green: #06FFA5;
-    --border-thick: 3px solid #000;
-    --shadow-hard: 6px 6px 0px #000;
-    --shadow-hard-sm: 4px 4px 0px #000;
-}
-
-body {
-    background: #FAFAFA;
-    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
-    color: #000;
-    overflow-x: hidden;
-}
-
-/* 棋盘格背景 */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image:
-        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.row, .col-12, .col-md-10, .col-md-6, .col-md-4 {
-    position: relative;
-    z-index: 1;
-}
+/* 智能上传页面样式 - 专业医疗+有机自然风格 */
 
 .card {
-    border: var(--border-thick);
-    border-radius: 0;
-    box-shadow: var(--shadow-hard);
-    background: #FFF;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    background: var(--bg-card);
+    transition: var(--transition);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .card-header {
-    background: var(--brutal-cyan);
-    color: #000;
-    border-bottom: var(--border-thick);
-    padding: 1.5rem;
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
-.card-header h4 {
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.card-header h4, .card-header h6 {
+    font-weight: 600;
     margin: 0;
 }
 
 .card-header i {
-    display: none;
+    margin-right: 0.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
 }
 
 .btn {
-    border: var(--border-thick);
-    border-radius: 0;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.1s ease;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-.btn-secondary {
-    background: #FFF;
-    border-color: #000;
-    color: #000;
-}
-
-.btn-secondary:hover {
-    background: var(--brutal-yellow);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 .btn-primary {
-    background: var(--brutal-cyan);
-    border-color: #000;
-    color: #000;
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
 }
 
 .btn-primary:hover {
-    background: var(--brutal-green);
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-soft);
+    border-color: var(--secondary-light);
+    color: var(--text-primary);
+}
+
+.btn-outline-primary {
+    background: var(--bg-card);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
 }
 
 .btn-outline-secondary {
-    background: #FFF;
-    border-color: #666;
-    color: #666;
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
 }
 
 .btn-outline-secondary:hover {
-    background: linear-gradient(135deg, var(--brutal-yellow), #FFE566);
-    border-color: var(--brutal-yellow);
-    color: #000;
+    background: var(--bg-soft);
+    border-color: var(--secondary-light);
+    color: var(--text-primary);
+}
+
+.btn-outline-danger {
+    background: var(--bg-card);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.btn-outline-danger:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
 }
 
 .form-control, .form-select {
-    background: #FFF;
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 0.875rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.625rem 0.875rem;
     font-size: 0.9375rem;
-    transition: all 0.1s ease;
-    box-shadow: var(--shadow-hard-sm);
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
 }
 
 .form-control:focus, .form-select:focus {
-    border-color: #000;
-    box-shadow: 6px 6px 0px var(--brutal-yellow);
-    background: #FFF;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
     outline: none;
 }
 
 .form-label {
-    font-weight: 800;
+    font-weight: 500;
     font-size: 0.875rem;
-    color: #000;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .form-label i {
-    display: none;
+    margin-right: 0.375rem;
+    color: var(--primary);
 }
 
 .form-text {
     font-size: 0.8125rem;
-    color: #666;
-    font-weight: 600;
+    color: var(--text-muted);
 }
 
 .input-group .form-control {
@@ -163,559 +158,130 @@ body::before {
 }
 
 .input-group-text, .btn-outline-secondary.dropdown-toggle {
-    background: #FFF;
-    border: var(--border-thick);
-    border-radius: 0;
-    color: #000;
-    font-weight: 700;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .workflow-option {
-    border: var(--border-thick);
-    border-radius: 0;
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.1s ease;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
     cursor: pointer;
+    background: var(--bg-card);
 }
 
 .workflow-option:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .workflow-option.selected {
-    background: var(--brutal-yellow);
-    border-color: #000;
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 
 .upload-area {
-    border: var(--border-thick);
-    border-radius: 0;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
     padding: 3rem;
-    background: #F5F5F5;
+    background: var(--bg-soft);
     text-align: center;
-    transition: all 0.1s ease;
+    transition: var(--transition);
+    cursor: pointer;
 }
 
 .upload-area:hover {
-    background: var(--brutal-yellow);
-    border-color: #000;
+    border-color: var(--primary);
+    background: var(--primary-soft);
 }
 
 .upload-area.dragover {
-    background: var(--brutal-green);
-    border-color: #000;
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 
 .upload-content i {
     font-size: 4rem;
-    color: var(--brutal-cyan);
+    color: var(--primary);
 }
 
 .progress {
     height: 12px;
-    border: var(--border-thick);
-    border-radius: 0;
-    background: #000;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-soft);
 }
 
 .progress-bar {
-    background: var(--brutal-yellow);
-    border-radius: 0;
+    background: var(--primary);
+    border-radius: var(--radius-sm);
 }
 
 .alert {
-    border: var(--border-thick);
-    border-radius: 0;
-    font-weight: 700;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-weight: 500;
 }
 
 .alert-info {
-    background: var(--brutal-blue);
-    color: #FFF;
-    border-color: #000;
+    background: var(--info-soft);
+    color: var(--info-dark);
+    border-color: var(--info-light);
 }
 
 .alert-success {
-    background: var(--brutal-green);
-    color: #000;
-    border-color: #000;
+    background: var(--success-soft);
+    color: var(--success-dark);
+    border-color: var(--success-light);
 }
 
 .alert-danger {
-    background: var(--brutal-red);
-    color: #FFF;
-    border-color: #000;
+    background: var(--danger-soft);
+    color: var(--danger-dark);
+    border-color: var(--danger-light);
 }
 
 .alert-warning {
-    background: var(--brutal-yellow);
-    color: #000;
-    border-color: #000;
+    background: var(--warning-soft);
+    color: var(--warning-dark);
+    border-color: var(--warning-light);
 }
 
-small, .small {
-    font-weight: 600;
+.badge {
+    padding: 0.375rem 0.625rem;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: 0.75rem;
+}
+
+.badge.bg-success {
+    background: var(--success) !important;
+}
+
+.badge.bg-primary {
+    background: var(--primary) !important;
 }
 
 .text-primary {
-    color: var(--brutal-cyan) !important;
+    color: var(--primary) !important;
 }
 
 .text-danger {
-    color: var(--brutal-red) !important;
+    color: var(--danger) !important;
 }
 
 .text-muted {
-    color: #666 !important;
-}
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="row">
-    <div class="col-12">
-        <!-- 返回按钮 -->
-        <div class="mb-3">
-            <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> 返回首页
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="row justify-content-center">
-    <div class="col-md-10">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">
-                    <i class="bi bi-cloud-upload"></i> 智能上传体检报告
-                </h4>
-                <p class="mb-0 mt-2">支持PDF格式，自动OCR识别和AI数据分析</p>
-            </div>
-            <div class="card-body">
-                <!-- 上传区域 -->
-                <div id="uploadSection">
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        {% csrf_token %}
-
-                        <!-- 基本信息 -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label for="checkup_date" class="form-label">
-                                    <i class="bi bi-calendar"></i> 体检日期 <span class="text-danger">*</span>
-                                </label>
-                                <input type="date" class="form-control" id="checkup_date" name="checkup_date" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="hospital" class="form-label">
-                                    <i class="bi bi-hospital"></i> 体检机构
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="hospital" name="hospital"
-                                           placeholder="请输入体检医院或机构名称" autocomplete="off">
-                                    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
-                                        <i class="bi bi-building"></i> 历史记录
-                                    </button>
-                                    <ul class="dropdown-menu" id="hospitalDropdown">
-                                        <li><a class="dropdown-item text-muted" href="#"><i class="bi bi-arrow-repeat spin"></i> 加载中...</a></li>
-                                    </ul>
-                                </div>
-                                <div class="form-text">可选，留空将显示"未知机构"</div>
-                            </div>
-                        </div>
-
-                        <!-- 报告描述 -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <label for="report_description" class="form-label">
-                                    <i class="bi bi-card-text"></i> 报告描述
-                                </label>
-                                <input type="text" class="form-control" id="report_description" name="report_description"
-                                       placeholder="例如：年度体检报告、入职体检等（默认为文件名）" maxlength="200">
-                                <div class="form-text">可选，留空将使用上传的文件名作为描述</div>
-                            </div>
-                        </div>
-
-                        <!-- 工作流模式选择 -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <label for="workflow_type" class="form-label">
-                                    <i class="bi bi-gear"></i> 处理模式 <span class="text-danger">*</span>
-                                </label>
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <div class="card workflow-option" data-workflow="ocr_llm">
-                                            <div class="card-body">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="workflow_type"
-                                                           id="workflow_ocr_llm" value="ocr_llm" checked>
-                                                    <label class="form-check-label" for="workflow_ocr_llm">
-                                                        <strong>OCR + LLM 模式</strong>
-                                                    </label>
-                                                </div>
-                                                <div class="small text-muted mt-2">
-                                                    <i class="bi bi-check-circle"></i> 成熟稳定的传统工作流<br>
-                                                    <i class="bi bi-check-circle"></i> 适合处理PDF文件<br>
-                                                    <i class="bi bi-check-circle"></i> 支持复杂格式表格<br>
-                                                    <i class="bi bi-check-circle"></i> OCR识别准确度高
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="card workflow-option" data-workflow="vlm_transformers">
-                                            <div class="card-body">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="workflow_type"
-                                                           id="workflow_vlm_transformers" value="vlm_transformers">
-                                                    <label class="form-check-label" for="workflow_vlm_transformers">
-                                                        <strong>VLM Transformers 模式</strong>
-                                                    </label>
-                                                </div>
-                                                <div class="small text-muted mt-2">
-                                                    <i class="bi bi-check-circle"></i> 增强版OCR工作流<br>
-                                                    <i class="bi bi-check-circle"></i> VLM视觉理解能力<br>
-                                                    <i class="bi bi-check-circle"></i> 手写文字识别更强<br>
-                                                    <i class="bi bi-check-circle"></i> 适合复杂布局文档
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="card workflow-option" data-workflow="vl_model">
-                                            <div class="card-body">
-                                                <div class="form-check">
-                                                    <input class="form-check-input" type="radio" name="workflow_type"
-                                                           id="workflow_vl_model" value="vl_model">
-                                                    <label class="form-check-label" for="workflow_vl_model">
-                                                        <strong>多模态大模型模式</strong>
-                                                    </label>
-                                                </div>
-                                                <div class="small text-muted mt-2">
-                                                    <i class="bi bi-check-circle"></i> 直接理解文档内容<br>
-                                                    <i class="bi bi-check-circle"></i> 图片文件处理最快<br>
-                                                    <i class="bi bi-check-circle"></i> 支持症状照片分析<br>
-                                                    <i class="bi bi-check-circle"></i> 无需中间转换步骤
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="form-text">
-                                    <i class="bi bi-info-circle"></i> 
-                                    <strong>建议：</strong>PDF文件推荐使用OCR + LLM模式，图片文件推荐使用多模态大模型模式
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 文件上传区域 -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <label class="form-label">
-                                    <i class="bi bi-file-earmark-image"></i> 选择体检报告文件 <span class="text-danger">*</span>
-                                </label>
-                                <div class="upload-area" id="uploadArea">
-                                    <div class="upload-content text-center p-4">
-                                        <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
-                                        <h5>拖拽文件到此处或点击选择</h5>
-                                        <p class="text-muted">支持PDF、JPG、PNG、JPEG、TIFF、BMP格式，最大文件大小10MB</p>
-                                        <input type="file" id="fileInput" name="file"
-                                               class="form-control" accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp" required style="display: none;">
-                                        <button type="button" class="btn btn-outline-primary" onclick="document.getElementById('fileInput').click()">
-                                            <i class="bi bi-folder-open"></i> 选择文件
-                                        </button>
-                                    </div>
-                                    <div class="file-info p-3" style="display: none;">
-                                        <div class="d-flex align-items-center">
-                                            <i id="fileIcon" class="bi bi-file-earmark text-primary me-3" style="font-size: 2rem;"></i>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-1" id="fileName"></h6>
-                                                <small class="text-muted" id="fileSize"></small>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
-                                                <i class="bi bi-trash"></i> 清除
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 服务状态检查 -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="mb-0"><i class="bi bi-activity"></i> AI服务状态</h6>
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="checkServiceStatus()">
-                                        <i class="bi bi-arrow-clockwise"></i> 检查状态
-                                    </button>
-                                </div>
-                                <small class="text-muted">点击按钮手动检查服务状态（避免消耗API配额）</small>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-primary">
-                                    <div class="card-body py-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-cpu me-3 text-muted" id="ocrStatusIcon" style="font-size: 1.2rem;"></i>
-                                            <div class="flex-grow-1">
-                                                <small class="text-muted d-block">OCR服务状态</small>
-                                                <div id="ocrStatusText" class="fw-bold text-muted">未检查</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-success">
-                                    <div class="card-body py-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-robot me-3 text-muted" id="llmStatusIcon" style="font-size: 1.2rem;"></i>
-                                            <div class="flex-grow-1">
-                                                <small class="text-muted d-block">AI分析服务状态</small>
-                                                <div id="llmStatusText" class="fw-bold text-muted">未检查</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card border-info">
-                                    <div class="card-body py-3">
-                                        <div class="d-flex align-items-center">
-                                            <i class="bi bi-eye me-3 text-muted" id="vlmStatusIcon" style="font-size: 1.2rem;"></i>
-                                            <div class="flex-grow-1">
-                                                <small class="text-muted d-block">多模态服务状态</small>
-                                                <div id="vlmStatusText" class="fw-bold text-muted">未检查</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 当前模式说明 -->
-                        <div class="alert alert-info mb-4" id="workflowInfoAlert">
-                            <div class="d-flex align-items-start">
-                                <i class="bi bi-info-circle me-2 mt-1"></i>
-                                <div class="flex-grow-1">
-                                    <strong id="workflowTitle">OCR + LLM 模式 (传统工作流)</strong>
-                                    <div class="small mt-1" id="workflowDescription">使用传统OCR进行文字识别，然后使用LLM提取结构化数据。这是成熟稳定的传统工作流。</div>
-                                </div>
-                                <div class="ms-auto">
-                                    <span id="workflowStatusBadge" class="badge bg-success">稳定</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 提交按钮 -->
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
-                                <i class="bi bi-upload"></i> 开始智能分析
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- 处理进度区域 -->
-                <div id="progressSection" style="display: none;">
-                    <div class="text-center mb-4">
-                        <h5>
-                            <i class="bi bi-gear-fill spin"></i> 正在处理体检报告
-                        </h5>
-                        <p class="text-muted">请稍候，系统正在自动分析您的健康数据...</p>
-                    </div>
-
-                    <!-- 进度条 -->
-                    <div class="progress mb-3" style="height: 25px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
-                             id="progressBar" role="progressbar" style="width: 0%">
-                            <span id="progressText">0%</span>
-                        </div>
-                    </div>
-
-                    <!-- 实时处理日志 -->
-                    <div class="card bg-dark text-light mb-3">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="card-title mb-0 small">
-                                    <i class="bi bi-terminal-fill text-success"></i> 实时处理日志
-                                </h6>
-                                <span class="badge bg-success small" id="uploadLogStatus">运行中</span>
-                            </div>
-                            <div id="uploadProgressLog"
-                                 style="max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8em; line-height: 1.4; background: #1e1e1e; padding: 10px; border-radius: 4px;">
-                                <div class="text-secondary">等待开始...</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- LLM输出区域 -->
-                    <div class="card bg-light mb-3" id="uploadLLMOutputCard" style="display: none;">
-                        <div class="card-body">
-                            <h6 class="card-title mb-3">
-                                <i class="bi bi-robot text-primary"></i> AI正在分析体检报告
-                            </h6>
-                            <div id="uploadLLMOutput"
-                                 style="max-height: 200px; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9em; line-height: 1.6; padding: 15px; background: white; border: 1px solid #dee2e6; border-radius: 5px; color: #333;">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 状态信息 -->
-                    <div class="row">
-                        <div class="col-md-8">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">处理状态</h6>
-                                    <div id="statusDetails" class="small">
-                                        等待开始处理...
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="card-title">文件信息</h6>
-                                    <div id="fileDetails" class="small">
-                                        <!-- 文件信息将在这里显示 -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- OCR结果 -->
-                    <div id="ocrResults" class="mt-4" style="display: none;">
-                        <div class="card">
-                            <div class="card-header bg-warning">
-                                <h6 class="mb-0"><i class="bi bi-file-text"></i> OCR识别结果</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-2">
-                                    <small class="text-muted">识别字符数: <span id="ocrLength">0</span></small>
-                                </div>
-                                <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background-color: #f8f9fa; font-family: monospace; font-size: 0.85em;">
-                                    <pre id="ocrContent" style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">等待OCR识别...</pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- LLM结果 -->
-                    <div id="llmResults" class="mt-4" style="display: none;">
-                        <div class="card">
-                            <div class="card-header bg-success">
-                                <h6 class="mb-0"><i class="bi bi-robot"></i> AI分析结果</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-2">
-                                    <small class="text-muted">识别指标数: <span id="llmCount">0</span></small>
-                                </div>
-                                <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto; background-color: #f8f9fa; font-family: monospace; font-size: 0.85em;">
-                                    <pre id="llmContent" style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">等待AI分析...</pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 最终指标 -->
-                    <div id="finalResults" class="mt-4" style="display: none;">
-                        <div class="card">
-                            <div class="card-header bg-primary">
-                                <h6 class="mb-0"><i class="bi bi-clipboard-check"></i> 提取的健康指标</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="indicatorsList">
-                                    <!-- 指标列表将在这里显示 -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 错误信息 -->
-                    <div class="alert alert-danger mt-3" id="errorAlert" style="display: none;">
-                        <h6><i class="bi bi-exclamation-triangle"></i> 处理失败</h6>
-                        <p id="errorMessage" class="mb-0"></p>
-                        <hr>
-                        <button class="btn btn-outline-danger btn-sm" onclick="location.reload()">
-                            <i class="bi bi-arrow-clockwise"></i> 重新上传
-                        </button>
-                    </div>
-
-                    <!-- 成功信息 -->
-                    <div class="alert alert-success mt-3" id="successAlert" style="display: none;">
-                        <h6><i class="bi bi-check-circle"></i> 处理完成</h6>
-                        <p id="successMessage" class="mb-0"></p>
-                        <div class="mt-3">
-                            <button class="btn btn-success" onclick="window.location.href='{% url "medical_records:dashboard" %}'">
-                                <i class="bi bi-house"></i> 返回首页查看结果
-                            </button>
-                            <button class="btn btn-outline-success ms-2" id="viewDetailsBtn">
-                                <i class="bi bi-eye"></i> 查看详细信息
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 使用说明 -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h6><i class="bi bi-info-circle"></i> 使用说明</h6>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-primary">上传要求</h6>
-                        <ul class="small">
-                            <li>支持PDF、JPG、PNG、JPEG、TIFF、BMP格式的体检报告</li>
-                            <li>文件大小不能超过10MB</li>
-                            <li>报告内容清晰，文字识别效果好</li>
-                            <li>建议使用正式医院的体检报告</li>
-                            <li>图片格式建议为高清扫描件或照片，确保文字清晰可辨</li>
-                            <li><strong>上传过程中请保持该页面等待完成</strong></li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-primary">处理流程</h6>
-                        <ul class="small">
-                            <li><strong>第1步：</strong>上传体检报告文件（PDF或图片格式）</li>
-                            <li><strong>第2步：</strong>OCR文字识别提取文本内容</li>
-                            <li><strong>第3步：</strong>AI智能分析健康指标数据</li>
-                            <li><strong>第4步：</strong>自动分类并保存到数据库</li>
-                            <li><strong>第5步：</strong>在首页查看分析结果和趋势</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<style>
-.upload-area {
-    border: 2px dashed #dee2e6;
-    border-radius: 10px;
-    background-color: #f8f9fa;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    color: var(--text-muted) !important;
 }
 
-.upload-area:hover {
-    border-color: #4facfe;
-    background-color: #f0f8ff;
-}
-
-.upload-area.dragover {
-    border-color: #4facfe;
-    background-color: #e3f2fd;
-}
-
+/* 动画 */
 .spin {
     animation: spin 2s linear infinite;
 }
@@ -725,62 +291,504 @@ small, .small {
     100% { transform: rotate(360deg); }
 }
 
+/* 状态样式 */
 .status-online {
-    color: #28a745;
+    color: var(--success);
 }
 
 .status-offline {
-    color: #dc3545;
+    color: var(--danger);
 }
 
 .status-checking {
-    color: #ffc107;
+    color: var(--warning);
 }
 
-/* 工作流选项样式 */
-.workflow-option {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+.nav-pills .nav-link {
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    margin: 0 0.25rem;
+    border-radius: var(--radius-md);
 }
 
-.workflow-option:hover {
-    border-color: #007bff;
-    box-shadow: 0 4px 8px rgba(0,123,255,0.1);
-    transform: translateY(-2px);
+.nav-pills .nav-link.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
 }
 
-.workflow-option.selected {
-    border-color: #007bff;
-    background-color: #e3f2fd;
-    box-shadow: 0 4px 8px rgba(0,123,255,0.15);
-}
-
-.workflow-option .form-check-input:checked + .form-check-label {
-    color: #007bff;
-    font-weight: bold;
-}
-
-.workflow-option .card-body {
-    padding: 1rem;
+.nav-pills .nav-link.completed {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
 }
 </style>
+{% endblock %}
 
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- 返回按钮 -->
+            <div class="mb-3">
+                <a href="{% url 'medical_records:dashboard' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> 返回首页
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="bi bi-cloud-upload"></i> 智能上传体检报告
+                    </h4>
+                    <p class="mb-0 mt-2 opacity-75">支持PDF格式，自动OCR识别和AI数据分析</p>
+                </div>
+                <div class="card-body">
+                    <!-- 步骤指示器 -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <ul class="nav nav-pills nav-fill">
+                                <li class="nav-item">
+                                    <a class="nav-link active" id="upload-step1-tab" href="#">
+                                        <i class="bi bi-1-circle"></i> 上传报告
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="upload-step2-tab" href="#">
+                                        <i class="bi bi-2-circle"></i> AI处理中
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" id="upload-step3-tab" href="#">
+                                        <i class="bi bi-3-circle"></i> 处理完成
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- 上传区域 -->
+                    <div id="uploadSection">
+                        <form id="uploadForm" enctype="multipart/form-data">
+                            {% csrf_token %}
+
+                            <!-- 基本信息 -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label for="checkup_date" class="form-label">
+                                        <i class="bi bi-calendar"></i> 体检日期 <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="date" class="form-control" id="checkup_date" name="checkup_date" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="hospital" class="form-label">
+                                        <i class="bi bi-hospital"></i> 体检机构
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="hospital" name="hospital"
+                                               placeholder="请输入体检医院或机构名称" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                            <i class="bi bi-building"></i> 历史记录
+                                        </button>
+                                        <ul class="dropdown-menu" id="hospitalDropdown">
+                                            <li><a class="dropdown-item text-muted" href="#"><i class="bi bi-arrow-repeat spin"></i> 加载中...</a></li>
+                                        </ul>
+                                    </div>
+                                    <div class="form-text">可选，留空将显示"未知机构"</div>
+                                </div>
+                            </div>
+
+                            <!-- 报告描述 -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label for="report_description" class="form-label">
+                                        <i class="bi bi-card-text"></i> 报告描述
+                                    </label>
+                                    <input type="text" class="form-control" id="report_description" name="report_description"
+                                           placeholder="例如：年度体检报告、入职体检等（默认为文件名）" maxlength="200">
+                                    <div class="form-text">可选，留空将使用上传的文件名作为描述</div>
+                                </div>
+                            </div>
+
+                            <!-- 工作流模式选择 -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label for="workflow_type" class="form-label">
+                                        <i class="bi bi-gear"></i> 处理模式 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="card workflow-option" data-workflow="ocr_llm">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="workflow_type"
+                                                               id="workflow_ocr_llm" value="ocr_llm" checked>
+                                                        <label class="form-check-label" for="workflow_ocr_llm">
+                                                            <strong>OCR + LLM 模式</strong>
+                                                        </label>
+                                                    </div>
+                                                    <div class="small text-muted mt-2">
+                                                        <i class="bi bi-check-circle text-success"></i> 成熟稳定的传统工作流<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 适合处理PDF文件<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 支持复杂格式表格<br>
+                                                        <i class="bi bi-check-circle text-success"></i> OCR识别准确度高
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card workflow-option" data-workflow="vlm_transformers">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="workflow_type"
+                                                               id="workflow_vlm_transformers" value="vlm_transformers">
+                                                        <label class="form-check-label" for="workflow_vlm_transformers">
+                                                            <strong>VLM Transformers 模式</strong>
+                                                        </label>
+                                                    </div>
+                                                    <div class="small text-muted mt-2">
+                                                        <i class="bi bi-check-circle text-success"></i> 增强版OCR工作流<br>
+                                                        <i class="bi bi-check-circle text-success"></i> VLM视觉理解能力<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 手写文字识别更强<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 适合复杂布局文档
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="card workflow-option" data-workflow="vl_model">
+                                                <div class="card-body">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio" name="workflow_type"
+                                                               id="workflow_vl_model" value="vl_model">
+                                                        <label class="form-check-label" for="workflow_vl_model">
+                                                            <strong>多模态大模型模式</strong>
+                                                        </label>
+                                                    </div>
+                                                    <div class="small text-muted mt-2">
+                                                        <i class="bi bi-check-circle text-success"></i> 直接理解文档内容<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 图片文件处理最快<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 支持症状照片分析<br>
+                                                        <i class="bi bi-check-circle text-success"></i> 无需中间转换步骤
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">
+                                        <i class="bi bi-info-circle text-info"></i> 
+                                        <strong>建议：</strong>PDF文件推荐使用OCR + LLM模式，图片文件推荐使用多模态大模型模式
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 文件上传区域 -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label class="form-label">
+                                        <i class="bi bi-file-earmark-image"></i> 选择体检报告文件 <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="upload-area" id="uploadArea">
+                                        <div class="upload-content text-center p-4">
+                                            <i class="bi bi-cloud-upload display-4 text-primary mb-3"></i>
+                                            <h5>拖拽文件到此处或点击选择</h5>
+                                            <p class="text-muted">支持PDF、JPG、PNG、JPEG、TIFF、BMP格式，最大文件大小10MB</p>
+                                            <input type="file" id="fileInput" name="file"
+                                                   class="form-control" accept=".pdf,.jpg,.jpeg,.png,.tiff,.bmp" required style="display: none;">
+                                            <button type="button" class="btn btn-outline-primary" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                                                <i class="bi bi-folder-open"></i> 选择文件
+                                            </button>
+                                        </div>
+                                        <div class="file-info p-3" style="display: none;">
+                                            <div class="d-flex align-items-center">
+                                                <i id="fileIcon" class="bi bi-file-earmark text-primary me-3" style="font-size: 2rem;"></i>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-1" id="fileName"></h6>
+                                                    <small class="text-muted" id="fileSize"></small>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFile()">
+                                                    <i class="bi bi-trash"></i> 清除
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 服务状态检查 -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0"><i class="bi bi-activity text-primary"></i> AI服务状态</h6>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="checkServiceStatus()">
+                                            <i class="bi bi-arrow-clockwise"></i> 检查状态
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">点击按钮手动检查服务状态（避免消耗API配额）</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-primary">
+                                        <div class="card-body py-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-cpu me-3 text-muted" id="ocrStatusIcon" style="font-size: 1.2rem;"></i>
+                                                <div class="flex-grow-1">
+                                                    <small class="text-muted d-block">OCR服务状态</small>
+                                                    <div id="ocrStatusText" class="fw-bold text-muted">未检查</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-success">
+                                        <div class="card-body py-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-robot me-3 text-muted" id="llmStatusIcon" style="font-size: 1.2rem;"></i>
+                                                <div class="flex-grow-1">
+                                                    <small class="text-muted d-block">AI分析服务状态</small>
+                                                    <div id="llmStatusText" class="fw-bold text-muted">未检查</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-info">
+                                        <div class="card-body py-3">
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-eye me-3 text-muted" id="vlmStatusIcon" style="font-size: 1.2rem;"></i>
+                                                <div class="flex-grow-1">
+                                                    <small class="text-muted d-block">多模态服务状态</small>
+                                                    <div id="vlmStatusText" class="fw-bold text-muted">未检查</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 当前模式说明 -->
+                            <div class="alert alert-info mb-4" id="workflowInfoAlert">
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-info-circle me-2 mt-1"></i>
+                                    <div class="flex-grow-1">
+                                        <strong id="workflowTitle">OCR + LLM 模式 (传统工作流)</strong>
+                                        <div class="small mt-1" id="workflowDescription">使用传统OCR进行文字识别，然后使用LLM提取结构化数据。这是成熟稳定的传统工作流。</div>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <span id="workflowStatusBadge" class="badge bg-success">稳定</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 提交按钮 -->
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+                                    <i class="bi bi-upload"></i> 开始智能分析
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- 处理进度区域 -->
+                    <div id="progressSection" style="display: none;">
+                        <div class="text-center mb-4">
+                            <h5>
+                                <i class="bi bi-gear-fill spin text-primary"></i> 正在处理体检报告
+                            </h5>
+                            <p class="text-muted">请稍候，系统正在自动分析您的健康数据...</p>
+                        </div>
+
+                        <!-- 进度条 -->
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 id="progressBar" role="progressbar" style="width: 0%">
+                                <span id="progressText">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- 实时处理日志 -->
+                        <div class="card mb-3" style="background: #1e1e1e; color: #d4d4d4;">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="card-title mb-0 small">
+                                        <i class="bi bi-terminal-fill text-success"></i> 实时处理日志
+                                    </h6>
+                                    <span class="badge bg-success small" id="uploadLogStatus">运行中</span>
+                                </div>
+                                <div id="uploadProgressLog"
+                                     style="max-height: 200px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.8em; line-height: 1.4; background: #2d2d2d; padding: 10px; border-radius: 4px;">
+                                    <div class="text-secondary">等待开始...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LLM输出区域 -->
+                        <div class="card mb-3" id="uploadLLMOutputCard" style="display: none;">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    <i class="bi bi-robot text-primary"></i> AI正在分析体检报告
+                                </h6>
+                                <div id="uploadLLMOutput"
+                                     style="max-height: 200px; overflow-y: auto; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9em; line-height: 1.6; padding: 15px; background: white; border: 1px solid var(--border-color); border-radius: 5px; color: #333;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 状态信息 -->
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">处理状态</h6>
+                                        <div id="statusDetails" class="small">
+                                            等待开始处理...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">文件信息</h6>
+                                        <div id="fileDetails" class="small">
+                                            <!-- 文件信息将在这里显示 -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- OCR结果 -->
+                        <div id="ocrResults" class="mt-4" style="display: none;">
+                            <div class="card">
+                                <div class="card-header" style="background: var(--warning-soft);">
+                                    <h6 class="mb-0"><i class="bi bi-file-text text-warning"></i> OCR识别结果</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small class="text-muted">识别字符数: <span id="ocrLength">0</span></small>
+                                    </div>
+                                    <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto; background-color: var(--bg-soft); font-family: monospace; font-size: 0.85em;">
+                                        <pre id="ocrContent" style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">等待OCR识别...</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LLM结果 -->
+                        <div id="llmResults" class="mt-4" style="display: none;">
+                            <div class="card">
+                                <div class="card-header" style="background: var(--success-soft);">
+                                    <h6 class="mb-0"><i class="bi bi-robot text-success"></i> AI分析结果</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-2">
+                                        <small class="text-muted">识别指标数: <span id="llmCount">0</span></small>
+                                    </div>
+                                    <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto; background-color: var(--bg-soft); font-family: monospace; font-size: 0.85em;">
+                                        <pre id="llmContent" style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">等待AI分析...</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 最终指标 -->
+                        <div id="finalResults" class="mt-4" style="display: none;">
+                            <div class="card">
+                                <div class="card-header" style="background: var(--primary-soft);">
+                                    <h6 class="mb-0"><i class="bi bi-clipboard-check text-primary"></i> 提取的健康指标</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="indicatorsList">
+                                        <!-- 指标列表将在这里显示 -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 错误信息 -->
+                        <div class="alert alert-danger mt-3" id="errorAlert" style="display: none;">
+                            <h6><i class="bi bi-exclamation-triangle"></i> 处理失败</h6>
+                            <p id="errorMessage" class="mb-0"></p>
+                            <hr>
+                            <button class="btn btn-outline-danger btn-sm" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i> 重新上传
+                            </button>
+                        </div>
+
+                        <!-- 成功信息 -->
+                        <div class="alert alert-success mt-3" id="successAlert" style="display: none;">
+                            <h6><i class="bi bi-check-circle"></i> 处理完成</h6>
+                            <p id="successMessage" class="mb-0"></p>
+                            <div class="mt-3">
+                                <button class="btn btn-success" onclick="window.location.href='{% url "medical_records:dashboard" %}'">
+                                    <i class="bi bi-house"></i> 返回首页查看结果
+                                </button>
+                                <button class="btn btn-outline-success ms-2" id="viewDetailsBtn">
+                                    <i class="bi bi-eye"></i> 查看详细信息
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6><i class="bi bi-info-circle"></i> 使用说明</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">上传要求</h6>
+                            <ul class="small text-muted">
+                                <li>支持PDF、JPG、PNG、JPEG、TIFF、BMP格式的体检报告</li>
+                                <li>文件大小不能超过10MB</li>
+                                <li>报告内容清晰，文字识别效果好</li>
+                                <li>建议使用正式医院的体检报告</li>
+                                <li>图片格式建议为高清扫描件或照片，确保文字清晰可辨</li>
+                                <li><strong>上传过程中请保持该页面等待完成</strong></li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">处理流程</h6>
+                            <ul class="small text-muted">
+                                <li><strong>第1步：</strong>上传体检报告文件（PDF或图片格式）</li>
+                                <li><strong>第2步：</strong>OCR文字识别提取文本内容</li>
+                                <li><strong>第3步：</strong>AI智能分析健康指标数据</li>
+                                <li><strong>第4步：</strong>自动分类并保存到数据库</li>
+                                <li><strong>第5步：</strong>在首页查看分析结果和趋势</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
 let currentProcessingId = null;
 let progressInterval = null;
 
 // 页面加载时的初始化
 document.addEventListener('DOMContentLoaded', function() {
-    setupUploadArea();
-    setupFormSubmit();
     loadHospitalDropdown();
     setupWorkflowSelection();
+    // 自动检查服务状态
+    checkServiceStatus();
 });
 
 // 检查服务状态
 async function checkServiceStatus() {
-    // 通过后端API检查服务状态，避免跨域问题
     updateStatusIcon('ocr', 'checking', '检查中...');
     updateStatusIcon('llm', 'checking', '检查中...');
     updateStatusIcon('vlm', 'checking', '检查中...');
@@ -795,185 +803,133 @@ async function checkServiceStatus() {
         if (response.ok) {
             const result = await response.json();
 
-            // 更新OCR服务状态
             if (result.ocr_status === 'online') {
                 updateStatusIcon('ocr', 'online', 'OCR服务正常');
             } else {
                 updateStatusIcon('ocr', 'offline', 'OCR服务不可用');
             }
 
-            // 更新LLM服务状态
             if (result.llm_status === 'online') {
-                updateStatusIcon('llm', 'online', 'LLM服务正常');
+                updateStatusIcon('llm', 'online', 'AI分析服务正常');
             } else {
-                updateStatusIcon('llm', 'offline', 'LLM服务不可用');
+                updateStatusIcon('llm', 'offline', 'AI分析服务不可用');
             }
 
-            // 更新多模态模型服务状态
-            if (result.vl_model_status === 'online') {
+            if (result.vlm_status === 'online') {
                 updateStatusIcon('vlm', 'online', '多模态服务正常');
             } else {
                 updateStatusIcon('vlm', 'offline', '多模态服务不可用');
             }
-
-            // 显示当前工作流模式
-            if (result.default_workflow) {
-                updateCurrentWorkflow(result.default_workflow);
-            }
         } else {
-            updateStatusIcon('ocr', 'offline', '状态检查失败');
-            updateStatusIcon('llm', 'offline', '状态检查失败');
-            updateStatusIcon('vlm', 'offline', '状态检查失败');
+            updateStatusIcon('ocr', 'offline', '检查失败');
+            updateStatusIcon('llm', 'offline', '检查失败');
+            updateStatusIcon('vlm', 'offline', '检查失败');
         }
     } catch (error) {
-        console.error('服务状态检查失败:', error);
-        updateStatusIcon('ocr', 'offline', '状态检查失败');
-        updateStatusIcon('llm', 'offline', '状态检查失败');
-        updateStatusIcon('vlm', 'offline', '状态检查失败');
+        console.error('检查服务状态失败:', error);
+        updateStatusIcon('ocr', 'offline', '检查失败');
+        updateStatusIcon('llm', 'offline', '检查失败');
+        updateStatusIcon('vlm', 'offline', '检查失败');
     }
 }
 
-// 更新状态图标
 function updateStatusIcon(service, status, text) {
-    const icon = document.getElementById(`${service}StatusIcon`);
-    const textElement = document.getElementById(`${service}StatusText`);
-
-    icon.className = 'bi me-2';
-    textElement.className = 'small fw-bold';
-
-    switch (status) {
-        case 'online':
+    const icon = document.getElementById(service + 'StatusIcon');
+    const textEl = document.getElementById(service + 'StatusText');
+    
+    if (icon && textEl) {
+        textEl.textContent = text;
+        icon.className = 'bi me-3';
+        
+        if (status === 'online') {
             icon.classList.add('bi-check-circle-fill', 'status-online');
-            textElement.classList.add('status-online');
-            break;
-        case 'offline':
+            textEl.className = 'fw-bold text-success';
+        } else if (status === 'offline') {
             icon.classList.add('bi-x-circle-fill', 'status-offline');
-            textElement.classList.add('status-offline');
-            break;
-        case 'checking':
+            textEl.className = 'fw-bold text-danger';
+        } else {
             icon.classList.add('bi-arrow-repeat', 'spin', 'status-checking');
-            textElement.classList.add('status-checking');
-            break;
+            textEl.className = 'fw-bold text-warning';
+        }
     }
-
-    textElement.textContent = text;
-}
-
-// 更新当前工作流显示
-function updateCurrentWorkflow(workflowType) {
-    const workflowInfoAlert = document.getElementById('workflowInfoAlert');
-    const workflowTitle = document.getElementById('workflowTitle');
-    const workflowDescription = document.getElementById('workflowDescription');
-    const workflowStatusBadge = document.getElementById('workflowStatusBadge');
-
-    if (workflowType === 'vl_model') {
-        workflowTitle.textContent = '多模态大模型模式 (直接识别)';
-        workflowDescription.textContent = '直接使用多模态大模型（如GPT-4V）理解文档内容并提取数据。在处理复杂布局、表格和手写文字方面可能表现更好。';
-        workflowStatusBadge.textContent = '实验性';
-        workflowStatusBadge.className = 'badge bg-warning';
-    } else if (workflowType === 'vlm_transformers') {
-        workflowTitle.textContent = 'VLM Transformers 模式 (OCR + LLM)';
-        workflowDescription.textContent = '使用VLM Transformers进行OCR文字识别，然后使用LLM提取结构化数据。这是增强版的OCR工作流。';
-        workflowStatusBadge.textContent = '增强';
-        workflowStatusBadge.className = 'badge bg-info';
-    } else {
-        workflowTitle.textContent = 'OCR + LLM 模式 (传统工作流)';
-        workflowDescription.textContent = '使用传统OCR进行文字识别，然后使用LLM提取结构化数据。这是成熟稳定的传统工作流。';
-        workflowStatusBadge.textContent = '稳定';
-        workflowStatusBadge.className = 'badge bg-success';
-    }
-
-    // 显示工作流信息提示框
-    workflowInfoAlert.style.display = 'block';
 }
 
 // 设置上传区域
-function setupUploadArea() {
+document.addEventListener('DOMContentLoaded', function() {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
+    
+    if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', function(e) {
+            if (e.target !== fileInput) {
+                fileInput.click();
+            }
+        });
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelect(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                handleFileSelect(this.files[0]);
+            }
+        });
+    }
+});
 
-    // 拖拽功能
-    uploadArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            fileInput.files = files;
-            handleFileSelect(files[0]);
-        }
-    });
-
-    // 文件选择
-    fileInput.addEventListener('change', function(e) {
-        if (e.target.files.length > 0) {
-            handleFileSelect(e.target.files[0]);
-        }
-    });
-}
-
-// 处理文件选择
 function handleFileSelect(file) {
-    // 检查文件类型
-    const allowedTypes = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.bmp'];
-    const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-
-    if (!allowedTypes.includes(fileExtension)) {
-        alert('只支持PDF、JPG、PNG、JPEG、TIFF、BMP格式的文件');
-        return;
-    }
-
-    // 检查文件大小
-    if (file.size > 10 * 1024 * 1024) {
-        alert('文件大小不能超过10MB');
-        return;
-    }
-
-    // 设置文件图标
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
     const fileIcon = document.getElementById('fileIcon');
-    if (fileExtension === '.pdf') {
-        fileIcon.className = 'bi bi-file-pdf text-danger me-3';
-    } else if (['.jpg', '.jpeg', '.png', '.tiff', '.bmp'].includes(fileExtension)) {
-        fileIcon.className = 'bi bi-file-image text-success me-3';
+    const uploadContent = document.querySelector('.upload-content');
+    const fileInfo = document.querySelector('.file-info');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (fileName) fileName.textContent = file.name;
+    if (fileSize) fileSize.textContent = formatFileSize(file.size);
+    
+    if (fileIcon) {
+        if (file.name.toLowerCase().endsWith('.pdf')) {
+            fileIcon.className = 'bi bi-file-earmark-pdf text-danger me-3';
+        } else {
+            fileIcon.className = 'bi bi-file-earmark-image text-primary me-3';
+        }
     }
-
-    // 显示文件信息
-    document.querySelector('.upload-content').style.display = 'none';
-    document.querySelector('.file-info').style.display = 'block';
-    document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileSize').textContent = formatFileSize(file.size);
-
-    // 自动填充报告描述（如果用户还没有填写）
-    const reportDescription = document.getElementById('report_description');
-    if (!reportDescription.value || reportDescription.value.trim() === '') {
-        // 去掉文件扩展名作为默认描述
-        const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
-        reportDescription.value = fileNameWithoutExt;
-    }
-
-    // 启用提交按钮
-    document.getElementById('submitBtn').disabled = false;
+    
+    if (uploadContent) uploadContent.style.display = 'none';
+    if (fileInfo) fileInfo.style.display = 'block';
+    if (submitBtn) submitBtn.disabled = false;
 }
 
-// 清除文件选择
 function clearFile() {
-    document.getElementById('fileInput').value = '';
-    document.querySelector('.upload-content').style.display = 'block';
-    document.querySelector('.file-info').style.display = 'none';
-    document.getElementById('submitBtn').disabled = true;
+    const fileInput = document.getElementById('fileInput');
+    const uploadContent = document.querySelector('.upload-content');
+    const fileInfo = document.querySelector('.file-info');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (fileInput) fileInput.value = '';
+    if (uploadContent) uploadContent.style.display = 'block';
+    if (fileInfo) fileInfo.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = true;
 }
 
-// 格式化文件大小
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -982,719 +938,244 @@ function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-// 设置表单提交
-function setupFormSubmit() {
-    document.getElementById('uploadForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        uploadFile();
+// 设置工作流选择
+function setupWorkflowSelection() {
+    const workflowOptions = document.querySelectorAll('.workflow-option');
+    
+    workflowOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio) {
+                radio.checked = true;
+                updateWorkflowSelection();
+            }
+        });
     });
+    
+    updateWorkflowSelection();
 }
 
-// 加载医院下拉列表
-async function loadHospitalDropdown() {
-    const hospitalDropdown = document.getElementById('hospitalDropdown');
+function updateWorkflowSelection() {
+    const options = document.querySelectorAll('.workflow-option');
+    const selectedRadio = document.querySelector('input[name="workflow_type"]:checked');
+    
+    options.forEach(option => {
+        option.classList.remove('selected');
+    });
+    
+    if (selectedRadio) {
+        const selectedOption = selectedRadio.closest('.workflow-option');
+        if (selectedOption) {
+            selectedOption.classList.add('selected');
+        }
+        
+        // 更新工作流信息
+        const workflowInfo = {
+            'ocr_llm': {
+                title: 'OCR + LLM 模式 (传统工作流)',
+                description: '使用传统OCR进行文字识别，然后使用LLM提取结构化数据。这是成熟稳定的传统工作流。',
+                badge: '稳定'
+            },
+            'vlm_transformers': {
+                title: 'VLM Transformers 模式 (增强OCR)',
+                description: '使用VLM Transformers进行OCR文字识别，增强版OCR工作流，适合复杂布局文档。',
+                badge: '增强'
+            },
+            'vl_model': {
+                title: '多模态大模型模式 (直接理解)',
+                description: '直接使用多模态大模型理解文档内容并提取数据，处理图片文件最快。',
+                badge: '快速'
+            }
+        };
+        
+        const info = workflowInfo[selectedRadio.value];
+        if (info) {
+            const titleEl = document.getElementById('workflowTitle');
+            const descEl = document.getElementById('workflowDescription');
+            const badgeEl = document.getElementById('workflowStatusBadge');
+            
+            if (titleEl) titleEl.textContent = info.title;
+            if (descEl) descEl.textContent = info.description;
+            if (badgeEl) badgeEl.textContent = info.badge;
+        }
+    }
+}
 
+// 加载医院下拉菜单
+async function loadHospitalDropdown() {
+    const dropdown = document.getElementById('hospitalDropdown');
+    if (!dropdown) return;
+    
     try {
         const response = await fetch('{% url "medical_records:api_common_hospitals" %}', {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         });
-
+        
         if (response.ok) {
             const result = await response.json();
-            if (result.success && result.hospitals.length > 0) {
-                // 清空加载提示
-                hospitalDropdown.innerHTML = '';
-
-                // 添加用户历史记录的医院选项
+            if (result.success && result.hospitals && result.hospitals.length > 0) {
+                dropdown.innerHTML = '';
                 result.hospitals.forEach(hospital => {
                     const li = document.createElement('li');
-
-                    // 创建使用次数徽章
-                    let usageBadge = '';
-                    if (hospital.usage_count > 1) {
-                        usageBadge = `<span class="badge bg-primary ms-2">${hospital.usage_count}次</span>`;
-                    }
-
-                    li.innerHTML = `
-                        <a class="dropdown-item hospital-preset" href="#" data-hospital="${hospital.name}">
-                            <div>
-                                <strong>${hospital.name}</strong>
-                                ${usageBadge}
-                                <div class="small text-muted mt-1">最后使用: ${hospital.last_used}</div>
-                            </div>
-                        </a>
-                    `;
-
-                    hospitalDropdown.appendChild(li);
+                    const hospitalName = hospital.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    li.innerHTML = `<a class="dropdown-item" href="#" onclick="selectHospital('${hospitalName}'); return false;">${hospital.name} <small class="text-muted">(${hospital.usage_count}次)</small></a>`;
+                    dropdown.appendChild(li);
                 });
-
-                // 重新设置点击事件
-                setupHospitalClickEvents();
             } else {
-                // 用户没有历史记录
-                hospitalDropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">暂无历史记录</a></li>';
+                dropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">暂无历史记录</a></li>';
             }
         } else {
-            hospitalDropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">加载失败</a></li>';
+            dropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">加载失败</a></li>';
         }
     } catch (error) {
-        console.error('加载历史记录失败:', error);
-        hospitalDropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">网络错误</a></li>';
+        console.error('加载医院历史记录失败:', error);
+        dropdown.innerHTML = '<li><a class="dropdown-item text-muted" href="#">加载失败</a></li>';
     }
 }
 
-// 设置医院点击事件
-function setupHospitalClickEvents() {
-    const hospitalPresets = document.querySelectorAll('.hospital-preset');
-    hospitalPresets.forEach(preset => {
-        preset.addEventListener('click', function(e) {
+function selectHospital(hospitalName) {
+    const hospitalInput = document.getElementById('hospital');
+    if (hospitalInput) {
+        hospitalInput.value = hospitalName;
+    }
+}
+
+// 设置表单提交
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('uploadForm');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const hospitalName = this.getAttribute('data-hospital');
-            document.getElementById('hospital').value = hospitalName;
+            await handleUpload();
         });
-    });
-}
+    }
+});
 
-// 设置工作流选择
-function setupWorkflowSelection() {
-    const workflowOptions = document.querySelectorAll('.workflow-option');
-    const workflowRadios = document.querySelectorAll('input[name="workflow_type"]');
-
-    // 初始化选中状态
-    updateWorkflowSelection();
-
-    // 为每个工作流选项添加点击事件
-    workflowOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const workflow = this.getAttribute('data-workflow');
-            const radio = this.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                updateWorkflowSelection();
-                updateWorkflowInfo(workflow);
-            }
-        });
-    });
-
-    // 为单选按钮添加变化事件
-    workflowRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateWorkflowSelection();
-            updateWorkflowInfo(this.value);
-        });
-    });
-}
-
-// 更新工作流选择状态
-function updateWorkflowSelection() {
-    const selectedRadio = document.querySelector('input[name="workflow_type"]:checked');
-    const workflowOptions = document.querySelectorAll('.workflow-option');
-
-    workflowOptions.forEach(option => {
-        const workflow = option.getAttribute('data-workflow');
-        if (selectedRadio && selectedRadio.value === workflow) {
-            option.classList.add('selected');
-        } else {
-            option.classList.remove('selected');
-        }
-    });
-}
-
-// 更新工作流信息显示
-function updateWorkflowInfo(workflowType) {
-    console.log('Selected workflow:', workflowType);
+async function handleUpload() {
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const uploadSection = document.getElementById('uploadSection');
+    const progressSection = document.getElementById('progressSection');
     
-    // 更新模式说明区域
-    const workflowTitle = document.getElementById('workflowTitle');
-    const workflowDescription = document.getElementById('workflowDescription');
-    const workflowStatusBadge = document.getElementById('workflowStatusBadge');
-
-    if (workflowType === 'vl_model') {
-        workflowTitle.textContent = '多模态大模型模式 (直接识别)';
-        workflowDescription.textContent = '直接使用多模态大模型（如GPT-4V）理解文档内容并提取数据。在处理复杂布局、表格和手写文字方面可能表现更好。';
-        workflowStatusBadge.textContent = '实验性';
-        workflowStatusBadge.className = 'badge bg-warning';
-    } else if (workflowType === 'vlm_transformers') {
-        workflowTitle.textContent = 'VLM Transformers 模式 (OCR + LLM)';
-        workflowDescription.textContent = '使用VLM Transformers进行OCR文字识别，然后使用LLM提取结构化数据。这是增强版的OCR工作流。';
-        workflowStatusBadge.textContent = '增强';
-        workflowStatusBadge.className = 'badge bg-info';
-    } else {
-        workflowTitle.textContent = 'OCR + LLM 模式 (传统工作流)';
-        workflowDescription.textContent = '使用传统OCR进行文字识别，然后使用LLM提取结构化数据。这是成熟稳定的传统工作流。';
-        workflowStatusBadge.textContent = '稳定';
-        workflowStatusBadge.className = 'badge bg-success';
-    }
+    if (submitBtn) submitBtn.disabled = true;
     
-    // 更新底部的建议提示
-    const formText = document.querySelector('.form-text');
-    if (workflowType === 'vl_model') {
-        formText.innerHTML = '<i class="bi bi-info-circle"></i> <strong>建议：</strong>多模态大模型模式最适合图片文件，可直接理解图片内容，无需OCR转换步骤';
-    } else if (workflowType === 'vlm_transformers') {
-        formText.innerHTML = '<i class="bi bi-info-circle"></i> <strong>建议：</strong>VLM Transformers模式适合复杂布局文档，VLM视觉理解能力更强';
-    } else {
-        formText.innerHTML = '<i class="bi bi-info-circle"></i> <strong>建议：</strong>PDF文件推荐使用OCR + LLM模式，图片文件推荐使用多模态大模型模式';
-    }
-}
-
-// 上传文件
-async function uploadFile() {
-    const formData = new FormData();
-    const fileInput = document.getElementById('fileInput');
-
-    formData.append('file', fileInput.files[0]);
-    formData.append('checkup_date', document.getElementById('checkup_date').value);
-
-    // 添加报告描述字段
-    const reportDescription = document.getElementById('report_description').value.trim();
-    if (reportDescription) {
-        formData.append('report_description', reportDescription);
-    }
-
-    // 添加医院字段
-    const hospital = document.getElementById('hospital').value;
-    if (hospital) {
-        formData.append('hospital', hospital);
-    }
-
-    // 添加工作流类型字段
-    const workflowType = document.querySelector('input[name="workflow_type"]:checked').value;
-    formData.append('workflow_type', workflowType);
-
-    // 显示进度区域
-    document.getElementById('uploadSection').style.display = 'none';
-    document.getElementById('progressSection').style.display = 'block';
-
-    // 显示文件信息
-    document.getElementById('fileDetails').innerHTML = `
-        <div><strong>文件名：</strong>${fileInput.files[0].name}</div>
-        <div><strong>大小：</strong>${formatFileSize(fileInput.files[0].size)}</div>
-        <div><strong>体检日期：</strong>${document.getElementById('checkup_date').value}</div>
-    `;
-
-    // 清空日志
-    const uploadProgressLog = document.getElementById('uploadProgressLog');
-    if (uploadProgressLog) {
-        uploadProgressLog.innerHTML = '<div class="text-secondary">准备开始...</div>';
-    }
-
-    // 隐藏OCR结果区域（如果存在）
-    const ocrResults = document.getElementById('ocrResults');
-    if (ocrResults) {
-        ocrResults.style.display = 'none';
-    }
-
-    // Wake Lock API - 保持屏幕常亮
-    let wakeLock = null;
-    async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Wake Lock activated');
-            }
-        } catch (err) {
-            console.log(`Wake Lock error: ${err.name}, ${err.message}`);
-        }
-    }
-
-    // 请求Wake Lock
-    await requestWakeLock();
-
-    // Page Visibility API - 检测页面可见性
-    let uploadCancelled = false;
-    const handleVisibilityChange = () => {
-        if (document.hidden) {
-            addUploadLogEntry('⚠️ 警告：请保持页面打开，切换后台可能导致上传失败', 'warning');
-        } else {
-            addUploadLogEntry('✅ 页面已恢复，继续上传...', 'info');
-            // 重新请求Wake Lock（因为切换后台会释放）
-            requestWakeLock();
-        }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    const formData = new FormData(form);
+    
     try {
-        // 使用流式API，增加超时时间
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 600000); // 10分钟超时
-
         const response = await fetch('{% url "medical_records:api_stream_upload" %}', {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            signal: controller.signal
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         });
-
-        clearTimeout(timeoutId);
-
-        // 检查是否被取消
-        if (uploadCancelled) {
-            throw new Error('上传已取消');
-        }
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        // 读取流式响应
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let finalResult = null;
-        let buffer = '';
-        let uploadLLMOutputBuffer = '';
-
-        // HTML转义函数
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // 追加LLM token到输出区域
-        function appendUploadLLMToken(token) {
-            const llmOutput = document.getElementById('uploadLLMOutput');
-            if (!llmOutput) return;
-
-            uploadLLMOutputBuffer += token;
-
-            // 转义HTML特殊字符并显示
-            llmOutput.innerHTML = escapeHtml(uploadLLMOutputBuffer)
-                .replace(/\n/g, '<br>')
-                .replace(/\{/g, '<span style="color: #66d9ef;">{</span>')
-                .replace(/\}/g, '<span style="color: #66d9ef;">}</span>')
-                .replace(/"([^"]+)":/g, '<span style="color: #a6e22e;">"$1"</span>:')
-                .replace(/: "([^"]+)"/g, ': <span style="color: #fd971f;">"$1"</span>');
-
-            // 自动滚动到底部
-            llmOutput.scrollTop = llmOutput.scrollHeight;
-        }
-
-        // 添加日志条目
-        function addUploadLogEntry(message, type = 'info') {
-            const progressLog = document.getElementById('uploadProgressLog');
-            if (!progressLog) return;
-
-            const timestamp = new Date().toLocaleTimeString();
-
-            const colors = {
-                'info': '#61dafb',
-                'success': '#4ade80',
-                'warning': '#fbbf24',
-                'error': '#f87171'
-            };
-
-            const color = colors[type] || colors['info'];
-
-            const entry = document.createElement('div');
-            entry.style.cssText = `
-                margin-bottom: 8px;
-                padding: 8px;
-                background: rgba(255, 255, 255, 0.05);
-                border-left: 3px solid ${color};
-                border-radius: 3px;
-                color: ${color};
-                font-family: 'Courier New', monospace;
-            `;
-            entry.innerHTML = `
-                <span style="opacity: 0.6; font-size: 0.85em;">${timestamp}</span>
-                <span style="margin-left: 10px; font-weight: bold;">[${type.toUpperCase()}]</span>
-                <span style="margin-left: 8px;">${message}</span>
-            `;
-
-            progressLog.appendChild(entry);
-            progressLog.scrollTop = progressLog.scrollHeight;
-        }
-
-        // 更新进度条
-        function updateUploadProgress(percent) {
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-
-            if (progressBar) {
-                progressBar.style.width = percent + '%';
-                progressBar.setAttribute('aria-valuenow', percent);
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+                currentProcessingId = result.processing_id;
+                if (uploadSection) uploadSection.style.display = 'none';
+                if (progressSection) progressSection.style.display = 'block';
+                updateUploadStepIndicator(2);
+                startProgressTracking();
+            } else {
+                alert('上传失败: ' + (result.error || '未知错误'));
+                if (submitBtn) submitBtn.disabled = false;
             }
-
-            if (progressText) {
-                progressText.textContent = percent + '%';
-            }
+        } else {
+            alert('上传失败，请重试');
+            if (submitBtn) submitBtn.disabled = false;
         }
-
-        // 处理SSE消息的函数
-        function processUploadSSELine(line) {
-            if (!line.trim()) return;
-
-            if (line.startsWith('data: ')) {
-                try {
-                    const jsonStr = line.slice(6).trim();
-                    if (!jsonStr) return;
-
-                    const data = JSON.parse(jsonStr);
-
-                    if (data.error) {
-                        addUploadLogEntry('❌ 错误: ' + data.error, 'error');
-                        showError('上传失败：' + data.error);
-                        return;
-                    } else if (data.status === 'validating') {
-                        addUploadLogEntry('✓ ' + data.message, 'info');
-                        updateUploadProgress(10);
-                    } else if (data.status === 'creating_records') {
-                        addUploadLogEntry('📝 ' + data.message, 'info');
-                        updateUploadProgress(20);
-                    } else if (data.status === 'file_saved') {
-                        addUploadLogEntry('💾 ' + data.message, 'info');
-                        updateUploadProgress(30);
-                    } else if (data.status === 'vlm_start') {
-                        addUploadLogEntry(data.message, 'warning');
-                        updateUploadProgress(40);
-                    } else if (data.status === 'ocr_start') {
-                        addUploadLogEntry(data.message, 'warning');
-                        updateUploadProgress(40);
-                    } else if (data.status === 'ocr_complete') {
-                        addUploadLogEntry('✓ ' + data.message, 'success');
-                        updateUploadProgress(60);
-                    } else if (data.status === 'ai_start') {
-                        addUploadLogEntry(data.message, 'warning');
-                        // 显示LLM输出区域
-                        const llmCard = document.getElementById('uploadLLMOutputCard');
-                        if (llmCard) llmCard.style.display = 'block';
-                        updateUploadProgress(70);
-                    } else if (data.status === 'llm_token') {
-                        // 实时显示LLM输出的token
-                        appendUploadLLMToken(data.token);
-                    } else if (data.status === 'ai_complete') {
-                        addUploadLogEntry('✓ ' + data.message, 'success');
-                        updateUploadProgress(85);
-                    } else if (data.status === 'saving_start') {
-                        addUploadLogEntry(data.message, 'info');
-                        updateUploadProgress(90);
-                    } else if (data.status === 'complete') {
-                        finalResult = data;
-                        addUploadLogEntry('✅ ' + data.message, 'success');
-                        updateUploadProgress(100);
-                    }
-                } catch (parseError) {
-                    console.warn('跳过无法解析的SSE消息:', parseError.message);
-                }
-            }
-        }
-
-        while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-                if (buffer.trim()) {
-                    processUploadSSELine(buffer);
-                    buffer = '';
-                }
-                break;
-            }
-
-            const chunk = decoder.decode(value, { stream: true });
-            buffer += chunk;
-
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                processUploadSSELine(line);
-            }
-        }
-
-        if (finalResult) {
-            showSuccess({
-                health_checkup_id: finalResult.checkup_id,
-                indicators_count: finalResult.indicators_count
-            });
-        }
-
     } catch (error) {
         console.error('上传失败:', error);
-
-        // 检查是否是超时错误
-        if (error.name === 'AbortError') {
-            showError('上传超时，请检查网络连接后重试');
-        } else if (error.message === '上传已取消') {
-            showError('上传已取消');
-        } else {
-            showError('上传失败: ' + error.message);
-        }
-    } finally {
-        // 清理资源
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-
-        // 释放Wake Lock
-        if (wakeLock !== null) {
-            wakeLock.release()
-                .then(() => {
-                    wakeLock = null;
-                    console.log('Wake Lock released');
-                })
-                .catch((err) => {
-                    console.error(`Wake Lock release error: ${err.name}, ${err.message}`);
-                });
-        }
+        alert('上传失败: ' + error.message);
+        if (submitBtn) submitBtn.disabled = false;
     }
 }
 
-// 开始进度监控
-function startProgressMonitoring() {
+function startProgressTracking() {
+    if (!currentProcessingId) return;
+    
     progressInterval = setInterval(async function() {
         try {
-            const response = await fetch(`{% url "medical_records:api_status" 0 %}`.replace('0', currentProcessingId));
-            const result = await response.json();
-
-            console.log('DEBUG: API response for processing ID', currentProcessingId, ':', result);
-            updateProgress(result);
-
-            // 如果处理完成或失败，停止监控
-            if (result.status === 'completed' || result.status === 'failed') {
-                clearInterval(progressInterval);
-
-                if (result.status === 'completed') {
-                    showSuccess(result);
-                } else {
-                    showError(result.error_message);
+            const response = await fetch(`/api/status/${currentProcessingId}/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                updateProgress(result);
+                
+                if (result.status === 'completed' || result.status === 'failed') {
+                    clearInterval(progressInterval);
+                    if (result.status === 'completed') {
+                        showSuccess(result);
+                    } else {
+                        showError(result.error || '处理失败');
+                    }
                 }
             }
         } catch (error) {
             console.error('获取进度失败:', error);
         }
-    }, 2000); // 每2秒检查一次
+    }, 2000);
 }
 
-// 更新进度
-function updateProgress(data) {
+function updateProgress(result) {
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const statusDetails = document.getElementById('statusDetails');
-
-    progressBar.style.width = data.progress + '%';
-    progressText.textContent = data.progress + '%';
-
-    // 更新状态详情
-    let statusMessage = data.status_message || getStatusMessage(data.status);
-
-    // 只在真正有错误且状态不是完成时显示错误信息
-    if (data.error_message && data.error_message.trim() && data.status === 'failed') {
-        statusMessage += '<br><span class="text-danger">错误: ' + data.error_message + '</span>';
+    
+    if (progressBar && result.progress) {
+        progressBar.style.width = result.progress + '%';
     }
-
-    if (data.indicators_count > 0) {
-        statusMessage += '<br><span class="text-success">已识别 ' + data.indicators_count + ' 项健康指标</span>';
+    if (progressText && result.progress) {
+        progressText.textContent = result.progress + '%';
     }
-    statusDetails.innerHTML = statusMessage;
-
-    // 显示OCR结果
-    if (data.ocr_result) {
-        document.getElementById('ocrResults').style.display = 'block';
-        document.getElementById('ocrLength').textContent = data.ocr_result_length;
-        document.getElementById('ocrContent').textContent = data.ocr_result;
-    }
-
-    // 显示LLM结果
-    if (data.ai_result) {
-        document.getElementById('llmResults').style.display = 'block';
-        document.getElementById('llmCount').textContent = data.ai_indicators_count;
-        document.getElementById('llmContent').textContent = JSON.stringify(data.ai_result, null, 2);
-    }
-
-    // 显示多模态模型结果
-    if (data.vl_model_result) {
-        console.log('DEBUG: Found VL model result:', data.vl_model_result);
-        console.log('DEBUG: VL indicators count:', data.vl_model_result.indicators ? data.vl_model_result.indicators.length : 0);
-
-        // 创建或显示VL模型结果区域
-        let vlResultsDiv = document.getElementById('vlResults');
-        if (!vlResultsDiv) {
-            const llmResults = document.getElementById('llmResults');
-            if (!llmResults) {
-                console.log('DEBUG: llmResults element not found!');
-                return;
-            }
-            vlResultsDiv = llmResults.cloneNode(true);
-            vlResultsDiv.id = 'vlResults';
-            vlResultsDiv.querySelector('.card-header').innerHTML = '<h6 class="mb-0"><i class="bi bi-eye"></i> 多模态模型分析结果</h6>';
-
-            // 修改span ID以避免冲突
-            const llmCountSpan = vlResultsDiv.querySelector('#llmCount');
-            if (llmCountSpan) {
-                llmCountSpan.id = 'vlCount';
-            }
-            const llmContent = vlResultsDiv.querySelector('#llmContent');
-            if (llmContent) {
-                llmContent.id = 'vlContent';
-            }
-
-            llmResults.parentNode.insertBefore(vlResultsDiv, llmResults.nextSibling);
-        }
-
-        vlResultsDiv.style.display = 'block';
-
-        // 计算VL模型指标数量
-        let vlCount = 0;
-        if (data.vl_model_result.indicators && Array.isArray(data.vl_model_result.indicators)) {
-            vlCount = data.vl_model_result.indicators.length;
-        } else if (data.vl_indicators && Array.isArray(data.vl_indicators)) {
-            vlCount = data.vl_indicators.length;
-        }
-
-        console.log('DEBUG: Final VL count:', vlCount);
-        const vlCountSpan = vlResultsDiv.querySelector('#vlCount');
-        if (vlCountSpan) {
-            vlCountSpan.textContent = vlCount;
-            console.log('DEBUG: Successfully updated VL count span');
-        } else {
-            console.log('DEBUG: #vlCount element not found!');
-        }
-
-        // 如果有VL指标，显示具体内容而不是等待信息
-        if (vlCount > 0) {
-            const indicators = data.vl_model_result.indicators || data.vl_indicators || [];
-            let content = '多模态模型成功提取了以下健康指标：\n\n';
-            indicators.forEach((indicator, index) => {
-                const name = indicator.indicator || indicator.indicator_name || '未知指标';
-                const value = indicator.measured_value || indicator.value || 'N/A';
-                const status = indicator.abnormal === '是' || indicator.abnormal === true ? '异常' : '正常';
-                content += `${index + 1}. ${name}: ${value} (${status})\n`;
-            });
-            vlResultsDiv.querySelector('pre').textContent = content;
-        } else {
-            vlResultsDiv.querySelector('pre').textContent = '等待AI分析...';
-        }
-    }
-
-    // 显示最终指标（优先使用多模态模型结果，否则使用传统AI结果）
-    let indicators = [];
-    if (data.vl_model_result && data.vl_model_result.indicators) {
-        indicators = data.vl_model_result.indicators;
-    } else if (data.ai_indicators) {
-        indicators = data.ai_indicators;
-    }
-
-    // 如果有指标数据，显示最终结果
-    if (indicators.length > 0) {
-        document.getElementById('finalResults').style.display = 'block';
-        displayIndicators(indicators);
-
-        // 如果是多模态模型成功且有指标，隐藏传统LLM结果区域（避免重复显示）
-        if (data.vl_model_result && data.vl_model_result.indicators && data.vl_model_result.indicators.length > 0) {
-            const llmResults = document.getElementById('llmResults');
-            if (llmResults) {
-                llmResults.style.display = 'none';
-            }
-        } else {
-            // 确保传统LLM结果区域显示
-            const llmResults = document.getElementById('llmResults');
-            if (llmResults) {
-                llmResults.style.display = 'block';
-            }
-        }
-    }
-    // 如果没有任何指标，显示"无数据"
-    else {
-        document.getElementById('finalResults').style.display = 'none';
-        document.getElementById('noDataMessage').style.display = 'block';
+    if (statusDetails && result.message) {
+        statusDetails.textContent = result.message;
     }
 }
 
-// 显示指标列表
-function displayIndicators(indicators) {
-    const indicatorsList = document.getElementById('indicatorsList');
-    let html = '<div class="row">';
+function showSuccess(result) {
+    updateUploadStepIndicator(3);
+    const successAlert = document.getElementById('successAlert');
+    const successMessage = document.getElementById('successMessage');
+    
+    if (successAlert) successAlert.style.display = 'block';
+    if (successMessage) {
+        successMessage.textContent = `成功处理体检报告，识别出 ${result.indicator_count || 0} 项健康指标`;
+    }
+}
 
-    indicators.forEach((indicator, index) => {
-        const statusClass = indicator.abnormal === '是' ? 'danger' :
-                          indicator.abnormal === '否' ? 'success' : 'warning';
-        const statusText = indicator.abnormal === '是' ? '异常' :
-                        indicator.abnormal === '否' ? '正常' : '待确认';
-
-        html += `
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card border-${statusClass}">
-                    <div class="card-body">
-                        <h6 class="card-title">
-                            <span class="badge bg-${statusClass} me-2">${statusText}</span>
-                            ${indicator.indicator}
-                        </h6>
-                        <div class="row">
-                            <div class="col-6">
-                                <small class="text-muted">检测值:</small><br>
-                                <strong>${indicator.measured_value}</strong>
-                            </div>
-                            <div class="col-6 text-end">
-                                <small class="text-muted">正常范围:</small><br>
-                                <span>${indicator.normal_range || '未提供'}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+function updateUploadStepIndicator(step) {
+    const tabs = ['upload-step1-tab', 'upload-step2-tab', 'upload-step3-tab'];
+    tabs.forEach((tabId, index) => {
+        const tab = document.getElementById(tabId);
+        if (tab) {
+            if (index + 1 === step) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+            if (index + 1 < step) {
+                tab.classList.add('completed');
+                tab.innerHTML = `<i class="bi bi-check-circle"></i> ${tab.textContent.trim()}`;
+            }
+        }
     });
-
-    html += '</div>';
-    indicatorsList.innerHTML = html;
 }
 
-// 获取状态消息
-function getStatusMessage(status) {
-    const statusMessages = {
-        'pending': '等待开始处理...',
-        'uploading': '正在上传文件...',
-        'ocr_processing': '正在进行OCR文字识别...',
-        'ai_processing': '正在进行AI智能分析...',
-        'saving_data': '正在保存数据到数据库...',
-        'completed': '处理完成！',
-        'failed': '处理失败'
-    };
-    return statusMessages[status] || '处理中...';
-}
-
-// 显示错误
 function showError(message) {
-    clearInterval(progressInterval);
-    document.getElementById('errorAlert').style.display = 'block';
-    document.getElementById('errorMessage').textContent = message;
-    document.getElementById('progressBar').classList.remove('progress-bar-animated');
-    document.getElementById('progressBar').classList.add('bg-danger');
-}
-
-// 显示成功
-function showSuccess(data) {
-    clearInterval(progressInterval);
-    document.getElementById('successAlert').style.display = 'block';
-
-    let successMessage = '体检报告处理完成！';
-    if (data.indicators_count) {
-        successMessage += `成功识别 ${data.indicators_count} 项健康指标。`;
-    }
-    if (data.processing_time) {
-        successMessage += `处理耗时: ${data.processing_time}`;
-    }
-
-    document.getElementById('successMessage').textContent = successMessage;
-    document.getElementById('progressBar').classList.remove('progress-bar-animated');
-    document.getElementById('progressBar').classList.add('bg-success');
-
-    // 设置查看详情按钮
-    if (data.health_checkup_id) {
-        const detailUrl = `{% url "medical_records:checkup_detail" 0 %}`.replace('0', data.health_checkup_id);
-        document.getElementById('viewDetailsBtn').onclick = function() {
-            window.location.href = detailUrl;
-        };
-        document.getElementById('viewDetailsBtn').disabled = false;
-    } else {
-        document.getElementById('viewDetailsBtn').onclick = function() {
-            alert('无法获取详情页面链接');
-        };
-        document.getElementById('viewDetailsBtn').disabled = true;
-    }
+    const errorAlert = document.getElementById('errorAlert');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    if (errorAlert) errorAlert.style.display = 'block';
+    if (errorMessage) errorMessage.textContent = message;
 }
 </script>
 {% endblock %}

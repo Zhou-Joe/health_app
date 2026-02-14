@@ -1550,9 +1550,11 @@ def miniprogram_merge_duplicate_checkups(request):
     """合并重复的体检报告"""
     try:
         from django.db import transaction
+        import os
+        import zipfile
+        import io
+        from django.core.files.base import ContentFile
 
-        # 使用 request.data 而不是 json.loads(request.body)
-        # request.data 可以多次访问，而 request.body 只能读取一次
         data = request.data
         target_checkup_id = data.get('target_checkup_id')
         source_checkup_ids = data.get('source_checkup_ids', [])
@@ -1563,7 +1565,6 @@ def miniprogram_merge_duplicate_checkups(request):
                 'message': '缺少必要参数'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # 获取目标报告
         try:
             target_checkup = HealthCheckup.objects.get(
                 id=target_checkup_id,
@@ -1575,7 +1576,6 @@ def miniprogram_merge_duplicate_checkups(request):
                 'message': '目标报告不存在'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        # 获取要合并的源报告
         source_checkups = HealthCheckup.objects.filter(
             id__in=source_checkup_ids,
             user=request.user
@@ -1589,40 +1589,75 @@ def miniprogram_merge_duplicate_checkups(request):
 
         merged_count = 0
         error_messages = []
-        source_checkup_list = list(source_checkups)  # 转换为列表避免迭代时修改QuerySet
+        source_checkup_list = list(source_checkups)
+        zip_created = False
 
-        # 使用事务进行合并
         with transaction.atomic():
+            source_files = []
+            
+            if target_checkup.report_file:
+                source_files.append({
+                    'file': target_checkup.report_file,
+                    'name': f"{target_checkup.checkup_date}_{target_checkup.hospital or '未知机构'}_{os.path.basename(target_checkup.report_file.name)}"
+                })
+            
             for source_checkup in source_checkup_list:
                 try:
-                    # 追加备注
+                    if source_checkup.report_file:
+                        source_files.append({
+                            'file': source_checkup.report_file,
+                            'name': f"{source_checkup.checkup_date}_{source_checkup.hospital or '未知机构'}_{os.path.basename(source_checkup.report_file.name)}"
+                        })
+                    
                     if source_checkup.notes:
                         if target_checkup.notes:
                             target_checkup.notes = f"{target_checkup.notes}\n[来自合并] {source_checkup.notes}"
                         else:
                             target_checkup.notes = f"[来自合并] {source_checkup.notes}"
 
-                    # 迁移指标到目标报告
                     indicators_moved = source_checkup.indicators.all().update(
                         checkup=target_checkup
                     )
 
-                    # 删除源报告
                     source_checkup.delete()
-
                     merged_count += 1
 
                 except Exception as e:
                     error_messages.append(f"合并报告 {source_checkup.id} 失败: {str(e)}")
 
-            # 保存目标报告的备注更新
-            if source_checkup_list:
-                target_checkup.save()
+            if source_files:
+                try:
+                    zip_buffer = io.BytesIO()
+                    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                        for sf in source_files:
+                            try:
+                                file_content = sf['file'].read()
+                                safe_name = "".join(c for c in sf['name'] if c.isalnum() or c in '._- ')
+                                zip_file.writestr(safe_name, file_content)
+                            except Exception as e:
+                                error_messages.append(f"读取文件失败: {str(e)}")
+                    
+                    zip_buffer.seek(0)
+                    zip_content = zip_buffer.read()
+                    zip_filename = f"merged_{target_checkup.checkup_date}_{target_checkup.hospital or '整合报告'}.zip"
+                    zip_filename = "".join(c for c in zip_filename if c.isalnum() or c in '._- ')
+                    
+                    target_checkup.report_file.save(
+                        zip_filename,
+                        ContentFile(zip_content),
+                        save=False
+                    )
+                    zip_created = True
+                except Exception as e:
+                    error_messages.append(f"创建ZIP失败: {str(e)}")
+
+            target_checkup.save()
 
         return Response({
             'success': True,
-            'message': f'成功合并 {merged_count} 份报告',
+            'message': f'成功合并 {merged_count} 份报告' + ('，源文件已打包' if zip_created else ''),
             'merged_count': merged_count,
+            'zip_created': zip_created,
             'errors': error_messages
         })
 

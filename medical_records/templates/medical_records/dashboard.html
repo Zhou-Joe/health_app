@@ -4,942 +4,932 @@
 
 {% block extra_css %}
 <style>
-/* ═══════════════════════════════════════════════════════════
-   NEO-BRUTALIST MEDICAL DASHBOARD - 新野兽派医疗仪表板
-   ═══════════════════════════════════════════════════════════ */
+/* 专业医疗仪表板样式 */
 
-:root {
-    --brutal-yellow: #FFD60A;
-    --brutal-cyan: #14b8a6;
-    --brutal-pink: #FF5C8D;
-    --brutal-blue: #4C8BF5;
-    --brutal-green: #06FFA5;
-    --brutal-red: #FF4757;
-    --brutal-black: #000000;
-    --brutal-white: #FFFFFF;
-    --border-thick: 3px solid #000;
-    --shadow-hard: 6px 6px 0px #000;
-    --shadow-hard-sm: 4px 4px 0px #000;
+.dashboard-header {
+    margin-bottom: 2rem;
 }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    background: #FAFAFA;
-    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
-    color: #000;
-    overflow-x: hidden;
-}
-
-/* 页面背景 - 棋盘格图案 */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image:
-        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.container-fluid {
-    position: relative;
-    z-index: 1;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   超大标题 - 粗体，冲击力
-   ═══════════════════════════════════════════════════════════ */
-
-h1 {
-    font-size: 3.5rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: -0.03em;
-    line-height: 0.9;
+.dashboard-header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
-    position: relative;
-    display: inline-block;
 }
 
-h1::before {
-    content: '健康数据仪表板';
-    position: absolute;
-    left: 4px;
-    top: 4px;
-    z-index: -1;
-    color: var(--brutal-yellow);
-    opacity: 1;
+.dashboard-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    padding-left: 0;
+    border-left: none;
 }
 
-h1 i {
-    display: none;
-}
-
-/* 副标题 - 不对称布局 */
-p {
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: #333;
-    margin-bottom: 0;
-    padding-left: 1rem;
-    border-left: 4px solid var(--brutal-cyan);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   野兽派卡片 - 粗边框 + 硬阴影
-   ═══════════════════════════════════════════════════════════ */
-
-.dashboard-card {
-    background: var(--brutal-white);
-    border: var(--border-thick);
-    border-radius: 0;
-    box-shadow: var(--shadow-hard);
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    margin-bottom: 1.5rem;
-}
-
-.dashboard-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 8px 8px 0px #000;
-}
-
-.dashboard-card .card-header {
-    background: transparent;
-    border-bottom: var(--border-thick);
+/* 统计卡片 */
+.stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
     padding: 1.5rem;
-    border-radius: 0;
+    transition: var(--transition);
+    height: 100%;
 }
 
-.dashboard-card .card-header h6,
-.dashboard-card .card-header h5 {
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 1rem;
-    margin: 0;
-}
-
-.dashboard-card .card-body {
-    padding: 1.5rem;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   野兽派按钮 - 粗体，硬阴影，hover时偏移
-   ═══════════════════════════════════════════════════════════ */
-
-.btn {
-    border: var(--border-thick);
-    border-radius: 0;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.875rem 1.5rem;
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.1s ease;
-    position: relative;
-}
-
-.btn:active {
-    transform: translate(2px, 2px);
-    box-shadow: 2px 2px 0px #000;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--brutal-cyan), var(--brutal-green));
-    color: #000;
-    border-color: var(--brutal-cyan);
-}
-
-.btn-primary:hover {
-    background: linear-gradient(135deg, var(--brutal-green), #06FFA5);
-    border-color: var(--brutal-green);
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-.btn-outline-primary {
-    background: transparent;
-    border-color: var(--brutal-cyan);
-    color: var(--brutal-cyan);
-}
-
-.btn-outline-primary:hover {
-    background: linear-gradient(135deg, var(--brutal-cyan), var(--brutal-green));
-    color: #000;
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-.btn-outline-danger {
-    background: transparent;
-    border-color: var(--brutal-pink);
-    color: var(--brutal-pink);
-}
-
-.btn-outline-danger:hover {
-    background: linear-gradient(135deg, var(--brutal-pink), #FF8A7A);
-    color: #000;
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-.btn-outline-info {
-    background: transparent;
-    border-color: var(--brutal-blue);
-    color: var(--brutal-blue);
-}
-
-.btn-outline-info:hover {
-    background: linear-gradient(135deg, var(--brutal-blue), #7C9FFF);
-    color: #000;
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   野兽派徽章 - 纯色背景，粗边框
-   ═══════════════════════════════════════════════════════════ */
-
-.badge {
-    padding: 0.5rem 0.875rem;
-    border: 2px solid #000;
-    border-radius: 0;
-    font-weight: 800;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    box-shadow: 2px 2px 0px #000;
-}
-
-.badge.bg-primary {
-    background: var(--brutal-cyan);
-    color: #000;
-}
-
-.badge.bg-success {
-    background: var(--brutal-green);
-    color: #000;
-}
-
-.badge.bg-danger {
-    background: var(--brutal-red);
-    color: #FFF;
-}
-
-.badge.bg-warning {
-    background: var(--brutal-yellow);
-    color: #000;
-}
-
-.badge.bg-info {
-    background: var(--brutal-blue);
-    color: #FFF;
-}
-
-.badge.bg-light {
-    background: var(--brutal-white);
-    color: #000;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   指标卡片 - 彩色顶部边框
-   ═══════════════════════════════════════════════════════════ */
-
-.indicator-card {
-    background: var(--brutal-white);
-    border: var(--border-thick);
-    border-top: 6px solid var(--brutal-cyan);
-    border-radius: 0;
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.15s ease;
-}
-
-.indicator-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-.indicator-card .card-header {
-    background: transparent;
-    border-bottom: var(--border-thick);
-    padding: 1rem;
-    color: #000;
-}
-
-.indicator-card .card-header h6 {
-    font-weight: 800;
-    text-transform: uppercase;
-    font-size: 0.875rem;
-}
-
-.indicator-card .card-body {
-    padding: 1rem;
-    background: #FFF;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   数据表格 - 粗边框，斑马纹
-   ═══════════════════════════════════════════════════════════ */
-
-.indicator-table {
-    margin-bottom: 0;
-    font-size: 0.875rem;
-}
-
-.indicator-table thead th {
-    background: var(--brutal-green);
-    color: #000;
-    font-weight: 800;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    padding: 0.875rem;
-    border: none;
-}
-
-.indicator-table tbody td {
-    padding: 0.875rem;
-    border-bottom: 2px solid #000;
-    color: #000;
-}
-
-.indicator-table tbody tr:nth-child(even) {
-    background: #F5F5F5;
-}
-
-.indicator-table tbody tr:hover {
-    background: var(--brutal-yellow);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   标签页 - 粗边框，硬阴影
-   ═══════════════════════════════════════════════════════════ */
-
-.nav-tabs {
-    border-bottom: var(--border-thick);
-    gap: 0;
-}
-
-.nav-tabs .nav-link {
-    border: 2px solid #000;
-    border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    background: #F5F5F5;
-    color: #000;
-    font-weight: 700;
-    padding: 1rem 1.5rem;
-    margin-right: 0.5rem;
-    transition: all 0.15s ease;
-}
-
-.nav-tabs .nav-link:hover {
-    background: var(--brutal-yellow);
+.stat-card:hover {
+    box-shadow: var(--shadow-md);
     transform: translateY(-2px);
 }
 
-.nav-tabs .nav-link.active {
-    background: var(--brutal-cyan);
-    color: #000;
-    border-color: #000;
-    border-bottom: 2px solid #FFF;
-    margin-bottom: -2px;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   进度条 - 纯色填充
-   ═══════════════════════════════════════════════════════════ */
-
-.progress {
-    height: 12px;
-    border: 2px solid #000;
-    border-radius: 0;
-    background: #F5F5F5;
-}
-
-.progress-bar {
-    border-radius: 0;
-    transition: width 0.3s ease;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Alert - 纯色背景 + 粗边框
-   ═══════════════════════════════════════════════════════════ */
-
-.alert {
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 1rem 1.25rem;
-    font-weight: 600;
-    box-shadow: var(--shadow-hard-sm);
-}
-
-.alert-danger {
-    background: var(--brutal-red);
-    color: #FFF;
-    border-color: #000;
-}
-
-.alert-success {
-    background: var(--brutal-green);
-    color: #000;
-    border-color: #000;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   卡片彩色边框
-   ═══════════════════════════════════════════════════════════ */
-
-.card.border-danger {
-    border-left: 6px solid var(--brutal-red) !important;
-}
-
-.card.border-success {
-    border-left: 6px solid var(--brutal-green) !important;
-}
-
-.card.border-warning {
-    border-left: 6px solid var(--brutal-yellow) !important;
-}
-
-.card.border-info {
-    border-left: 6px solid var(--brutal-blue) !important;
-}
-
-.card.border-danger .card-header {
-    background: var(--brutal-red);
-    color: #FFF;
-    border-bottom-color: #000 !important;
-}
-
-.card.border-info .card-header {
-    background: var(--brutal-blue);
-    color: #FFF;
-    border-bottom-color: #000 !important;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   文字颜色重置
-   ═══════════════════════════════════════════════════════════ */
-
-.text-muted {
-    color: #666 !important;
-    font-weight: 500;
-}
-
-.fw-bold {
-    color: #000 !important;
-    font-weight: 800 !important;
-}
-
-.border-bottom {
-    border-color: #000 !important;
-    border-width: 2px;
-}
-
-/* 首页事件时间线 */
-.dashboard-events-timeline {
-    position: relative;
-    padding-left: 1rem;
-}
-
-.dashboard-events-timeline::before {
-    content: '';
-    position: absolute;
-    left: 13px;
-    top: 8px;
-    bottom: 8px;
-    width: 4px;
-    background: #000;
-}
-
-.dashboard-events-item {
-    position: relative;
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
     display: flex;
-    align-items: flex-start;
-    gap: 0.875rem;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
     margin-bottom: 1rem;
 }
 
-.dashboard-events-item:last-child {
-    margin-bottom: 0;
+.stat-icon.primary {
+    background: var(--primary-soft);
+    color: var(--primary);
 }
 
-.dashboard-events-dot {
-    width: 20px;
-    height: 20px;
-    border: 3px solid #000;
-    box-shadow: 2px 2px 0 #000;
-    flex-shrink: 0;
-    margin-top: 0.625rem;
-    position: relative;
-    z-index: 1;
-    background: #fff;
+.stat-icon.success {
+    background: #d1fae5;
+    color: var(--success);
 }
 
-.dashboard-events-dot.illness { background: var(--brutal-red); }
-.dashboard-events-dot.checkup { background: var(--brutal-blue); }
-.dashboard-events-dot.chronic_management { background: #A855F7; }
-.dashboard-events-dot.emergency { background: #FB923C; }
-.dashboard-events-dot.wellness { background: var(--brutal-green); }
-.dashboard-events-dot.medication_course { background: var(--brutal-pink); }
-.dashboard-events-dot.other { background: #94A3B8; }
-
-.dashboard-events-card {
-    border: 2px solid #000;
-    box-shadow: var(--shadow-hard-sm);
-    background: #fff;
-    padding: 0.875rem;
-    flex: 1;
+.stat-icon.warning {
+    background: #fef3c7;
+    color: var(--warning);
 }
 
-.dashboard-events-meta {
+.stat-icon.info {
+    background: #dbeafe;
+    color: var(--info);
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.stat-change {
     font-size: 0.8125rem;
-    color: #4b5563;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
-.dashboard-event-status {
-    border: 2px solid #000;
+.stat-change.positive {
+    color: var(--success);
+}
+
+.stat-change.negative {
+    color: var(--danger);
+}
+
+/* 指标卡片 */
+.indicator-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    transition: var(--transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.indicator-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.indicator-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.indicator-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.indicator-icon.blood-pressure {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.indicator-icon.heart-rate {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.indicator-icon.blood-sugar {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.indicator-icon.weight {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.indicator-icon.temperature {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.indicator-icon.oxygen {
+    background: #ccfbf1;
+    color: #0d9488;
+}
+
+.indicator-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.indicator-subtitle {
     font-size: 0.75rem;
-    font-weight: 800;
+    color: var(--text-muted);
 }
 
-.dashboard-event-status.pending {
-    background: #FB923C;
-    color: #111827;
+.indicator-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
 }
 
-.dashboard-event-status.observing {
-    background: #FFD60A;
-    color: #111827;
+.indicator-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: auto;
 }
 
-.dashboard-event-status.recovered {
-    background: #06FFA5;
-    color: #111827;
+.indicator-status.normal {
+    background: #d1fae5;
+    color: #065f46;
 }
 
-.dashboard-event-status-row {
+.indicator-status.warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.indicator-status.danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.indicator-status i {
+    font-size: 0.625rem;
+}
+
+/* 图表容器 */
+.chart-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.chart-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.chart-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.chart-actions .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+/* 事件时间线 */
+.events-timeline {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+}
+
+.events-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.events-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+/* S型时间轴样式 */
+.s-timeline {
+    position: relative;
+    padding: 1rem 0;
+}
+
+.s-timeline::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light, #5eead4) 50%, var(--primary) 100%);
+    transform: translateX(-50%);
+    border-radius: 3px;
+}
+
+.s-timeline-item {
+    position: relative;
+    width: 50%;
+    padding: 0 1.5rem 1.5rem;
+}
+
+.s-timeline-item.left {
+    left: 0;
+    text-align: right;
+    padding-right: 2rem;
+}
+
+.s-timeline-item.right {
+    left: 50%;
+    text-align: left;
+    padding-left: 2rem;
+}
+
+.s-timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 0.5rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    border: 3px solid var(--bg-card);
+    box-shadow: 0 0 0 3px var(--primary);
+    z-index: 1;
+}
+
+.s-timeline-item.left::before {
+    right: -7px;
+}
+
+.s-timeline-item.right::before {
+    left: -7px;
+}
+
+.s-timeline-content {
+    background: var(--bg-soft);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    transition: var(--transition);
+}
+
+.s-timeline-content:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.s-timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.s-timeline-item.left .s-timeline-header {
+    flex-direction: row-reverse;
+}
+
+.s-timeline-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.s-timeline-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.s-timeline-item.left .s-timeline-title {
+    text-align: right;
+}
+
+.s-timeline-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.s-timeline-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.s-timeline-item.left .s-timeline-meta {
+    justify-content: flex-end;
+}
+
+.s-timeline-items {
+    border-top: 1px dashed var(--border-color);
+    padding-top: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.s-timeline-item-record {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.s-timeline-item.left .s-timeline-item-record {
+    flex-direction: row-reverse;
+}
+
+.s-timeline-status {
+    margin-top: 0.5rem;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.status-badge.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.status-observing {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.status-badge.status-recovered {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-sm {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+}
+
+/* 响应式：移动端改为单列 */
+@media (max-width: 768px) {
+    .s-timeline::before {
+        left: 0.5rem;
+    }
+    
+    .s-timeline-item {
+        width: 100%;
+        left: 0 !important;
+        text-align: left !important;
+        padding-left: 2rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    .s-timeline-item::before {
+        left: -1.43rem !important;
+        right: auto !important;
+    }
+    
+    .s-timeline-item .s-timeline-header {
+        flex-direction: row !important;
+    }
+    
+    .s-timeline-item .s-timeline-title,
+    .s-timeline-item .s-timeline-meta,
+    .s-timeline-item .s-timeline-item-record {
+        text-align: left !important;
+        justify-content: flex-start !important;
+        flex-direction: row !important;
+    }
+}
+
+/* 数据表格 */
+.data-table {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.data-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.data-table-body {
+    padding: 0;
+}
+
+.data-table .table {
+    margin-bottom: 0;
+}
+
+.data-table .table th {
+    background: var(--bg-soft);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-table .table td {
+    padding: 1rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.data-table .table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table .table tr:hover td {
+    background: var(--bg-soft);
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+.empty-state h6 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+/* 快速操作 */
+.quick-actions {
+    display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
 }
 
-.dashboard-event-status-left {
+.quick-actions .btn {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.dashboard-event-status-hint {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #111827;
-}
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+    }
 
-.dashboard-event-status-editor {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
+    .stat-value {
+        font-size: 1.5rem;
+    }
 
-.dashboard-event-status-editor .form-select {
-    border: 2px solid #000;
-    border-radius: 0;
-    box-shadow: 2px 2px 0 #000;
-    font-size: 0.75rem;
-    font-weight: 700;
-    min-width: 120px;
-    height: auto;
-    line-height: 1.2;
-    padding: 0.35rem 1.75rem 0.35rem 0.55rem;
-}
+    .indicator-value {
+        font-size: 1.25rem;
+    }
 
-.dashboard-status-save-btn {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.72rem;
-    line-height: 1.1;
-}
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
 
-.dashboard-status-feedback {
-    min-height: 1rem;
-    margin-top: 0.25rem;
-    font-size: 0.72rem;
-    font-weight: 700;
-}
+    .events-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
 
-.dashboard-status-feedback.success {
-    color: #047857;
-}
-
-.dashboard-status-feedback.error {
-    color: #b91c1c;
-}
-
-.dashboard-status-feedback.pending {
-    color: #374151;
+    .data-table-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- 页面标题 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex align-items-center gap-3">
-                <div class="flex-grow-1">
-                    <h1 class="mb-1 fw-bold" style="color: var(--text-primary);">
-                        <i class="bi bi-heart-pulse-fill" style="color: var(--primary);"></i> 健康数据仪表板
-                    </h1>
-                    <p class="mb-0" style="color: var(--text-secondary);">全面掌控您的健康状况</p>
+<div class="dashboard-header">
+    <h1>健康数据仪表板</h1>
+    <p>查看您的健康指标趋势和最新记录</p>
+</div>
+
+<!-- 统计概览 -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'medical_records:all_checkups' %}" class="text-decoration-none">
+            <div class="stat-card" title="点击查看所有记录">
+                <div class="stat-icon primary">
+                    <i class="bi bi-clipboard-data"></i>
                 </div>
+                <div class="stat-value">{{ total_records }}</div>
+                <div class="stat-label">总记录数 <i class="bi bi-box-arrow-up-right small"></i></div>
+                <div class="stat-change positive">
+                    <i class="bi bi-arrow-up-short"></i>
+                    <span>本月新增 {{ monthly_records }}</span>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon success">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-value">{{ normal_indicators }}</div>
+            <div class="stat-label">正常指标</div>
+            <div class="stat-change positive">
+                <i class="bi bi-arrow-up-short"></i>
+                <span>占比 {{ normal_percentage }}%</span>
             </div>
         </div>
     </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon warning">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-value">{{ warning_indicators }}</div>
+            <div class="stat-label">需关注指标</div>
+            <div class="stat-change {% if warning_indicators > 0 %}negative{% else %}positive{% endif %}">
+                <i class="bi bi-{% if warning_indicators > 0 %}arrow-up{% else %}check{% endif %}"></i>
+                <span>{% if warning_indicators > 0 %}需要关注{% else %}状态良好{% endif %}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-icon info">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+            <div class="stat-value">{{ days_since_last_record }}</div>
+            <div class="stat-label">距上次记录(天)</div>
+            <div class="stat-change {% if days_since_last_record > 7 %}negative{% else %}positive{% endif %}">
+                <i class="bi bi-{% if days_since_last_record > 7 %}exclamation{% else %}check{% endif %}"></i>
+                <span>{% if days_since_last_record > 7 %}建议及时记录{% else %}记录及时{% endif %}</span>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <div class="row">
-        <!-- 顶部信息栏 -->
-        <div class="col-12 mb-4">
-            <div class="row">
-                <!-- 最近体检报告 -->
-                <div class="col-lg-6 mb-3">
-                    <div class="card dashboard-card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">
-                                <i class="bi bi-file-text"></i> 我的体检报告
-                            </h6>
-                            {% if total_checkups > 0 %}
-                            <span class="badge bg-primary">{{ total_checkups }} 份</span>
-                            {% endif %}
-                        </div>
-                        <div class="card-body">
-                            {% if all_checkups %}
-                                {% for checkup_data in all_checkups|slice:":10" %}
-                                {% with checkup=checkup_data.checkup %}
-                                <div class="d-flex justify-content-between align-items-start mb-3 {% if not forloop.last %}border-bottom pb-2{% endif %}">
-                                    <div class="flex-grow-1">
-                                        <div class="d-flex align-items-center mb-1">
-                                            {% if checkup.notes %}
-                                            <div class="fw-bold me-2">{{ checkup.notes }}</div>
-                                            {% else %}
-                                            <div class="fw-bold me-2">{{ checkup.checkup_date|date:"Y年m月d日" }}</div>
-                                            {% endif %}
-                                            <span class="text-muted small">{{ checkup.hospital }}</span>
-                                        </div>
-                                        <div class="text-muted small mb-2">{{ checkup.checkup_date|date:"Y年m月d日" }}</div>
+<!-- 快速操作 -->
+<div class="mb-4">
+    <div class="quick-actions">
+        <a href="{% url 'medical_records:upload_report' %}" class="btn btn-primary">
+            <i class="bi bi-cloud-arrow-up"></i>
+            上传体检报告
+        </a>
+        <a href="{% url 'medical_records:manual_input' %}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil"></i>
+            手动录入数据
+        </a>
+        <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-sparkles"></i>
+            获取AI建议
+        </a>
+    </div>
+</div>
 
-                                        <!-- 指标状态统计 -->
-                                        {% if checkup_data.total_count > 0 %}
-                                        <div class="d-flex gap-2">
-                                            {% if checkup_data.normal_count > 0 %}
-                                            <span class="badge bg-success status-badge">
-                                                <i class="bi bi-check-circle"></i> 正常: {{ checkup_data.normal_count }}
-                                            </span>
-                                            {% endif %}
-                                            {% if checkup_data.attention_count > 0 %}
-                                            <span class="badge bg-warning text-dark status-badge">
-                                                <i class="bi bi-exclamation-circle"></i> 关注: {{ checkup_data.attention_count }}
-                                            </span>
-                                            {% endif %}
-                                            {% if checkup_data.abnormal_count > 0 %}
-                                            <span class="badge bg-danger status-badge">
-                                                <i class="bi bi-exclamation-triangle"></i> 异常: {{ checkup_data.abnormal_count }}
-                                            </span>
-                                            {% endif %}
-                                            <span class="text-muted small">共 {{ checkup_data.total_count }} 项</span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    <div class="d-flex gap-1">
-                                        <a href="{% url 'medical_records:checkup_detail' checkup.id %}" class="btn btn-sm btn-outline-primary" title="查看">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <button onclick="deleteCheckup({{ checkup.id }})" class="btn btn-sm btn-outline-danger" title="删除">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                {% endwith %}
-                                {% endfor %}
-                                {% if all_checkups|length > 10 %}
-                                <div class="text-center mt-2">
-                                    <span class="text-muted small d-block mb-2">还有 {{ all_checkups|length|add:"-10" }} 条记录未显示</span>
-                                    <a href="{% url 'medical_records:all_checkups' %}" class="btn btn-outline-primary btn-sm">
-                                        <i class="bi bi-list me-1"></i>查看全部 ({{ all_checkups|length }} 份)
-                                    </a>
-                                </div>
-                                {% endif %}
-                                <div class="mt-3">
-                                    <a href="{% url 'medical_records:upload_report' %}" class="btn btn-primary btn-sm w-100">
-                                        <i class="bi bi-plus"></i> 上传新报告
-                                    </a>
-                                </div>
-                            {% else %}
-                                <div class="text-center py-3">
-                                    <p class="text-muted small mb-3">暂无体检报告</p>
-                                    <a href="{% url 'medical_records:upload_report' %}" class="btn btn-primary btn-sm">
-                                        上传第一份报告
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
+<div class="row g-4">
+    <!-- 左侧：健康指标趋势表格 -->
+    <div class="col-lg-8">
+        <!-- 健康指标趋势 - 紧凑型标签页布局 -->
+        {% if indicator_trends %}
+            <div class="data-table mb-4">
+                <div class="data-table-header">
+                    <h6 class="data-table-title">
+                        <i class="bi bi-graph-up me-2"></i>健康指标趋势
+                    </h6>
                 </div>
-
-                <!-- 异常指标提醒 -->
-                <div class="col-lg-6 mb-3">
-                    <div class="card dashboard-card border-danger h-100">
-                        <div class="card-header bg-danger text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-exclamation-triangle"></i> 异常指标提醒
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            {% if abnormal_indicators %}
-                                {% for indicator in abnormal_indicators %}
-                                <div class="alert alert-danger alert-sm mb-2 py-2">
-                                    <div class="fw-bold">{{ indicator.indicator_name }}</div>
-                                    <div class="small">
-                                        {{ indicator.value }} {{ indicator.unit }}
-                                        <br>
-                                        <span class="text-muted">{{ indicator.checkup.checkup_date|date:"Y-m-d" }}</span>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                                <div class="mt-3">
-                                    <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-outline-danger btn-sm w-100">
-                                        <i class="bi bi-robot"></i> 咨询AI医生
-                                    </a>
-                                </div>
-                            {% else %}
-                                <div class="text-center py-3">
-                                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                                    <p class="text-muted small mb-0 mt-2">暂无异常指标</p>
-                                </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 用药提醒 -->
-                {% if has_medication_reminders %}
-                <div class="col-12 mb-3">
-                    <div class="card dashboard-card border-info h-100">
-                        <div class="card-header bg-info text-white">
-                            <h6 class="mb-0">
-                                <i class="bi bi-capsule"></i> 用药提醒
-                                <span class="badge bg-light text-info ms-2">{{ medication_reminders|length }} 种药</span>
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                {% for reminder in medication_reminders %}
-                                <div class="col-md-6 mb-3">
-                                    <div class="card {% if reminder.taken_today %}border-success{% else %}border-warning{% endif %}">
-                                        <div class="card-body p-3">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1">
-                                                        <i class="bi bi-pills"></i> {{ reminder.medication.medicine_name }}
-                                                    </h6>
-                                                    <div class="text-muted small">
-                                                        {{ reminder.medication.dosage }}
-                                                    </div>
-                                                </div>
-                                                {% if reminder.taken_today %}
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check-circle"></i> 已服药
-                                                </span>
+                <div class="data-table-body p-0">
+                    <!-- 标签页导航 -->
+                    <ul class="nav nav-tabs nav-fill border-bottom" id="indicatorTabs" role="tablist">
+                        {% for trend in indicator_trends %}
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {% if forloop.first %}active{% endif %}" 
+                                    id="tab-{{ forloop.counter }}" 
+                                    data-bs-toggle="tab" 
+                                    data-bs-target="#panel-{{ forloop.counter }}" 
+                                    type="button" role="tab">
+                                {{ trend.category_name }}
+                                <span class="badge bg-secondary ms-1">{{ trend.indicators|length }}</span>
+                            </button>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <!-- 标签页内容 -->
+                    <div class="tab-content p-3" id="indicatorTabContent">
+                        {% for trend in indicator_trends %}
+                        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" 
+                             id="panel-{{ forloop.counter }}" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 22%;">指标名称</th>
+                                            <th style="width: 12%;">最新值</th>
+                                            <th style="width: 8%;">单位</th>
+                                            <th style="width: 18%;">参考范围</th>
+                                            <th style="width: 10%;">状态</th>
+                                            <th style="width: 10%;">趋势</th>
+                                            <th style="width: 20%;">历史记录</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for indicator in trend.indicators %}
+                                        <tr>
+                                            <td class="fw-medium">{{ indicator.name }}</td>
+                                            <td class="fw-bold text-primary">{{ indicator.records.0.value }}</td>
+                                            <td class="text-muted small">{{ indicator.records.0.unit }}</td>
+                                            <td class="text-muted small">{{ indicator.records.0.reference_range|default:"-" }}</td>
+                                            <td>
+                                                {% if indicator.records.0.status == 'normal' %}
+                                                    <span class="badge bg-success">正常</span>
+                                                {% elif indicator.records.0.status == 'attention' %}
+                                                    <span class="badge bg-warning text-dark">需关注</span>
+                                                {% elif indicator.records.0.status == 'abnormal' %}
+                                                    <span class="badge bg-danger">异常</span>
                                                 {% else %}
-                                                <span class="badge bg-warning text-dark">
-                                                    <i class="bi bi-clock"></i> 待服药
-                                                </span>
+                                                    <span class="badge bg-secondary">-</span>
                                                 {% endif %}
-                                            </div>
-
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <div class="small text-muted">
-                                                    <i class="bi bi-calendar3"></i>
-                                                    {{ reminder.medication.start_date|date:"m月d日" }} -
-                                                    {{ reminder.medication.end_date|date:"m月d日" }}
-                                                    <span class="ms-2">
-                                                        剩余 {{ reminder.days_remaining }} 天
+                                            </td>
+                                            <td>
+                                                {% if indicator.trend == 'up' %}
+                                                    <span class="text-danger" title="较上次升高">
+                                                        <i class="bi bi-arrow-up-circle-fill"></i>
                                                     </span>
-                                                </div>
-                                                <div class="small" title="服药进度">
-                                                    <div class="progress" style="height: 6px; width: 80px;">
-                                                        <div class="progress-bar {% if reminder.progress_percentage >= 80 %}bg-success{% elif reminder.progress_percentage >= 50 %}bg-info{% else %}bg-warning{% endif %}"
-                                                             style="width: {{ reminder.progress_percentage }}%"
-                                                             role="progressbar"></div>
-                                                    </div>
-                                                    <span class="text-muted">{{ reminder.progress_percentage }}%</span>
-                                                </div>
-                                            </div>
-
-                                            {% if not reminder.taken_today %}
-                                            <div class="mt-2">
-                                                <a href="{% url 'medical_records:health_management' %}?tab=medications"
-                                                   class="btn btn-sm btn-outline-primary w-100">
-                                                    <i class="bi bi-check2-square"></i> 打卡服药
-                                                </a>
-                                            </div>
-                                            {% endif %}
-
-                                            {% if reminder.medication.notes %}
-                                            <div class="mt-2 text-muted small">
-                                                <i class="bi bi-sticky"></i> {{ reminder.medication.notes }}
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-
-                            <div class="mt-3">
-                                <a href="{% url 'medical_records:health_management' %}?tab=medications" class="btn btn-outline-info btn-sm w-100">
-                                    <i class="bi bi-list-ul"></i> 查看所有药单
-                                </a>
+                                                {% elif indicator.trend == 'down' %}
+                                                    <span class="text-success" title="较上次降低">
+                                                        <i class="bi bi-arrow-down-circle-fill"></i>
+                                                    </span>
+                                                {% elif indicator.trend == 'stable' %}
+                                                    <span class="text-secondary" title="持平">
+                                                        <i class="bi bi-dash-circle-fill"></i>
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="text-muted small">
+                                                    {{ indicator.records|length }} 条记录
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endif %}
-
-                <!-- 健康事件（整合自事件页） -->
-                <div class="col-12 mb-3">
-                    <div class="card dashboard-card border-warning h-100">
-                        <div class="card-header bg-warning text-dark">
-                            <h6 class="mb-0 d-flex align-items-center justify-content-between">
-                                <span><i class="bi bi-clock-history"></i> 健康事件</span>
-                                <span class="badge bg-light text-dark">{{ total_events }} 个</span>
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            {% if recent_events %}
-                                <div class="dashboard-events-timeline">
-                                    {% for event in recent_events %}
-                                    <div class="dashboard-events-item">
-                                        <div class="dashboard-events-dot {{ event.event_type }}"></div>
-                                        <div class="dashboard-events-card">
-                                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                                <div class="fw-bold">{{ event.name }}</div>
-                                                <span class="badge bg-dark">{{ event.get_event_type_display }}</span>
-                                            </div>
-                                            <div class="dashboard-events-meta mb-1">
-                                                <div class="dashboard-event-status-row">
-                                                    <div class="dashboard-event-status-left">
-                                                        <span class="badge dashboard-event-status {{ event.status }}" id="eventStatusBadge-{{ event.id }}">{{ event.get_status_display }}</span>
-                                                        <span class="dashboard-event-status-hint {% if event.status != 'observing' %}d-none{% endif %}" id="eventStatusHint-{{ event.id }}">
-                                                            请确认状态
-                                                        </span>
-                                                    </div>
-                                                    <div class="dashboard-event-status-editor">
-                                                        <select class="form-select form-select-sm" id="eventStatusSelect-{{ event.id }}">
-                                                            <option value="observing" {% if event.status == 'observing' %}selected{% endif %}>观察中</option>
-                                                            <option value="pending" {% if event.status == 'pending' %}selected{% endif %}>待处理</option>
-                                                            <option value="recovered" {% if event.status == 'recovered' %}selected{% endif %}>治愈</option>
-                                                        </select>
-                                                        <button type="button" class="btn btn-outline-dark btn-sm dashboard-status-save-btn" id="eventStatusSaveBtn-{{ event.id }}" onclick="updateDashboardEventStatus({{ event.id }})">
-                                                            保存
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="dashboard-status-feedback" id="eventStatusFeedback-{{ event.id }}"></div>
-                                            </div>
-                                            <div class="dashboard-events-meta mb-1">
-                                                <i class="bi bi-calendar3"></i>
-                                                {{ event.start_date|date:"Y-m-d" }}
-                                                {% if event.end_date %} ~ {{ event.end_date|date:"Y-m-d" }}{% endif %}
-                                            </div>
-                                            <div class="dashboard-events-meta mb-2">
-                                                <i class="bi bi-list-check"></i> {{ event.item_count }} 条记录
-                                                <span class="ms-2"><i class="bi bi-hourglass-split"></i> {{ event.duration_days }} 天</span>
-                                            </div>
-                                            <a href="{% url 'medical_records:event_detail' event.id %}" class="btn btn-sm btn-outline-primary">
-                                                查看详情
-                                            </a>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                                <div class="mt-3 d-flex gap-2">
-                                    <button class="btn btn-outline-warning btn-sm" onclick="autoClusterDashboardEvents()">
-                                        <i class="bi bi-magic"></i> 自动聚类事件
-                                    </button>
-                                    <a href="{% url 'medical_records:dashboard' %}" class="btn btn-outline-secondary btn-sm">
-                                        <i class="bi bi-arrow-clockwise"></i> 刷新事件列表
-                                    </a>
-                                </div>
-                            {% else %}
-                                <div class="text-center py-3">
-                                    <i class="bi bi-collection text-muted" style="font-size: 2rem;"></i>
-                                    <p class="text-muted small mb-3 mt-2">暂无健康事件</p>
-                                    <button class="btn btn-outline-warning btn-sm" onclick="autoClusterDashboardEvents()">
-                                        <i class="bi bi-magic"></i> 自动生成事件
-                                    </button>
-                                </div>
-                            {% endif %}
+            </div>
+        {% else %}
+            <div class="data-table mb-4">
+                <div class="data-table-header">
+                    <h6 class="data-table-title">健康指标趋势</h6>
+                </div>
+                <div class="data-table-body">
+                    <div class="empty-state">
+                        <i class="bi bi-graph-up"></i>
+                        <h6>暂无指标数据</h6>
+                        <p>上传体检报告或手动录入数据后，将在此显示历史趋势</p>
+                        <div class="d-flex gap-2 justify-content-center">
+                            <a href="{% url 'medical_records:upload_report' %}" class="btn btn-primary">
+                                <i class="bi bi-upload me-1"></i>上传报告
+                            </a>
+                            <a href="{% url 'medical_records:manual_input' %}" class="btn btn-outline-primary">
+                                <i class="bi bi-pencil me-1"></i>手动录入
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
+    </div>
 
-        <!-- 主要内容区域 -->
-        <div class="col-12">
-            <!-- 健康趋势图表区域 -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card dashboard-card">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">
-                                    <i class="bi bi-graph-up"></i> 健康趋势分析 - 按指标分类
-                                </h5>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{% url 'medical_records:export_health_trends_pdf' %}"
-                                       class="btn btn-outline-danger"
-                                       title="导出为PDF">
-                                        <i class="bi bi-file-earmark-pdf"></i> 导出PDF
-                                    </a>
-                                    <a href="{% url 'medical_records:export_health_trends_word' %}"
-                                       class="btn btn-outline-primary"
-                                       title="导出为Word">
-                                        <i class="bi bi-file-earmark-word"></i> 导出Word
-                                    </a>
-                                </div>
-                            </div>
+    <!-- 右侧：时间线和建议 -->
+    <div class="col-lg-4">
+        <!-- 健康事件 S型时间轴 -->
+        <div class="events-timeline mb-4">
+            <div class="events-header">
+                <h6 class="events-title">
+                    <i class="bi bi-activity me-1"></i>健康事件时间轴
+                </h6>
+                <span class="badge bg-primary">{{ total_events }} 个事件</span>
+            </div>
+            
+            {% if health_events %}
+            <div class="s-timeline">
+                {% for event in health_events %}
+                <div class="s-timeline-item {% cycle 'left' 'right' %}">
+                    <div class="s-timeline-content">
+                        <div class="s-timeline-header">
+                            <span class="s-timeline-date">
+                                <i class="bi bi-calendar3"></i>
+                                {{ event.date|date:"Y年m月d日" }}
+                                {% if event.end_date %}
+                                <small class="text-muted"> - {{ event.end_date|date:"m月d日" }}</small>
+                                {% endif %}
+                            </span>
+                            <span class="badge 
+                                {% if event.type == 'illness' %}bg-danger
+                                {% elif event.type == 'checkup' %}bg-primary
+                                {% elif event.type == 'chronic_management' %}bg-warning text-dark
+                                {% elif event.type == 'emergency' %}bg-danger
+                                {% elif event.type == 'wellness' %}bg-success
+                                {% elif event.type == 'medication_course' %}bg-info
+                                {% else %}bg-secondary{% endif %} badge-sm">
+                                {{ event.get_type_display|default:event.type }}
+                            </span>
                         </div>
-                        <div class="card-body">
-                            <!-- 图表切换标签 -->
-                            <ul class="nav nav-tabs mb-3" id="chartTabs" role="tablist">
-                                <!-- 动态生成的标签按钮 -->
-                            </ul>
-
-                            <!-- 标签内容 -->
-                            <div class="tab-content" id="chartTabContent">
-                                <!-- 动态生成的标签内容 -->
+                        
+                        <h6 class="s-timeline-title">
+                            {% if event.is_auto_generated %}
+                            <i class="bi bi-magic text-info" title="自动生成"></i>
+                            {% endif %}
+                            {{ event.title }}
+                        </h6>
+                        
+                        {% if event.description %}
+                        <p class="s-timeline-desc">{{ event.description|truncatewords:15 }}</p>
+                        {% endif %}
+                        
+                        <div class="s-timeline-meta">
+                            <span class="me-3">
+                                <i class="bi bi-link-45deg"></i>
+                                {{ event.item_count }} 条关联记录
+                            </span>
+                            <span>
+                                <i class="bi bi-clock"></i>
+                                {{ event.duration_days }} 天
+                            </span>
+                        </div>
+                        
+                        {% if event.items %}
+                        <div class="s-timeline-items">
+                            {% for item in event.items %}
+                            <div class="s-timeline-item-record">
+                                <i class="bi 
+                                    {% if item.added_by == 'auto' %}bi-magic text-info
+                                    {% else %}bi-hand-index text-secondary{% endif %} small">
+                                </i>
+                                <span>{{ item.summary }}</span>
                             </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="s-timeline-status">
+                            {% if event.status == 'pending' %}
+                            <span class="status-badge status-pending">
+                                <i class="bi bi-hourglass"></i> 待处理
+                            </span>
+                            {% elif event.status == 'observing' %}
+                            <span class="status-badge status-observing">
+                                <i class="bi bi-eye"></i> 观察中
+                            </span>
+                            {% elif event.status == 'recovered' %}
+                            <span class="status-badge status-recovered">
+                                <i class="bi bi-check-circle"></i> 已治愈
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state py-4">
+                <i class="bi bi-activity"></i>
+                <h6>暂无健康事件</h6>
+                <p class="small">上传体检报告后，系统将自动聚类生成健康事件</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- AI健康建议 -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-sparkles text-primary me-2"></i>
+                    AI健康建议
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if ai_advice %}
+                    <p class="mb-3">{{ ai_advice.summary }}</p>
+                    <ul class="list-unstyled mb-3">
+                        {% for tip in ai_advice.tips %}
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            {{ tip }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-outline-primary w-100">
+                        查看详细建议
+                    </a>
+                {% else %}
+                    <div class="empty-state py-4">
+                        <i class="bi bi-lightbulb"></i>
+                        <p class="mb-3">记录更多数据后，AI将为您提供个性化健康建议</p>
+                        <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-outline-primary w-100">
+                            获取建议
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -948,398 +938,101 @@ p {
 
 {% block extra_js %}
 <script>
-// 图表数据
-const chartData = {{ chart_data|safe }} || {};
-const rawData = chartData; // 保持向后兼容
-
-// 从Django传递的动态指标分类列表
-const indicatorTypeList = {{ indicator_type_list|safe }} || [];
-console.log('Indicator type list from Django:', indicatorTypeList);
-
-// 从Django传递的动态指标分类映射
-const dynamicIndicatorMapping = {{ indicator_type_mapping|safe }} || {};
-console.log('Dynamic indicator mapping from Django:', dynamicIndicatorMapping);
-
-// 动态生成标签按钮和内容面板
-function generateDynamicTabs() {
-    const tabsContainer = document.getElementById('chartTabs');
-    const contentContainer = document.getElementById('chartTabContent');
-
-    if (!tabsContainer || !contentContainer) {
-        console.error('Tabs container or content container not found');
-        return;
-    }
-
-    // 清空现有内容
-    tabsContainer.innerHTML = '';
-    contentContainer.innerHTML = '';
-
-    // 为每个指标类型创建标签按钮和内容面板
-    indicatorTypeList.forEach((indicatorType, index) => {
-        const type = indicatorType.type;
-        const displayName = indicatorType.display_name;
-        const isActive = index === 0 ? 'active' : '';
-        const isShow = index === 0 ? 'show active' : '';
-
-        // 创建标签按钮
-        const tabButton = document.createElement('li');
-        tabButton.className = 'nav-item';
-        tabButton.role = 'presentation';
-        tabButton.innerHTML = `
-            <button class="nav-link ${isActive}"
-                    id="${type}-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#${type}"
-                    type="button"
-                    role="tab">
-                <i class="bi bi-bar-chart"></i> ${displayName}
-            </button>
-        `;
-        tabsContainer.appendChild(tabButton);
-
-        // 创建标签内容面板
-        const tabPane = document.createElement('div');
-        tabPane.className = `tab-pane fade ${isShow}`;
-        tabPane.id = type;
-        tabPane.role = 'tabpanel';
-        tabPane.innerHTML = `
-            <div class="row" id="${type}-individual-charts">
-                <!-- 动态生成的表格将显示在这里 -->
-            </div>
-        `;
-        contentContainer.appendChild(tabPane);
-    });
-}
-
-// 页面加载时生成动态标签
-generateDynamicTabs();
-
-// 计算变化量
-function calculateChange(values) {
-    if (!values || values.length < 2) return null;
-    const latest = values[0];
-    const previous = values[1];
-    const change = latest - previous;
-    const percentChange = previous !== 0 ? ((change / previous) * 100).toFixed(1) : 'N/A';
-    return { absolute: change.toFixed(2), percent: percentChange };
-}
-
-// 生成变化量显示HTML
-function formatChange(changeData) {
-    if (!changeData) return '<span class="text-muted">-</span>';
-    const { absolute, percent } = changeData;
-    const isPositive = parseFloat(absolute) > 0;
-    const isNegative = parseFloat(absolute) < 0;
-    let html = '';
-    if (isPositive) {
-        html = `<span class="text-danger">↑ ${Math.abs(absolute)}</span> <span class="text-muted small">(+${percent}%)</span>`;
-    } else if (isNegative) {
-        html = `<span class="text-success">↓ ${Math.abs(absolute)}</span> <span class="text-muted small">(${percent}%)</span>`;
-    } else {
-        html = `<span class="text-muted">-</span>`;
-    }
-    return html;
-}
-
-// 为单个指标创建表格
-function createTableForIndicator(indicatorName, indicatorData) {
-    const dates = indicatorData.dates || [];
-    const values = indicatorData.values || [];  // 用于计算的数值
-    const valuesDisplay = indicatorData.values_display || values;  // 用于显示的原始值
-    const unit = indicatorData.units || '';
-
-    if (dates.length === 0) {
-        return '';
-    }
-
-    // 按日期降序排列所有数据（最新的在前）
-    const sortedData = dates.map((date, i) => ({
-        date: date,
-        value: values[i],  // 计算用的数值
-        valueDisplay: valuesDisplay[i]  // 显示用的原始值
-    })).sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    let tableHtml = `
-        <div class="col-lg-6 col-xl-4 mb-2">
-            <div class="card indicator-card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 text-truncate" title="${indicatorName}">${indicatorName}</h6>
-                    <small class="text-nowrap ms-2">${unit}</small>
-                </div>
-                <div class="card-body p-2">
-                    <table class="table indicator-table mb-0 table-sm">
-                        <thead>
-                            <tr>
-                                <th class="ps-2" style="width: 35%">日期</th>
-                                <th style="width: 35%">数值</th>
-                                <th class="text-end pe-2" style="width: 30%">变化率</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-    `;
-
-    sortedData.forEach((item, idx) => {
-        let changePercentHtml = '<span class="text-muted">-</span>';
-
-        // 计算与上一次记录的变化率（当前行的下一项，因为数组是按日期降序排列的）
-        if (idx < sortedData.length - 1) {
-            const currentVal = item.value;  // 使用提取的数值
-            const prevVal = sortedData[idx + 1].value;
-
-            // 只有当两个值都是数字时才计算变化率
-            if (currentVal !== null && prevVal !== null && !isNaN(currentVal) && !isNaN(prevVal) && prevVal !== 0) {
-                const change = currentVal - prevVal;
-                const percentChange = ((change / prevVal) * 100).toFixed(1);
-
-                // 变化率的颜色和符号
-                let changeClass, changeSymbol;
-                if (change > 0) {
-                    changeClass = 'text-danger';
-                    changeSymbol = '↑';
-                } else if (change < 0) {
-                    changeClass = 'text-success';
-                    changeSymbol = '↓';
-                } else {
-                    changeClass = 'text-muted';
-                    changeSymbol = '-';
+// 健康趋势图表
+try {
+    const ctx = document.getElementById('healthTrendChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_labels|safe }},
+                datasets: [
+                    {
+                        label: '收缩压',
+                        data: {{ systolic_data|safe }},
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '舒张压',
+                        data: {{ diastolic_data|safe }},
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            color: '#64748b'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            },
+                            color: '#64748b'
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        radius: 4,
+                        hoverRadius: 6
+                    },
+                    line: {
+                        borderWidth: 2
+                    }
                 }
-
-                changePercentHtml = `<span class="${changeClass}">${changeSymbol} ${Math.abs(percentChange)}%</span>`;
             }
-        }
-
-        tableHtml += `
-            <tr>
-                <td class="ps-2 text-muted small">${item.date}</td>
-                <td class="fw-bold small">${item.valueDisplay}</td>
-                <td class="text-end pe-2 small">${changePercentHtml}</td>
-            </tr>
-        `;
-    });
-
-    tableHtml += `
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-
-    return tableHtml;
-}
-
-// 通用的指标类型表格生成函数
-function createIndicatorTypeTable(indicatorType) {
-    const rawData = chartData.raw_data || [];
-    const container = document.getElementById(`${indicatorType}-individual-charts`);
-    if (!container) return;
-
-    // 过滤出该类型的所有指标
-    const typeIndicators = rawData
-        .filter(item => item.type === indicatorType)
-        .map(item => item.indicator_name);
-
-    let html = '';
-    // 去重并生成表格
-    const uniqueIndicatorNames = [...new Set(typeIndicators)];
-    uniqueIndicatorNames.forEach(indicatorName => {
-        const indicatorData = rawData.find(item =>
-            item.indicator_name === indicatorName && item.type === indicatorType
-        );
-        if (indicatorData) {
-            html += createTableForIndicator(indicatorName, indicatorData);
-        }
-    });
-
-    if (!html) {
-        // 从indicatorTypeList中找到对应的显示名称
-        const typeInfo = indicatorTypeList.find(item => item.type === indicatorType);
-        const displayName = typeInfo ? typeInfo.display_name : indicatorType;
-        container.innerHTML = `<div class="col-12 text-center text-muted py-4">暂无${displayName}数据</div>`;
-    } else {
-        container.innerHTML = html;
+        });
     }
+} catch (e) {
+    console.error('图表初始化失败:', e);
 }
 
-// 初始化所有表格
-function initializeAllTables() {
-    indicatorTypeList.forEach(indicatorType => {
-        createIndicatorTypeTable(indicatorType.type);
+// 图表时间范围切换
+document.querySelectorAll('.chart-actions .btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.chart-actions .btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        // 这里可以添加切换数据范围的逻辑
     });
-}
-
-// 页面加载完成后初始化
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Dashboard loaded, initializing tables...');
-    initializeAllTables();
 });
 
-// 切换标签时刷新对应的表格
-document.addEventListener('shown.bs.tab', function(e) {
-    const targetId = e.target.getAttribute('data-bs-target');
-    if (targetId && targetId.startsWith('#')) {
-        const indicatorType = targetId.substring(1); // 去掉#号
-        createIndicatorTypeTable(indicatorType);
-    }
-});
-
-const EVENT_STATUS_LABELS = {
-    pending: '待处理',
-    observing: '观察中',
-    recovered: '治愈'
-};
-
-const EVENT_STATUS_CLASSES = ['pending', 'observing', 'recovered'];
-
-function buildEventDetailApiUrl(eventId) {
-    return `{% url "medical_records:api_event_detail" 0 %}`.replace('0', eventId);
-}
-
-function setDashboardStatusFeedback(eventId, message, level) {
-    const feedbackEl = document.getElementById(`eventStatusFeedback-${eventId}`);
-    if (!feedbackEl) return;
-
-    feedbackEl.classList.remove('success', 'error', 'pending');
-    if (!message) {
-        feedbackEl.textContent = '';
-        return;
-    }
-
-    feedbackEl.textContent = message;
-    feedbackEl.classList.add(level || 'pending');
-}
-
-function setDashboardEventStatusUI(eventId, status) {
-    const badgeEl = document.getElementById(`eventStatusBadge-${eventId}`);
-    const hintEl = document.getElementById(`eventStatusHint-${eventId}`);
-    const selectEl = document.getElementById(`eventStatusSelect-${eventId}`);
-
-    if (badgeEl) {
-        EVENT_STATUS_CLASSES.forEach(statusClass => badgeEl.classList.remove(statusClass));
-        badgeEl.classList.add(status);
-        badgeEl.textContent = EVENT_STATUS_LABELS[status] || status;
-    }
-
-    if (hintEl) {
-        if (status === 'observing') {
-            hintEl.classList.remove('d-none');
-        } else {
-            hintEl.classList.add('d-none');
-        }
-    }
-
-    if (selectEl && selectEl.value !== status) {
-        selectEl.value = status;
-    }
-}
-
-async function updateDashboardEventStatus(eventId) {
-    const selectEl = document.getElementById(`eventStatusSelect-${eventId}`);
-    const saveBtnEl = document.getElementById(`eventStatusSaveBtn-${eventId}`);
-    if (!selectEl || !saveBtnEl) return;
-
-    const originalBtnHtml = saveBtnEl.innerHTML;
-    const selectedStatus = selectEl.value;
-
-    saveBtnEl.disabled = true;
-    selectEl.disabled = true;
-    saveBtnEl.innerHTML = '保存中...';
-    setDashboardStatusFeedback(eventId, '正在保存状态...', 'pending');
-
-    try {
-        const response = await fetch(buildEventDetailApiUrl(eventId), {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                status: selectedStatus
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-            throw new Error(data.error || '保存失败');
-        }
-
-        const savedStatus = data.event && data.event.status ? data.event.status : selectedStatus;
-        setDashboardEventStatusUI(eventId, savedStatus);
-        setDashboardStatusFeedback(eventId, `已更新为${EVENT_STATUS_LABELS[savedStatus] || savedStatus}`, 'success');
-
-        window.setTimeout(() => {
-            setDashboardStatusFeedback(eventId, '', 'pending');
-        }, 1800);
-    } catch (error) {
-        console.error('更新事件状态失败:', error);
-        setDashboardStatusFeedback(eventId, `更新失败：${error.message || '请稍后重试'}`, 'error');
-    } finally {
-        saveBtnEl.disabled = false;
-        selectEl.disabled = false;
-        saveBtnEl.innerHTML = originalBtnHtml;
-    }
-}
-
-// 首页触发事件自动聚类
-async function autoClusterDashboardEvents() {
-    if (!confirm('将按时间相近性自动聚类体检与药单记录，是否继续？')) {
-        return;
-    }
-
-    try {
-        const response = await fetch('{% url "medical_records:api_event_auto_cluster" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ days_threshold: 7 })
-        });
-        const data = await response.json();
-        if (data.success) {
-            alert(`聚类完成，新增 ${data.events_created || 0} 个事件`);
-            window.location.reload();
-        } else {
-            alert(`聚类失败：${data.error || '未知错误'}`);
-        }
-    } catch (error) {
-        console.error('自动聚类失败:', error);
-        alert('自动聚类失败，请稍后重试');
-    }
-}
-
-// 删除体检报告
-function deleteCheckup(checkupId) {
-    if (!confirm('确定要删除这份体检报告吗？删除后将无法恢复。')) {
-        return;
-    }
-
-    const deleteUrl = `/checkup/${checkupId}/delete/`;
-
-    fetch(deleteUrl, {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken'),
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('删除失败：' + (data.error || '未知错误'));
-        }
-    })
-    .catch(error => {
-        console.error('删除失败:', error);
-        alert('删除失败，请稍后重试');
-    });
-}
-
-// 获取CSRF Token的辅助函数
+// 获取CSRF Token
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {

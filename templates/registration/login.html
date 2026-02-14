@@ -3,35 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的健康档案 - 登录</title>
+    <title>登录 - 个人健康管理系统</title>
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Space+Grotesk:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 
     <style>
-        /* ═══════════════════════════════════════════════════════════
-           NEO-BRUTALIST LOGIN PAGE - 新野兽派登录页面
-           ═══════════════════════════════════════════════════════════ */
-
         :root {
-            --brutal-yellow: #FFD60A;
-            --brutal-cyan: #14b8a6;
-            --brutal-pink: #FF5C8D;
-            --brutal-blue: #4C8BF5;
-            --brutal-green: #06FFA5;
-            --brutal-red: #FF4757;
-            --brutal-black: #000000;
-            --brutal-white: #FFFFFF;
-            --border-thick: 3px solid #000;
-            --shadow-hard: 6px 6px 0px #000;
-            --shadow-hard-sm: 4px 4px 0px #000;
+            --primary: #0d9488;
+            --primary-light: #14b8a6;
+            --primary-dark: #0f766e;
+            --primary-soft: #ccfbf1;
+
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-soft: #f1f5f9;
+
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+
+            --border-color: #e2e8f0;
+
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -41,686 +47,459 @@
         }
 
         body {
-            background: #FAFAFA;
-            font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
-            color: #000;
+            font-family: 'Inter', 'Noto Sans SC', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden;
-        }
-
-        /* 页面背景 - 棋盘格图案 */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image:
-                linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-                linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-                linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-            background-size: 20px 20px;
-            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-            pointer-events: none;
-            z-index: 0;
         }
 
         .main-container {
             width: 100%;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 3rem 1rem;
-            position: relative;
-            z-index: 1;
+            padding: 2rem;
             display: flex;
-            gap: 3rem;
+            gap: 4rem;
             align-items: center;
             flex: 1;
         }
 
-        /* 左侧产品介绍区域 */
-        .product-section {
+        /* 左侧品牌区域 */
+        .brand-section {
             flex: 1;
             padding-right: 2rem;
         }
 
-        .product-header {
-            margin-bottom: 2.5rem;
-            border: var(--border-thick);
-            background: linear-gradient(135deg, #FFD60A, #FFE566);
-            padding: 2.5rem;
-            box-shadow: 8px 8px 0px #000;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .product-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255,255,255,0.3), transparent);
-            border-radius: 50%;
-        }
-
-        .product-logo {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 90px;
-            height: 90px;
-            background: linear-gradient(135deg, #FF5C8D, #FF8A7A);
-            border-radius: 20px;
-            margin-bottom: 1.5rem;
-            border: var(--border-thick);
-            box-shadow: var(--shadow-hard);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .product-logo::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-
-        @keyframes shine {
-            0% { transform: translateX(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) rotate(45deg); }
-        }
-
-        .product-logo i {
-            font-size: 2.75rem;
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-
-        .product-title {
-            font-size: 3rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: -0.02em;
-            line-height: 1.1;
-            margin-bottom: 1rem;
-            text-shadow: 4px 4px 0px rgba(0,0,0,0.2);
-        }
-
-        .product-subtitle {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--brutal-black);
-            padding-left: 1rem;
-        }
-
-        .product-tag {
-            display: inline-block;
-            background: var(--brutal-green);
-            color: var(--brutal-black);
-            border: var(--border-thick);
-            padding: 0.5rem 1.5rem;
-            font-weight: 900;
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            box-shadow: var(--shadow-hard-sm);
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-        }
-
-        .feature-card {
-            background: var(--brutal-white);
-            border: var(--border-thick);
-            padding: 1.75rem;
-            box-shadow: 6px 6px 0px #000;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--brutal-pink), var(--brutal-cyan), var(--brutal-blue), var(--brutal-yellow));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-
-        .feature-card:hover {
-            transform: translate(-6px, -6px);
-            box-shadow: 10px 10px 0px #000;
-        }
-
-        .feature-card:hover::after {
-            transform: scaleX(1);
-        }
-
-        .feature-icon {
-            width: 70px;
-            height: 70px;
-            border-radius: 16px;
+        .brand-logo {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .brand-logo i {
+            font-size: 2.5rem;
+            color: var(--primary);
+        }
+
+        .brand-logo span {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .brand-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
             margin-bottom: 1rem;
-            font-size: 2rem;
-            border: var(--border-thick);
-            box-shadow: var(--shadow-hard-sm);
-            position: relative;
-            overflow: hidden;
+            line-height: 1.2;
         }
 
-        .feature-icon-upload {
-            background: linear-gradient(135deg, #FF5C8D, #FF8A7A);
-        }
-
-        .feature-icon-ai {
-            background: linear-gradient(135deg, #14b8a6, #06FFA5);
-        }
-
-        .feature-icon-integration {
-            background: linear-gradient(135deg, #4C8BF5, #7C9FFF);
-        }
-
-        .feature-icon-trends {
-            background: linear-gradient(135deg, #FFD60A, #FFE566);
-        }
-
-        .feature-icon i {
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-
-        .feature-title {
+        .brand-subtitle {
             font-size: 1.125rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: -0.02em;
-            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            line-height: 1.6;
         }
 
-        .feature-desc {
-            font-size: 0.875rem;
-            font-weight: 500;
-            line-height: 1.5;
-            color: #333;
+        .feature-list {
+            list-style: none;
+            padding: 0;
         }
 
-        /* 右侧登录区域 */
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .feature-list li i {
+            color: var(--primary);
+            font-size: 1.25rem;
+        }
+
+        /* 右侧登录表单 */
         .login-section {
             width: 100%;
-            max-width: 440px;
+            max-width: 420px;
         }
 
         .login-card {
-            background: var(--brutal-white);
-            border: var(--border-thick);
-            box-shadow: 8px 8px 0px #000;
-            padding: 3.5rem 2.75rem;
-            position: relative;
-            overflow: hidden;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
         }
 
-        .login-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 150px;
-            height: 150px;
-            background: radial-gradient(circle, rgba(20, 184, 166, 0.1), transparent);
-            border-radius: 50%;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .logo-section {
+        .login-header {
             text-align: center;
             margin-bottom: 2rem;
         }
 
-        .logo-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #14b8a6, #06FFA5);
-            border-radius: 20px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.25rem;
-            border: var(--border-thick);
-            box-shadow: var(--shadow-hard);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .logo-icon::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
-        }
-
-        .logo-icon i {
-            font-size: 2.25rem;
-            color: white;
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo-title {
-            font-size: 1.75rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: -0.02em;
+        .login-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
         }
 
-        .logo-subtitle {
-            font-size: 0.9375rem;
-            font-weight: 600;
-            color: #333;
+        .login-header p {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
         }
 
         .form-label {
+            font-weight: 500;
             font-size: 0.875rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
             display: block;
         }
 
         .form-control {
-            border: var(--border-thick);
-            border-radius: 10px;
-            padding: 1rem 1.125rem;
-            font-size: 1rem;
-            font-weight: 700;
-            transition: all 0.2s ease;
-            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem;
+            font-size: 0.9375rem;
+            transition: var(--transition);
+            background: var(--bg-card);
+            color: var(--text-primary);
         }
 
         .form-control:focus {
-            border-color: var(--brutal-cyan);
-            box-shadow: 6px 6px 0px #000;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
             outline: none;
-            transform: translate(-3px, -3px);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
         }
 
         .input-group-text {
-            background: #fff;
-            border: var(--border-thick);
-            border-right: none;
-            border-radius: 10px 0 0 10px;
-            color: #000;
-            font-weight: 700;
-            padding: 1rem 1rem;
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            z-index: 10;
+            pointer-events: none;
         }
 
         .input-group .form-control {
-            border-left: none;
-            border-radius: 0 10px 10px 0;
+            padding-left: 3rem;
+            padding-right: 3rem;
+            width: 100%;
         }
 
-        .input-group .form-control:focus {
-            border-left: var(--border-thick);
+        .password-toggle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.125rem;
+            padding: 0;
+            z-index: 10;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-secondary);
+        }
+
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-check-input {
+            width: 1rem;
+            height: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .form-check-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
         }
 
         .btn-login {
-            background: linear-gradient(135deg, #14b8a6, #06FFA5);
-            border: var(--border-thick);
-            border-radius: 12px;
-            padding: 1rem 1.75rem;
-            font-weight: 900;
-            font-size: 1.125rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
             width: 100%;
-            transition: all 0.2s ease;
-            box-shadow: 6px 6px 0px #000;
-            margin-top: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-login::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn-login:hover::before {
-            left: 100%;
+            padding: 0.875rem;
+            background: var(--primary);
+            border: 1px solid var(--primary);
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
         .btn-login:hover {
-            transform: translate(-6px, -6px);
-            box-shadow: 10px 10px 0px #000;
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
-        .btn-login:active {
-            transform: translate(0, 0);
-            box-shadow: var(--shadow-hard-sm);
-        }
-
-        .alert {
-            border: var(--border-thick);
-            border-radius: 8px;
-            padding: 0.875rem 1rem;
-            font-size: 0.875rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            background: var(--brutal-red);
-            color: var(--brutal-white);
-            box-shadow: var(--shadow-hard-sm);
-        }
-
-        .register-link {
+        .login-footer {
             text-align: center;
-            margin-top: 2rem;
+            margin-top: 1.5rem;
             padding-top: 1.5rem;
-            border-top: var(--border-thick);
+            border-top: 1px solid var(--border-color);
         }
 
-        .register-link small {
-            color: #000;
+        .login-footer p {
             font-size: 0.875rem;
-            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
         }
 
-        .register-link a {
-            color: var(--brutal-blue);
+        .login-footer a {
+            color: var(--primary);
             text-decoration: none;
-            font-weight: 900;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
+            font-weight: 500;
         }
 
-        .register-link a:hover {
-            color: var(--brutal-black);
+        .login-footer a:hover {
             text-decoration: underline;
         }
 
-        .footer-text {
-            text-align: center;
-            margin-top: auto;
-            padding: 1.5rem 0;
-            font-size: 0.8125rem;
-            font-weight: 700;
-            color: #000;
-            letter-spacing: 0.5px;
-            opacity: 0.8;
-            position: relative;
-            z-index: 1;
-            text-transform: uppercase;
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 1.25rem;
         }
 
-        @media (max-width: 991.98px) {
+        .forgot-password a {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .forgot-password a:hover {
+            color: var(--primary);
+        }
+
+        .alert {
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 0.875rem 1rem;
+            font-size: 0.875rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left: 3px solid #ef4444;
+        }
+
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer p {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        /* 响应式 */
+        @media (max-width: 991px) {
             .main-container {
                 flex-direction: column;
                 gap: 2rem;
+                padding: 1.5rem;
             }
 
-            .product-section {
-                padding-right: 0;
+            .brand-section {
                 text-align: center;
+                padding-right: 0;
             }
 
-            .product-header {
-                margin-bottom: 2rem;
+            .brand-title {
+                font-size: 2rem;
             }
 
-            .product-title {
-                font-size: 2.25rem;
+            .feature-list {
+                display: inline-block;
+                text-align: left;
             }
 
-            .features-grid {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .product-logo {
-                margin: 0 auto 1.5rem;
-            }
-
-            .product-tag {
-                margin: 0 auto;
+            .login-section {
+                max-width: 100%;
+                width: 100%;
             }
         }
 
-        @media (max-width: 575.98px) {
-            body {
-                padding: 1rem 0.5rem;
-            }
-
-            .product-title {
+        @media (max-width: 576px) {
+            .brand-title {
                 font-size: 1.75rem;
             }
 
-            .product-subtitle {
-                font-size: 1rem;
-            }
-
-            .feature-card {
-                padding: 1.25rem;
-            }
-
-            .feature-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 1.5rem;
-            }
-
-            .feature-title {
-                font-size: 1rem;
-            }
-
-            .feature-desc {
-                font-size: 0.8125rem;
-            }
-
             .login-card {
-                padding: 2rem 1.5rem;
-            }
-
-            .logo-title {
-                font-size: 1.5rem;
+                padding: 1.5rem;
             }
         }
     </style>
 </head>
 <body>
     <div class="main-container">
-        <!-- 左侧产品介绍 -->
-        <div class="product-section">
-            <div class="product-header">
-                <div class="product-logo">
-                    <i class="bi bi-heart-pulse-fill"></i>
-                </div>
-                <h1 class="product-title">我的健康档案</h1>
-                <p class="product-subtitle">温暖的陪伴，贴心的关怀</p>
-                <span class="product-tag">AI驱动健康管理</span>
+        <!-- 左侧品牌介绍 -->
+        <div class="brand-section">
+            <div class="brand-logo">
+                <i class="bi bi-heart-pulse-fill"></i>
+                <span>健康管理系统</span>
             </div>
-
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon feature-icon-upload">
-                        <i class="bi bi-file-earmark-text"></i>
-                    </div>
-                    <h3 class="feature-title">报告上传</h3>
-                    <p class="feature-desc">支持PDF和图片格式的体检报告，一键上传自动解析</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon feature-icon-ai">
-                        <i class="bi bi-robot"></i>
-                    </div>
-                    <h3 class="feature-title">AI咨询</h3>
-                    <p class="feature-desc">基于您的健康数据，AI医生提供个性化健康建议</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon feature-icon-integration">
-                        <i class="bi bi-layers"></i>
-                    </div>
-                    <h3 class="feature-title">数据整合</h3>
-                    <p class="feature-desc">智能整合多份体检报告，全面分析健康状况变化</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon feature-icon-trends">
-                        <i class="bi bi-graph-up-arrow"></i>
-                    </div>
-                    <h3 class="feature-title">健康趋势</h3>
-                    <p class="feature-desc">可视化展示健康指标变化趋势，及时了解身体状况</p>
-                </div>
-            </div>
+            <h1 class="brand-title">管理您的健康数据<br>守护美好生活</h1>
+            <p class="brand-subtitle">智能记录、专业分析、个性化建议，让健康管理更简单</p>
+            <ul class="feature-list">
+                <li>
+                    <i class="bi bi-check-circle-fill"></i>
+                    智能体检报告解析
+                </li>
+                <li>
+                    <i class="bi bi-check-circle-fill"></i>
+                    AI健康风险评估
+                </li>
+                <li>
+                    <i class="bi bi-check-circle-fill"></i>
+                    个性化健康建议
+                </li>
+                <li>
+                    <i class="bi bi-check-circle-fill"></i>
+                    数据可视化分析
+                </li>
+            </ul>
         </div>
 
         <!-- 右侧登录表单 -->
         <div class="login-section">
             <div class="login-card">
-                <div class="logo-section">
-                    <div class="logo-icon">
-                        <i class="bi bi-person-circle"></i>
-                    </div>
-                    <h1 class="logo-title">欢迎回来</h1>
-                    <p class="logo-subtitle">登录您的账户</p>
+                <div class="login-header">
+                    <h2>欢迎回来</h2>
+                    <p>请登录您的账户以继续</p>
                 </div>
 
-                <form method="post">
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-circle me-2"></i>
+                    用户名或密码错误，请重试
+                </div>
+                {% endif %}
+
+                <form method="post" action="{% url 'login' %}">
                     {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}">
 
-                    {% if form.errors %}
-                        <div class="alert">
-                            <i class="bi bi-exclamation-circle me-2"></i>
-                            用户名或密码错误，请重试
-                        </div>
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="{{ form.username.id_for_label }}" class="form-label">用户名</label>
+                    <div class="form-group">
+                        <label class="form-label" for="id_username">用户名</label>
                         <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-person"></i>
-                            </span>
-                            {{ form.username }}
+                            <i class="bi bi-person input-group-text"></i>
+                            <input type="text" name="username" id="id_username" class="form-control" placeholder="请输入用户名" required autofocus>
                         </div>
-                        {% if form.username.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ form.username.errors }}
-                            </div>
-                        {% endif %}
                     </div>
 
-                    <div class="mb-4">
-                        <label for="{{ form.password.id_for_label }}" class="form-label">密码</label>
+                    <div class="form-group">
+                        <label class="form-label" for="id_password">密码</label>
                         <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-lock"></i>
-                            </span>
-                            {{ form.password }}
+                            <i class="bi bi-lock input-group-text"></i>
+                            <input type="password" name="password" id="id_password" class="form-control" placeholder="请输入密码" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword()">
+                                <i class="bi bi-eye" id="toggleIcon"></i>
+                            </button>
                         </div>
-                        {% if form.password.errors %}
-                            <div class="text-danger small mt-1">
-                                {{ form.password.errors }}
-                            </div>
-                        {% endif %}
                     </div>
 
-                    <button type="submit" class="btn btn-login">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                    <div class="forgot-password">
+                        <a href="{% url 'password_reset' %}">忘记密码？</a>
+                    </div>
+
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">记住我</label>
+                    </div>
+
+                    <button type="submit" class="btn-login">
+                        <i class="bi bi-box-arrow-in-right"></i>
                         登录
                     </button>
                 </form>
 
-                <div class="register-link">
-                    <small>
-                        还没有账户？
-                        <a href="{% url 'register' %}">
-                            立即注册 <i class="bi bi-arrow-right"></i>
-                        </a>
-                    </small>
+                <div class="login-footer">
+                    <p>还没有账户？</p>
+                    <a href="{% url 'register' %}">立即注册</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <p class="footer-text">
-        © 2024 我的健康档案 · 温暖的陪伴，贴心的关怀
-    </p>
+    <footer class="footer">
+        <p>&copy; 2026 个人健康管理系统 · 保留所有权利</p>
+    </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-focus username input
-            const usernameInput = document.querySelector('input[name="username"]');
-            if (usernameInput) {
-                setTimeout(() => usernameInput.focus(), 100);
+        function togglePassword() {
+            const passwordInput = document.getElementById('id_password');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('bi-eye');
+                toggleIcon.classList.add('bi-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('bi-eye-slash');
+                toggleIcon.classList.add('bi-eye');
             }
-
-            // Add Bootstrap classes to form inputs
-            const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
-            inputs.forEach(input => {
-                input.classList.add('form-control');
-                if (!input.getAttribute('placeholder')) {
-                    if (input.getAttribute('name') === 'username') {
-                        input.setAttribute('placeholder', '请输入用户名');
-                    } else if (input.getAttribute('name') === 'password') {
-                        input.setAttribute('placeholder', '请输入密码');
-                    }
-                }
-            });
-
-            // Add enter key animation
-            document.querySelector('form').addEventListener('submit', function() {
-                const btn = this.querySelector('.btn-login');
-                btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i>登录中...';
-            });
-        });
+        }
     </script>
 </body>
 </html>

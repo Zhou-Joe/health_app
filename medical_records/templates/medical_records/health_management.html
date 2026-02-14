@@ -4,11 +4,14 @@
 
 {% block extra_css %}
 <style>
+/* 健康管理页面样式 - 专业医疗+有机自然风格 */
+
 .management-header {
-    background: var(--brutal-cyan);
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard);
-    padding: 2rem;
+    background: linear-gradient(135deg, var(--primary-soft) 0%, #e0f2fe 100%);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
     margin-bottom: 1.5rem;
 }
 
@@ -20,53 +23,126 @@
 }
 
 .management-tab {
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard-sm);
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    font-weight: 500;
+    transition: var(--transition);
+    padding: 0.625rem 1rem;
+}
+
+.management-tab:hover {
+    background: var(--bg-soft);
+    border-color: var(--primary-light);
+    color: var(--primary);
 }
 
 .management-tab.active {
-    background: var(--brutal-yellow);
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
 }
 
 .section-card {
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.section-card:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .section-card .card-header {
-    border-bottom: var(--border-thick);
-    font-weight: 800;
+    background: var(--bg-soft);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    padding: 1rem 1.25rem;
 }
 
 .medication-card {
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard-sm);
-    background: #fff;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 1rem;
+    transition: var(--transition);
+}
+
+.medication-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .medication-card .card-header {
-    background: var(--brutal-pink);
-    border-bottom: var(--border-thick);
-    font-weight: 800;
+    background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+    color: #be185d;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .btn-neo {
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard-sm);
-    font-weight: 800;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-neo:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 .modal-content {
-    border: var(--border-thick);
-    box-shadow: var(--shadow-hard);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
 }
 
 .modal-header {
-    border-bottom: var(--border-thick);
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-soft);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.progress {
+    background-color: var(--bg-muted);
+    border-radius: var(--radius-full);
+    height: 8px;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+    border-radius: var(--radius-full);
+}
+
+.list-group-item {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+    background: var(--bg-card);
+    transition: var(--transition);
+}
+
+.list-group-item:hover {
+    background: var(--bg-soft);
+}
+
+.form-control, .form-select {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 
 @media (max-width: 768px) {
@@ -82,12 +158,12 @@
     <div class="management-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 class="mb-1 fw-bold" style="font-size: 2.2rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.02em; margin: 0;">
-                    <i class="bi bi-grid-1x2-fill"></i> 健康管理
+                <h1 class="mb-1 fw-bold" style="font-size: 1.75rem; color: var(--text-primary); margin: 0;">
+                    <i class="bi bi-grid-1x2-fill" style="color: var(--primary);"></i> 健康管理
                 </h1>
-                <p class="mb-0" style="opacity: 0.9;">将日志、计划、药单统一在一个页面管理</p>
+                <p class="mb-0" style="color: var(--text-secondary);">将日志、计划、药单统一在一个页面管理</p>
             </div>
-            <a class="btn btn-dark btn-neo" href="{% url 'medical_records:dashboard' %}">
+            <a class="btn btn-primary" href="{% url 'medical_records:dashboard' %}">
                 <i class="bi bi-house-door me-1"></i> 返回首页
             </a>
         </div>
@@ -109,7 +185,9 @@
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="card section-card">
-                <div class="card-header" style="background: var(--brutal-yellow);">添加症状</div>
+                <div class="card-header" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e;">
+                    <i class="bi bi-activity me-2"></i>添加症状
+                </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
@@ -123,7 +201,7 @@
                             <div class="col-md-6">{{ symptom_form.related_checkup.label_tag }}{{ symptom_form.related_checkup }}</div>
                             <div class="col-md-6">{{ symptom_form.related_medication.label_tag }}{{ symptom_form.related_medication }}</div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-neo mt-3">
+                        <button type="submit" class="btn btn-primary mt-3">
                             <i class="bi bi-plus-circle"></i> 保存症状
                         </button>
                     </form>
@@ -133,7 +211,9 @@
 
         <div class="col-lg-6">
             <div class="card section-card">
-                <div class="card-header" style="background: var(--brutal-green);">添加体征</div>
+                <div class="card-header" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46;">
+                    <i class="bi bi-heart-pulse me-2"></i>添加体征
+                </div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
@@ -148,7 +228,7 @@
                             <div class="col-md-6">{{ vital_form.related_checkup.label_tag }}{{ vital_form.related_checkup }}</div>
                             <div class="col-md-6">{{ vital_form.related_medication.label_tag }}{{ vital_form.related_medication }}</div>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-neo mt-3">
+                        <button type="submit" class="btn btn-primary mt-3">
                             <i class="bi bi-plus-circle"></i> 保存体征
                         </button>
                     </form>
@@ -160,7 +240,9 @@
     <div class="row g-4 mt-2">
         <div class="col-lg-6">
             <div class="card section-card">
-                <div class="card-header" style="background:#000;color:#fff;">最近症状</div>
+                <div class="card-header" style="background: var(--bg-soft);">
+                    <i class="bi bi-clock-history me-2"></i>最近症状
+                </div>
                 <div class="card-body">
                     {% if symptoms %}
                         <ul class="list-group">
@@ -185,7 +267,9 @@
 
         <div class="col-lg-6">
             <div class="card section-card">
-                <div class="card-header" style="background:#000;color:#fff;">最近体征</div>
+                <div class="card-header" style="background: var(--bg-soft);">
+                    <i class="bi bi-activity me-2"></i>最近体征
+                </div>
                 <div class="card-body">
                     {% if vitals %}
                         <ul class="list-group">
@@ -209,7 +293,9 @@
     </div>
     {% elif active_tab == 'plans' %}
     <div class="card section-card mb-4">
-        <div class="card-header" style="background: var(--brutal-yellow);">创建新计划</div>
+        <div class="card-header" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e;">
+            <i class="bi bi-plus-circle me-2"></i>创建新计划
+        </div>
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
@@ -222,7 +308,7 @@
                         <div class="form-check">{{ plan_form.is_active }} {{ plan_form.is_active.label_tag }}</div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-neo mt-3"><i class="bi bi-plus-circle"></i> 创建计划</button>
+                <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-plus-circle"></i> 创建计划</button>
             </form>
         </div>
     </div>
@@ -230,10 +316,10 @@
     {% if plans %}
         {% for plan in plans %}
         <div class="card section-card mb-4">
-            <div class="card-header" style="background:#000;color:#fff;">
+            <div class="card-header" style="background: var(--bg-soft);">
                 <div class="d-flex justify-content-between align-items-center">
                     <strong>{{ plan.title }}</strong>
-                    <span class="badge bg-light text-dark">{% if plan.is_active %}进行中{% else %}已停用{% endif %}</span>
+                    <span class="badge" style="background: {% if plan.is_active %}var(--success){% else %}var(--secondary){% endif %};">{% if plan.is_active %}进行中{% else %}已停用{% endif %}</span>
                 </div>
             </div>
             <div class="card-body">
@@ -260,22 +346,22 @@
                                 </select>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-outline-dark btn-neo mt-2">添加目标</button>
+                        <button type="submit" class="btn btn-outline-primary mt-2">添加目标</button>
                     </form>
                 </div>
 
                 {% if plan.goals.all %}
                     {% for goal in plan.goals.all %}
-                    <div class="border p-3 mb-3" style="border: var(--border-thick);">
+                    <div class="border p-3 mb-3" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-soft);">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <strong>{{ goal.title }}</strong>
                                 {% if goal.target_value %}<span class="text-muted">(目标：{{ goal.target_value }}{{ goal.unit|default:'' }})</span>{% endif %}
                                 {% if goal.due_date %}<span class="text-muted">截止：{{ goal.due_date }}</span>{% endif %}
                             </div>
-                            <span class="badge bg-secondary">{{ goal.get_status_display }}</span>
+                            <span class="badge" style="background: var(--secondary);">{{ goal.get_status_display }}</span>
                         </div>
-                        <div class="progress mt-2" style="height:10px;"><div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div></div>
+                        <div class="progress mt-2"><div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div></div>
                         <div class="small text-muted mt-1">进度：{{ goal.progress_percent }}%</div>
 
                         <div class="mt-3">
@@ -290,8 +376,8 @@
                                     <option value="pending">待完成</option>
                                     <option value="done">已完成</option>
                                 </select>
-                                <button type="submit" class="btn btn-outline-primary btn-neo">添加行动</button>
-                                <button type="button" class="btn btn-outline-dark btn-neo" onclick="suggestActions({{ goal.id }}, this)">AI建议行动</button>
+                                <button type="submit" class="btn btn-outline-primary">添加行动</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="suggestActions({{ goal.id }}, this)">AI建议行动</button>
                             </form>
                         </div>
 
@@ -302,14 +388,14 @@
                                 <div>
                                     {% if action_item.status == 'done' %}<s>{{ action_item.title }}</s>{% else %}{{ action_item.title }}{% endif %}
                                     {% if action_item.frequency %}<span class="text-muted">({{ action_item.frequency }})</span>{% endif %}
-                                    {% if action_item.suggested_by_ai %}<span class="badge bg-info text-dark">AI</span>{% endif %}
+                                    {% if action_item.suggested_by_ai %}<span class="badge" style="background: var(--info);">AI</span>{% endif %}
                                 </div>
                                 <form method="post">
                                     {% csrf_token %}
                                     <input type="hidden" name="module" value="plans">
                                     <input type="hidden" name="action" value="toggle_action">
                                     <input type="hidden" name="action_id" value="{{ action_item.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary btn-neo">切换状态</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">切换状态</button>
                                 </form>
                             </li>
                             {% endfor %}
@@ -330,8 +416,8 @@
     {% endif %}
     {% else %}
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="mb-0 fw-bold">我的药单</h5>
-        <button class="btn btn-primary btn-neo" onclick="showAddMedicationModal()">
+        <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">我的药单</h5>
+        <button class="btn btn-primary" onclick="showAddMedicationModal()">
             <i class="bi bi-plus-circle me-1"></i> 添加药单
         </button>
     </div>
@@ -352,10 +438,10 @@
                         <div class="mb-2 text-muted">备注：{{ medication.notes }}</div>
                         {% endif %}
                         <div class="d-flex gap-2 flex-wrap mt-3">
-                            <button class="btn btn-success btn-sm btn-neo" onclick="checkin({{ medication.id }})"><i class="bi bi-check2-circle"></i> 今日签到</button>
-                            <button class="btn btn-outline-dark btn-sm btn-neo" onclick="showBackdateModal({{ medication.id }}, '{{ medication.medicine_name|escapejs }}')"><i class="bi bi-calendar-plus"></i></button>
-                            <button class="btn btn-outline-primary btn-sm btn-neo" onclick="viewRecords({{ medication.id }})"><i class="bi bi-list-ul"></i></button>
-                            <button class="btn btn-outline-danger btn-sm btn-neo" onclick="deleteMedication({{ medication.id }})"><i class="bi bi-trash"></i></button>
+                            <button class="btn btn-success btn-sm" onclick="checkin({{ medication.id }})"><i class="bi bi-check2-circle"></i> 今日签到</button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="showBackdateModal({{ medication.id }}, '{{ medication.medicine_name|escapejs }}')"><i class="bi bi-calendar-plus"></i></button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="viewRecords({{ medication.id }})"><i class="bi bi-list-ul"></i></button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteMedication({{ medication.id }})"><i class="bi bi-trash"></i></button>
                         </div>
                     </div>
                 </div>
@@ -369,7 +455,7 @@
     <div class="modal fade" id="addMedicationModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header" style="background: var(--brutal-cyan);">
+                <div class="modal-header">
                     <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2"></i>添加药单</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -395,7 +481,7 @@
     <div class="modal fade" id="recordsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header" style="background: var(--brutal-cyan);">
+                <div class="modal-header">
                     <h5 class="modal-title fw-bold"><i class="bi bi-list-ul me-2"></i>服药记录</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -407,7 +493,7 @@
     <div class="modal fade" id="backdateModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header" style="background: var(--brutal-cyan);">
+                <div class="modal-header">
                     <h5 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i>补签服药</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -584,11 +670,11 @@ async function viewRecords(medicationId) {
             const recordsList = document.getElementById('recordsList');
             if (data.records.length > 0) {
                 recordsList.innerHTML = data.records.map(record => `
-                    <div style="padding: 1rem 0; border-bottom: 1px solid #e5e7eb;">
+                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
                         <div class="d-flex justify-content-between">
                             <div>
                                 <strong>${record.record_date}</strong>
-                                <span class="badge ms-2 bg-info text-dark">${record.frequency_display}</span>
+                                <span class="badge ms-2" style="background: var(--info);">${record.frequency_display}</span>
                             </div>
                             <small class="text-muted">${record.taken_at}</small>
                         </div>
@@ -599,56 +685,26 @@ async function viewRecords(medicationId) {
                 recordsList.innerHTML = '<p class="text-center text-muted">暂无服药记录</p>';
             }
             recordsModal.show();
+        } else {
+            alert('获取记录失败');
         }
     } catch (error) {
         alert('获取记录失败：' + error);
     }
 }
 
-async function deleteMedication(medicationId) {
-    if (!confirm('确定要删除这个药单吗？')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`{% url "medical_records:api_medication_detail" 0 %}`.replace('0', medicationId), {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            alert('删除成功');
-            window.location.reload();
-        } else {
-            alert('删除失败：' + (data.error || '未知错误'));
-        }
-    } catch (error) {
-        alert('删除失败：' + error);
-    }
-}
-
 function showBackdateModal(medicationId, medicineName) {
     currentBackdateMedicationId = medicationId;
     document.getElementById('backdateMedicineName').value = medicineName;
-    document.getElementById('backdateDate').value = '';
-    document.getElementById('backdateNotes').value = '';
     backdateModal.show();
 }
 
 async function submitBackdate() {
-    const backdateDate = document.getElementById('backdateDate').value;
+    const date = document.getElementById('backdateDate').value;
     const notes = document.getElementById('backdateNotes').value;
 
-    if (!backdateDate) {
+    if (!date) {
         alert('请选择补签日期');
-        return;
-    }
-
-    if (!currentBackdateMedicationId) {
-        alert('药单信息丢失，请重试');
         return;
     }
 
@@ -661,7 +717,7 @@ async function submitBackdate() {
             },
             body: JSON.stringify({
                 medication_id: currentBackdateMedicationId,
-                record_date: backdateDate,
+                record_date: date,
                 frequency: 'daily',
                 notes: notes
             })
@@ -670,12 +726,35 @@ async function submitBackdate() {
         const data = await response.json();
         if (data.success) {
             alert('补签成功');
+            backdateModal.hide();
             window.location.reload();
         } else {
             alert('补签失败：' + (data.error || '未知错误'));
         }
     } catch (error) {
         alert('补签失败：' + error);
+    }
+}
+
+async function deleteMedication(medicationId) {
+    if (!confirm('确定要删除这个药单吗？')) return;
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_medications" %}${medicationId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        if (response.ok) {
+            alert('删除成功');
+            window.location.reload();
+        } else {
+            alert('删除失败');
+        }
+    } catch (error) {
+        alert('删除失败：' + error);
     }
 }
 {% endif %}

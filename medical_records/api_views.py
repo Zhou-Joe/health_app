@@ -789,7 +789,7 @@ def check_services_status(request):
         response_data = {
             'ocr_status': 'online' if ocr_status else 'offline',
             'llm_status': 'online' if llm_status else 'offline',
-            'vl_model_status': 'online' if vl_status else 'offline',
+            'vlm_status': 'online' if vl_status else 'offline',
             'default_workflow': default_workflow,
             'supported_workflows': ['ocr_llm', 'vlm_transformers', 'vl_model']
         }
@@ -814,7 +814,7 @@ def get_user_checkups(request):
         checkups = HealthCheckup.objects.filter(
             user=request.user
         ).annotate(
-            indicator_count=Count('healthindicator')
+            indicator_count=Count('indicators')
         ).order_by('-checkup_date')
 
         checkups_data = []
@@ -836,6 +836,51 @@ def get_user_checkups(request):
         return JsonResponse({
             'success': False,
             'error': f'获取体检报告列表失败: {str(e)}'
+        }, status=500)
+
+
+@require_http_methods(["GET"])
+@login_required
+def get_checkup_detail(request, checkup_id):
+    """获取单个体检报告的详细信息"""
+    try:
+        checkup = HealthCheckup.objects.get(id=checkup_id, user=request.user)
+        
+        indicators = checkup.indicators.all()
+        indicators_data = []
+        for indicator in indicators:
+            indicators_data.append({
+                'id': indicator.id,
+                'indicator_type': indicator.indicator_type,
+                'indicator_name': indicator.indicator_name,
+                'value': indicator.value,
+                'unit': indicator.unit,
+                'reference_range': indicator.reference_range,
+                'status': indicator.status,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'checkup': {
+                'id': checkup.id,
+                'checkup_date': checkup.checkup_date.strftime('%Y-%m-%d'),
+                'hospital': checkup.hospital,
+                'report_file': checkup.report_file.url if checkup.report_file else None,
+                'notes': checkup.notes,
+            },
+            'indicators': indicators_data,
+            'count': len(indicators_data)
+        })
+        
+    except HealthCheckup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '体检报告不存在'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'获取体检报告详情失败: {str(e)}'
         }, status=500)
 
 
@@ -1204,16 +1249,24 @@ def apply_integration(request):
     try:
         from django.db import transaction
         import time
+        import os
+        import zipfile
+        import io
+        from django.core.files.base import ContentFile
+        from django.conf import settings
 
         print(f"\n{'='*80}")
         print(f"[应用更新] 开始")
         print(f"[应用更新] 用户: {request.user.username}")
 
-        # 获取请求数据
         data = json.loads(request.body)
         changes = data.get('changes', [])
+        primary_checkup_id = data.get('primary_checkup_id')
+        checkup_ids = data.get('checkup_ids', [])
 
         print(f"[应用更新] 待应用的变更数量: {len(changes)}")
+        print(f"[应用更新] 主记录ID: {primary_checkup_id}")
+        print(f"[应用更新] 涉及报告ID: {checkup_ids}")
 
         if not changes:
             print(f"[应用更新] ✗ 没有要应用的更改")
@@ -1225,8 +1278,9 @@ def apply_integration(request):
         updated_count = 0
         update_details = []
         skipped_count = 0
+        deleted_checkups = []
+        zip_created = False
 
-        # 使用事务确保数据一致性
         with transaction.atomic():
             print(f"[应用更新] 开始事务处理...")
             start_time = time.time()
@@ -1237,7 +1291,6 @@ def apply_integration(request):
 
                 print(f"[应用更新] {idx}/{len(changes)} 处理指标 {indicator_id}...")
 
-                # 验证所有权
                 try:
                     indicator = HealthIndicator.objects.get(
                         id=indicator_id,
@@ -1248,7 +1301,6 @@ def apply_integration(request):
                     skipped_count += 1
                     continue
 
-                # 记录更新前的状态
                 before_state = {
                     'indicator_name': indicator.indicator_name,
                     'value': indicator.value,
@@ -1260,7 +1312,6 @@ def apply_integration(request):
 
                 print(f"[应用更新]   原始: {indicator.indicator_name} = {indicator.value} {indicator.unit or ''}")
 
-                # 应用更改
                 if change_data.get('indicator_name'):
                     print(f"[应用更新]   -> 名称: {indicator.indicator_name} -> {change_data['indicator_name']}")
                     indicator.indicator_name = change_data['indicator_name']
@@ -1269,7 +1320,7 @@ def apply_integration(request):
                     print(f"[应用更新]   -> 值: {indicator.value} -> {change_data['value']}")
                     indicator.value = change_data['value']
 
-                if change_data.get('unit') is not None:  # 允许空字符串
+                if change_data.get('unit') is not None:
                     print(f"[应用更新]   -> 单位: {indicator.unit} -> {change_data['unit']}")
                     indicator.unit = change_data['unit']
 
@@ -1289,7 +1340,6 @@ def apply_integration(request):
                 updated_count += 1
                 print(f"[应用更新]   ✓ 保存成功")
 
-                # 记录更新详情（用于展示对比）
                 update_details.append({
                     'indicator_id': indicator_id,
                     'checkup_date': indicator.checkup.checkup_date.strftime('%Y-%m-%d'),
@@ -1306,18 +1356,110 @@ def apply_integration(request):
                     'reason': change.get('reason', '')
                 })
 
+            if primary_checkup_id and checkup_ids and len(checkup_ids) > 1:
+                print(f"[应用更新] 开始处理报告合并...")
+                print(f"[应用更新] primary_checkup_id: {primary_checkup_id}, checkup_ids: {checkup_ids}")
+                
+                try:
+                    primary_checkup = HealthCheckup.objects.get(
+                        id=primary_checkup_id,
+                        user=request.user
+                    )
+                    print(f"[应用更新] 主记录: {primary_checkup.checkup_date} - {primary_checkup.hospital}")
+                    print(f"[应用更新] 主记录源文件: {primary_checkup.report_file.name if primary_checkup.report_file else '无'}")
+                    
+                    other_checkups = HealthCheckup.objects.filter(
+                        id__in=[cid for cid in checkup_ids if cid != primary_checkup_id],
+                        user=request.user
+                    )
+                    print(f"[应用更新] 其他记录数量: {other_checkups.count()}")
+                    
+                    moved_indicators_count = 0
+                    for other_checkup in other_checkups:
+                        indicators_to_move = HealthIndicator.objects.filter(checkup=other_checkup)
+                        for ind in indicators_to_move:
+                            ind.checkup = primary_checkup
+                            ind.save()
+                            moved_indicators_count += 1
+                    print(f"[应用更新] ✓ 已移动 {moved_indicators_count} 个指标到主记录")
+                    
+                    source_files = []
+                    all_checkups_for_zip = [primary_checkup] + list(other_checkups)
+                    print(f"[应用更新] 检查 {len(all_checkups_for_zip)} 个报告的源文件...")
+                    
+                    for checkup in all_checkups_for_zip:
+                        print(f"[应用更新]   报告 {checkup.id}: report_file={checkup.report_file}, exists={checkup.report_file.storage.exists(checkup.report_file.name) if checkup.report_file else 'N/A'}")
+                        if checkup.report_file:
+                            source_files.append({
+                                'file': checkup.report_file,
+                                'name': f"{checkup.checkup_date}_{checkup.hospital or '未知机构'}_{os.path.basename(checkup.report_file.name)}",
+                                'checkup_id': checkup.id
+                            })
+                    
+                    print(f"[应用更新] 找到 {len(source_files)} 个源文件")
+                    
+                    if source_files:
+                        print(f"[应用更新] 开始创建ZIP...")
+                        
+                        zip_buffer = io.BytesIO()
+                        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+                            for sf in source_files:
+                                try:
+                                    file_content = sf['file'].read()
+                                    safe_name = "".join(c for c in sf['name'] if c.isalnum() or c in '._- ')
+                                    zip_file.writestr(safe_name, file_content)
+                                    print(f"[应用更新]   ✓ 添加文件: {safe_name} ({len(file_content)} bytes)")
+                                except Exception as e:
+                                    print(f"[应用更新]   ✗ 无法读取文件 {sf['name']}: {e}")
+                        
+                        zip_buffer.seek(0)
+                        zip_content = zip_buffer.read()
+                        zip_filename = f"merged_{primary_checkup.checkup_date}_{primary_checkup.hospital or '整合报告'}.zip"
+                        zip_filename = "".join(c for c in zip_filename if c.isalnum() or c in '._- ')
+                        
+                        print(f"[应用更新] ZIP文件名: {zip_filename}, 大小: {len(zip_content)} bytes")
+                        
+                        primary_checkup.report_file.save(
+                            zip_filename,
+                            ContentFile(zip_content),
+                            save=True
+                        )
+                        zip_created = True
+                        print(f"[应用更新] ✓ ZIP文件已创建并附加到主记录")
+                        print(f"[应用更新] 主记录新源文件: {primary_checkup.report_file.name if primary_checkup.report_file else '无'}")
+                    else:
+                        print(f"[应用更新] 没有找到源文件，跳过ZIP创建")
+                    
+                    for checkup in other_checkups:
+                        deleted_checkups.append({
+                            'id': checkup.id,
+                            'checkup_date': checkup.checkup_date.strftime('%Y-%m-%d'),
+                            'hospital': checkup.hospital
+                        })
+                        checkup.delete()
+                        print(f"[应用更新] ✓ 已删除报告: {checkup.checkup_date} - {checkup.hospital}")
+                        
+                except HealthCheckup.DoesNotExist:
+                    print(f"[应用更新] ✗ 主记录不存在，跳过合并操作")
+            else:
+                print(f"[应用更新] 跳过合并: primary_checkup_id={primary_checkup_id}, checkup_ids={checkup_ids}, len={len(checkup_ids) if checkup_ids else 0}")
+
         end_time = time.time()
         duration = end_time - start_time
 
         print(f"[应用更新] ✓ 所有更新完成")
-        print(f"[应用更新] 成功更新: {updated_count} 个，跳过: {skipped_count} 个")
+        print(f"[应用更新] 成功更新: {updated_count} 个指标，跳过: {skipped_count} 个")
+        print(f"[应用更新] 删除报告: {len(deleted_checkups)} 个")
+        print(f"[应用更新] ZIP创建: {'是' if zip_created else '否'}")
         print(f"[应用更新] 耗时: {duration:.2f}秒")
         print(f"{'='*80}\n")
 
         return JsonResponse({
             'success': True,
             'updated_count': updated_count,
-            'update_details': update_details
+            'update_details': update_details,
+            'deleted_checkups': deleted_checkups,
+            'zip_created': zip_created
         })
 
     except Exception as e:

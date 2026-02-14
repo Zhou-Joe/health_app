@@ -5,109 +5,50 @@
 
 {% block extra_css %}
 <style>
-/* ═══════════════════════════════════════════════════════════
-   NEO-BRUTALIST MEDICAL - 新野兽派系统设置页面
-   ═══════════════════════════════════════════════════════════ */
-
-:root {
-    --brutal-yellow: #FFD60A;
-    --brutal-cyan: #14b8a6;
-    --brutal-pink: #FF5C8D;
-    --brutal-blue: #4C8BF5;
-    --brutal-green: #06FFA5;
-    --border-thick: 3px solid #000;
-    --shadow-hard: 6px 6px 0px #000;
-    --shadow-hard-sm: 4px 4px 0px #000;
-}
-
-body {
-    background: #FAFAFA;
-    font-family: 'Space Grotesk', 'Noto Sans SC', sans-serif;
-    color: #000;
-    overflow-x: hidden;
-}
-
-/* 棋盘格背景 */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image:
-        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
-        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.container {
-    position: relative;
-    z-index: 1;
-    background: #FAFAFA;
-}
-
-h1 {
-    font-size: 2.5rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: -0.03em;
-    margin-bottom: 0.5rem;
-}
-
-h1 i {
-    display: none;
-}
+/* 系统设置页面样式 - 专业医疗+有机自然风格 */
 
 .settings-tabs .nav-link {
-    border: var(--border-thick);
+    border: 1px solid var(--border-color);
     border-bottom: none;
     border-right: none;
-    color: #000;
-    padding: 1rem 1.5rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    transition: all 0.1s ease;
-    background: #FFF;
-    box-shadow: var(--shadow-hard-sm);
-    border-radius: 12px 12px 0 0;
+    color: var(--text-secondary);
+    padding: 0.75rem 1.25rem;
+    font-weight: 500;
+    transition: var(--transition);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
     margin-right: 0;
     position: relative;
 }
 
 .settings-tabs .nav-link:last-child {
-    border-right: var(--border-thick);
-    border-radius: 12px 12px 0 0;
+    border-right: 1px solid var(--border-color);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
 .settings-tabs .nav-link:not(:last-child):not(.active)::after {
     content: '';
     position: absolute;
-    right: -3px;
-    top: 10%;
-    height: 80%;
-    width: 3px;
-    background: #FAFAFA;
+    right: -1px;
+    top: 15%;
+    height: 70%;
+    width: 1px;
+    background: var(--border-color);
     z-index: 1;
 }
 
 .settings-tabs .nav-link:hover {
-    background: var(--brutal-yellow);
-    transform: translateY(-2px);
-    border-color: #000;
+    background: var(--bg-soft);
+    color: var(--primary);
+    border-color: var(--primary-light);
 }
 
 .settings-tabs .nav-link.active {
-    color: #000;
-    background: var(--brutal-cyan);
-    border-color: #000;
-    transform: translateY(-2px);
+    color: var(--primary);
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    border-bottom: 1px solid var(--primary-soft);
     z-index: 2;
 }
 
@@ -116,164 +57,154 @@ h1 i {
 }
 
 .settings-tabs .nav-link i {
-    margin-right: 8px;
-    font-size: 1.1em;
+    margin-right: 6px;
+    font-size: 1em;
 }
 
 .tab-content {
-    padding: 2rem 0;
-    background: #FAFAFA;
-    border: var(--border-thick);
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     border-top: none;
-    padding: 2rem;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .section-card {
-    border: var(--border-thick);
-    border-radius: 0;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    background: #FFF;
-    box-shadow: var(--shadow-hard-sm);
-    transition: all 0.1s ease;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
 }
 
 .section-card:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
+    box-shadow: var(--shadow-md);
 }
 
 .section-title {
-    color: #000;
-    font-weight: 900;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    border-bottom: var(--border-thick);
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
 .section-title i {
-    margin-right: 10px;
-    color: var(--brutal-cyan);
+    margin-right: 8px;
+    color: var(--primary);
 }
 
 .provider-badge {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border: 2px solid #000;
-    border-radius: 0;
+    padding: 0.25rem 0.625rem;
+    border-radius: var(--radius-full);
     font-size: 0.75rem;
-    font-weight: 800;
-    margin-left: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    box-shadow: 2px 2px 0px #000;
+    font-weight: 500;
+    margin-left: 8px;
 }
 
 .provider-badge.openai {
-    background-color: var(--brutal-green);
-    color: #000;
+    background-color: #d1fae5;
+    color: #065f46;
 }
 
 .provider-badge.gemini {
-    background-color: var(--brutal-pink);
-    color: #000;
+    background-color: #fce7f3;
+    color: #be185d;
 }
 
 .info-box {
-    background: #FFF;
-    border-left: 6px solid var(--brutal-blue);
-    padding: 1rem;
-    border: var(--border-thick);
-    border-left: 6px solid var(--brutal-blue) !important;
+    background: var(--bg-soft);
+    border-left: 3px solid var(--primary);
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-sm);
     margin-bottom: 1rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    box-shadow: var(--shadow-hard-sm);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
 }
 
 .info-box small {
-    color: #666;
+    color: var(--text-muted);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   新野兽派按钮
-   ═══════════════════════════════════════════════════════════ */
-
 .btn {
-    border: var(--border-thick);
-    border-radius: 0;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.75rem 1.5rem;
-    transition: all 0.1s ease;
-    box-shadow: var(--shadow-hard-sm);
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    padding: 0.625rem 1.25rem;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000;
-}
-
-.btn:active {
-    transform: translate(0, 0);
-    box-shadow: var(--shadow-hard-sm);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
 }
 
 .btn-primary {
-    background: var(--brutal-cyan);
-    color: #000;
-    border-color: #000;
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
 }
 
 .btn-primary:hover {
-    background: #0ea5a0;
-    color: #000;
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
 }
 
 .btn-outline-secondary {
-    background: #FFF;
-    color: #666;
-    border-color: #666;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    border-color: var(--border-color);
 }
 
 .btn-outline-secondary:hover {
-    background: linear-gradient(135deg, var(--brutal-yellow), #FFE566);
-    border-color: var(--brutal-yellow);
-    color: #000;
+    background: var(--bg-soft);
+    border-color: var(--secondary-light);
+    color: var(--text-primary);
 }
 
 .btn-info {
-    background: linear-gradient(135deg, var(--brutal-blue), #7C9FFF);
-    color: #FFF;
-    border-color: var(--brutal-blue);
+    background: var(--info);
+    color: #fff;
+    border-color: var(--info);
 }
 
 .btn-info:hover {
-    background: linear-gradient(135deg, #7C9FFF, #A8B8FF);
-    border-color: #7C9FFF;
-    color: #FFF;
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
 }
 
 .btn-secondary {
-    background: linear-gradient(135deg, #666, #888);
-    color: #FFF;
-    border-color: #666;
+    background: var(--secondary);
+    color: #fff;
+    border-color: var(--secondary);
 }
 
 .btn-secondary:hover {
-    background: linear-gradient(135deg, #888, #AAA);
-    border-color: #888;
-    color: #FFF;
+    background: var(--secondary-light);
+    border-color: var(--secondary-light);
+    color: #fff;
 }
 
 .btn-lg {
-    padding: 1rem 2rem;
-    font-size: 1.125rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.form-control, .form-select {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 </style>
 {% endblock %}
@@ -284,7 +215,7 @@ h1 i {
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2><i class="bi bi-gear-fill text-primary"></i> 系统设置</h2>
+                    <h2 style="color: var(--text-primary);"><i class="bi bi-gear-fill" style="color: var(--primary);"></i> 系统设置</h2>
                     <p class="text-muted mb-0">配置各种API服务和工作流</p>
                 </div>
                 <a href="{% url 'medical_records:dashboard' %}" class="btn btn-outline-secondary">
@@ -300,7 +231,7 @@ h1 i {
                 {% csrf_token %}
 
                 <!-- 标签页导航 -->
-                <ul class="nav nav-tabs settings-tabs mb-3" role="tablist">
+                <ul class="nav nav-tabs settings-tabs mb-0" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="ocr-tab" data-bs-toggle="tab" data-bs-target="#ocr-panel" type="button" role="tab">
                             <i class="bi bi-file-text"></i> OCR服务
@@ -407,7 +338,7 @@ h1 i {
                         <div class="section-card">
                             <div class="section-title">
                                 <i class="bi bi-robot"></i> AI医生服务提供商
-                                <span class="provider-badge" id="ai-doctor-badge">OpenAI</span>
+                                <span class="provider-badge openai" id="ai-doctor-badge">OpenAI</span>
                             </div>
                             <div class="info-box">
                                 <i class="bi bi-info-circle"></i>
@@ -514,7 +445,7 @@ h1 i {
                         <div class="section-card">
                             <div class="section-title">
                                 <i class="bi bi-eye"></i> 多模态模型提供商
-                                <span class="provider-badge" id="vl-model-badge">OpenAI</span>
+                                <span class="provider-badge openai" id="vl-model-badge">OpenAI</span>
                             </div>
                             <div class="info-box">
                                 <i class="bi bi-info-circle"></i>
@@ -569,7 +500,7 @@ h1 i {
                         <div class="section-card">
                             <div class="section-title">
                                 <i class="bi bi-cpu"></i> 数据整合LLM提供商
-                                <span class="provider-badge" id="llm-badge">OpenAI</span>
+                                <span class="provider-badge openai" id="llm-badge">OpenAI</span>
                             </div>
                             <div class="info-box">
                                 <i class="bi bi-info-circle"></i>
@@ -671,32 +602,32 @@ h1 i {
                             <h6 class="fw-bold mb-3">工作流说明</h6>
                             <div class="row">
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100">
+                                    <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
                                         <div class="card-body">
-                                            <h6 class="card-title">
-                                                <i class="bi bi-gear-fill text-primary"></i> MinerU Pipeline
+                                            <h6 class="card-title" style="color: var(--primary);">
+                                                <i class="bi bi-gear-fill"></i> MinerU Pipeline
                                             </h6>
-                                            <p class="card-text small">使用MinerU Pipeline进行OCR文字识别，然后使用LLM提取结构化数据。成熟稳定的传统工作流。</p>
+                                            <p class="card-text small text-muted">使用MinerU Pipeline进行OCR文字识别，然后使用LLM提取结构化数据。成熟稳定的传统工作流。</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100">
+                                    <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
                                         <div class="card-body">
-                                            <h6 class="card-title">
-                                                <i class="bi bi-gear-fill text-info"></i> MinerU VLM
+                                            <h6 class="card-title" style="color: var(--info);">
+                                                <i class="bi bi-gear-fill"></i> MinerU VLM
                                             </h6>
-                                            <p class="card-text small">使用MinerU VLM进行OCR文字识别，然后使用LLM提取结构化数据。增强版的OCR工作流。</p>
+                                            <p class="card-text small text-muted">使用MinerU VLM进行OCR文字识别，然后使用LLM提取结构化数据。增强版的OCR工作流。</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-3">
-                                    <div class="card h-100">
+                                    <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
                                         <div class="card-body">
-                                            <h6 class="card-title">
-                                                <i class="bi bi-eye-fill text-success"></i> 多模态大模型
+                                            <h6 class="card-title" style="color: var(--success);">
+                                                <i class="bi bi-eye-fill"></i> 多模态大模型
                                             </h6>
-                                            <p class="card-text small">直接使用多模态大模型理解文档内容并提取数据。处理复杂布局、表格和手写文字可能表现更好。</p>
+                                            <p class="card-text small text-muted">直接使用多模态大模型理解文档内容并提取数据。处理复杂布局、表格和手写文字可能表现更好。</p>
                                         </div>
                                     </div>
                                 </div>
@@ -720,7 +651,7 @@ h1 i {
                                     <option value="stream">实时模式 - 需保持页面打开</option>
                                     <option value="background">后台模式（推荐）- 可离开页面</option>
                                 </select>
-                                <div class="form-text mt-2">
+                                <div class="form-text mt-2 text-muted">
                                     <strong>实时模式</strong>：可以看到AI生成的实时过程，需要保持页面打开，适合PC用户<br>
                                     <strong>后台模式</strong>：可以在后台处理，完成后查看结果，可以离开页面，适合手机用户
                                 </div>
@@ -737,42 +668,42 @@ h1 i {
                             </div>
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-header bg-primary text-white">
+                                    <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                                        <div class="card-header" style="background: var(--primary-soft); color: var(--primary-dark);">
                                             <h6 class="mb-0"><i class="bi bi-play-circle"></i> 实时模式</h6>
                                         </div>
                                         <div class="card-body">
-                                            <ul class="list-unstyled mb-0">
+                                            <ul class="list-unstyled mb-0 text-muted">
                                                 <li><i class="bi bi-check2 text-success"></i> 可以看到AI逐步输出的过程</li>
                                                 <li><i class="bi bi-check2 text-success"></i> 体验流畅，即时反馈</li>
-                                                <li><i class="bi bi-x2 text-danger"></i> 必须保持页面打开</li>
-                                                <li><i class="bi bi-x2 text-danger"></i> 手机熄屏会中断</li>
-                                                <li><i class="bi bi-x2 text-danger"></i> 不适合长时间处理</li>
+                                                <li><i class="bi bi-x-lg text-danger"></i> 必须保持页面打开</li>
+                                                <li><i class="bi bi-x-lg text-danger"></i> 手机熄屏会中断</li>
+                                                <li><i class="bi bi-x-lg text-danger"></i> 不适合长时间处理</li>
                                             </ul>
                                             <div class="mt-3">
-                                                <span class="badge bg-info">适合PC用户</span>
-                                                <span class="badge bg-secondary">想看实时输出</span>
+                                                <span class="badge" style="background: var(--info);">适合PC用户</span>
+                                                <span class="badge" style="background: var(--secondary);">想看实时输出</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-header bg-success text-white">
+                                    <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                                        <div class="card-header" style="background: #d1fae5; color: #065f46;">
                                             <h6 class="mb-0"><i class="bi bi-cloud-arrow-up"></i> 后台模式</h6>
                                         </div>
                                         <div class="card-body">
-                                            <ul class="list-unstyled mb-0">
+                                            <ul class="list-unstyled mb-0 text-muted">
                                                 <li><i class="bi bi-check2 text-success"></i> 可以离开页面或关闭手机</li>
                                                 <li><i class="bi bi-check2 text-success"></i> 任务持续运行不受影响</li>
                                                 <li><i class="bi bi-check2 text-success"></i> 完成后回来查看结果</li>
                                                 <li><i class="bi bi-check2 text-success"></i> 适合长时间处理</li>
-                                                <li><i class="bi bi-x2 text-danger"></i> 看不到实时生成过程</li>
+                                                <li><i class="bi bi-x-lg text-danger"></i> 看不到实时生成过程</li>
                                             </ul>
                                             <div class="mt-3">
-                                                <span class="badge bg-success">推荐</span>
-                                                <span class="badge bg-info">适合手机用户</span>
-                                                <span class="badge bg-secondary">长时间处理</span>
+                                                <span class="badge" style="background: var(--success);">推荐</span>
+                                                <span class="badge" style="background: var(--info);">适合手机用户</span>
+                                                <span class="badge" style="background: var(--secondary);">长时间处理</span>
                                             </div>
                                         </div>
                                     </div>
@@ -784,7 +715,7 @@ h1 i {
                 </div>
 
                 <!-- 保存和测试按钮 -->
-                <div class="card mt-4">
+                <div class="card mt-4" style="border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
@@ -809,8 +740,8 @@ h1 i {
 <!-- 测试连接模态框 -->
 <div class="modal fade" id="testModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content" style="border: 1px solid var(--border-color); border-radius: var(--radius-lg);">
+            <div class="modal-header" style="background: var(--bg-soft);">
                 <h5 class="modal-title"><i class="bi bi-activity"></i> 连接测试结果</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -843,131 +774,7 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// 检测是否为移动设备
-function isMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
-
-// 加载当前处理模式
-async function loadProcessingMode() {
-    try {
-        const response = await fetch('{% url "medical_records:api_processing_mode" %}');
-        if (response.ok) {
-            const data = await response.json();
-            const select = document.getElementById('processingModeSelect');
-            if (select) {
-                select.value = data.mode;
-                console.log('当前处理模式:', data.mode, '-', data.mode_display);
-            }
-        }
-    } catch (error) {
-        console.error('加载处理模式失败:', error);
-    }
-}
-
-// 保存处理模式
-async function saveProcessingMode() {
-    const select = document.getElementById('processingModeSelect');
-    const mode = select.value;
-
-    try {
-        const response = await fetch('{% url "medical_records:api_processing_mode" %}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ mode })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log('处理模式已保存:', data.mode);
-            return true;
-        } else {
-            console.error('保存处理模式失败');
-            return false;
-        }
-    } catch (error) {
-        console.error('保存处理模式出错:', error);
-        return false;
-    }
-}
-
-// 自动检测设备并设置默认模式
-async function autoDetectAndSetMode() {
-    const deviceInfo = document.getElementById('deviceDetectionInfo');
-    const deviceMessage = document.getElementById('deviceDetectionMessage');
-
-    try {
-        const response = await fetch('{% url "medical_records:api_processing_mode" %}');
-        if (response.ok) {
-            const data = await response.json();
-
-            // 如果是移动设备且当前是实时模式，自动切换到后台模式
-            if (isMobile() && data.mode === 'stream') {
-                const saveResponse = await fetch('{% url "medical_records:api_processing_mode" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
-                    },
-                    body: JSON.stringify({ mode: 'background' })
-                });
-
-                if (saveResponse.ok) {
-                    deviceInfo.style.display = 'block';
-                    deviceMessage.textContent = '已检测到您使用移动设备，自动切换到后台模式以获得更好的体验。';
-                    // 更新选择器
-                    const select = document.getElementById('processingModeSelect');
-                    if (select) {
-                        select.value = 'background';
-                    }
-                    console.log('已自动切换到后台模式');
-                }
-            } else if (isMobile() && data.mode === 'background') {
-                deviceInfo.style.display = 'block';
-                deviceMessage.textContent = '已为您优化为后台模式，上传后可以离开页面。';
-            }
-        }
-    } catch (error) {
-        console.error('设备检测失败:', error);
-    }
-}
-
-// 为表单字段添加CSS类
 document.addEventListener('DOMContentLoaded', function() {
-    const formFields = [
-        'mineru_api_url', 'document_max_tokens', 'is_mac_system',
-        'llm_provider', 'llm_api_url', 'llm_api_key', 'llm_model_name',
-        'ai_doctor_provider', 'ai_doctor_api_url', 'ai_doctor_api_key', 'ai_doctor_model_name', 'ai_doctor_max_tokens',
-        'gemini_api_key', 'gemini_model_name',
-        'vl_model_provider', 'vl_model_api_url', 'vl_model_api_key', 'vl_model_name', 'vl_model_max_tokens',
-        'ai_model_timeout', 'llm_max_tokens',
-        'default_workflow'
-    ];
-
-    formFields.forEach(fieldId => {
-        const field = document.getElementById(`id_${fieldId}`);
-        if (field) {
-            field.classList.add('form-control');
-        }
-    });
-
-    // 加载处理模式
-    loadProcessingMode();
-
-    // 自动检测设备并设置模式
-    autoDetectAndSetMode();
-
-    // 监听处理模式选择变化，实时保存
-    const processingModeSelect = document.getElementById('processingModeSelect');
-    if (processingModeSelect) {
-        processingModeSelect.addEventListener('change', function() {
-            saveProcessingMode();
-        });
-    }
-
     // AI医生提供商切换
     const aiDoctorProvider = document.getElementById('id_ai_doctor_provider');
     const openaiAiDoctorConfig = document.getElementById('openai-ai-doctor-config');
@@ -1040,7 +847,7 @@ async function testConnection() {
     const testModal = new bootstrap.Modal(document.getElementById('testModal'));
     const testResults = document.getElementById('testResults');
 
-    testResults.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-3">正在测试所有连接...</p></div>';
+    testResults.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">正在测试所有连接...</p></div>';
     testModal.show();
 
     const formData = new FormData(document.getElementById('settingsForm'));
@@ -1065,8 +872,8 @@ async function testConnection() {
     let results = '';
 
     // 测试MinerU连接
-    results += '<div class="card mb-3">';
-    results += '<div class="card-header bg-primary text-white"><i class="bi bi-file-text"></i> MinerU OCR</div>';
+    results += '<div class="card mb-3" style="border: 1px solid var(--border-color);">';
+    results += '<div class="card-header" style="background: var(--primary); color: #fff;"><i class="bi bi-file-text"></i> MinerU OCR</div>';
     results += '<div class="card-body">';
     try {
         const response = await fetch('{% url "medical_records:api_check_services" %}', {
@@ -1088,8 +895,8 @@ async function testConnection() {
     results += '</div></div>';
 
     // 测试AI医生连接
-    results += '<div class="card mb-3">';
-    results += '<div class="card-header bg-info text-white"><i class="bi bi-robot"></i> AI医生</div>';
+    results += '<div class="card mb-3" style="border: 1px solid var(--border-color);">';
+    results += '<div class="card-header" style="background: var(--info); color: #fff;"><i class="bi bi-robot"></i> AI医生</div>';
     results += '<div class="card-body">';
     if (settings.ai_doctor_model_name) {
         try {
@@ -1103,8 +910,7 @@ async function testConnection() {
                     const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${settings.gemini_model_name}:generateContent?key=${settings.gemini_api_key}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(geminiData),
-                        timeout: 30000
+                        body: JSON.stringify(geminiData)
                     });
                     if (geminiResponse.ok) {
                         const geminiResult = await geminiResponse.json();
@@ -1131,8 +937,7 @@ async function testConnection() {
                     const aiDoctorResponse = await fetch(settings.ai_doctor_api_url, {
                         method: 'POST',
                         headers: headers,
-                        body: JSON.stringify(aiDoctorData),
-                        timeout: 30000
+                        body: JSON.stringify(aiDoctorData)
                     });
                     if (aiDoctorResponse.ok) {
                         const aiDoctorResult = await aiDoctorResponse.json();
@@ -1152,8 +957,8 @@ async function testConnection() {
     results += '</div></div>';
 
     // 测试多模态模型连接
-    results += '<div class="card mb-3">';
-    results += '<div class="card-header bg-success text-white"><i class="bi bi-eye"></i> 多模态模型</div>';
+    results += '<div class="card mb-3" style="border: 1px solid var(--border-color);">';
+    results += '<div class="card-header" style="background: var(--success); color: #fff;"><i class="bi bi-eye"></i> 多模态模型</div>';
     results += '<div class="card-body">';
     if (settings.vl_model_name) {
         try {
@@ -1173,8 +978,7 @@ async function testConnection() {
                     const geminiVlResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${settings.vl_model_name}:generateContent?key=${settings.gemini_api_key}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(geminiVlData),
-                        timeout: 30000
+                        body: JSON.stringify(geminiVlData)
                     });
                     if (geminiVlResponse.ok) {
                         const geminiVlResult = await geminiVlResponse.json();
@@ -1208,8 +1012,7 @@ async function testConnection() {
                     const vlModelResponse = await fetch(settings.vl_model_api_url, {
                         method: 'POST',
                         headers: headers,
-                        body: JSON.stringify(vlModelData),
-                        timeout: 30000
+                        body: JSON.stringify(vlModelData)
                     });
                     if (vlModelResponse.ok) {
                         const vlModelResult = await vlModelResponse.json();
@@ -1229,8 +1032,8 @@ async function testConnection() {
     results += '</div></div>';
 
     // 测试数据整合LLM连接
-    results += '<div class="card mb-3">';
-    results += '<div class="card-header bg-warning text-dark"><i class="bi bi-cpu"></i> 数据整合LLM</div>';
+    results += '<div class="card mb-3" style="border: 1px solid var(--border-color);">';
+    results += '<div class="card-header" style="background: #f59e0b; color: #fff;"><i class="bi bi-cpu"></i> 数据整合LLM</div>';
     results += '<div class="card-body">';
     if (settings.llm_model_name) {
         try {
@@ -1244,8 +1047,7 @@ async function testConnection() {
                     const llmGeminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${settings.gemini_model_name}:generateContent?key=${settings.gemini_api_key}`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(llmGeminiData),
-                        timeout: 30000
+                        body: JSON.stringify(llmGeminiData)
                     });
                     if (llmGeminiResponse.ok) {
                         const llmGeminiResult = await llmGeminiResponse.json();
@@ -1272,8 +1074,7 @@ async function testConnection() {
                     const llmResponse = await fetch(settings.llm_api_url, {
                         method: 'POST',
                         headers: headers,
-                        body: JSON.stringify(llmData),
-                        timeout: 30000
+                        body: JSON.stringify(llmData)
                     });
                     if (llmResponse.ok) {
                         const llmResult = await llmResponse.json();
