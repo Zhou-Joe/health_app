@@ -1048,13 +1048,53 @@ class DocumentProcessingService:
 
 
 def get_mineru_api_status():
-    """检查MinerU API状态"""
+    """检查MinerU API状态
+
+    支持多种检查方式：
+    1. 健康检查端点（推荐）
+    2. API文档端点（兼容旧版本）
+    3. 简单的TCP连接测试（最后手段）
+    """
     try:
         # 从数据库获取配置
-        mineru_api_url = SystemSettings.get_setting('mineru_api_url', 'http://localhost:8000')
-        response = requests.get(f"{mineru_api_url}/docs", timeout=5)
-        return response.status_code == 200
-    except:
+        mineru_api_url = SystemSettings.get_setting('mineru_api_url', 'http://localhost:8000').rstrip('/')
+        timeout = int(SystemSettings.get_setting('ocr_healthcheck_timeout', '10'))
+
+        # 尝试多个端点（按优先级）
+        check_endpoints = SystemSettings.get_setting(
+            'ocr_healthcheck_endpoints',
+            '/health,/api/health,/docs,/'
+        ).split(',')
+
+        for endpoint in check_endpoints:
+            endpoint = endpoint.strip()
+            if not endpoint:
+                continue
+
+            check_url = f"{mineru_api_url}{endpoint}"
+            print(f"[OCR健康检查] 尝试端点: {check_url}")
+
+            try:
+                response = requests.get(check_url, timeout=timeout)
+                # 接受200或302（重定向，某些API会重定向到docs）
+                if response.status_code in [200, 302]:
+                    print(f"[OCR健康检查] ✓ 成功: {check_url} (状态码: {response.status_code})")
+                    return True
+                else:
+                    print(f"[OCR健康检查] ✗ 失败: {check_url} (状态码: {response.status_code})")
+            except requests.exceptions.Timeout:
+                print(f"[OCR健康检查] ⏱ 超时: {check_url}")
+                continue
+            except Exception as e:
+                print(f"[OCR健康检查] ✗ 错误: {check_url} - {str(e)}")
+                continue
+
+        # 所有端点都失败，返回False
+        print(f"[OCR健康检查] 所有端点均不可用")
+        return False
+
+    except Exception as e:
+        print(f"[OCR健康检查] 检查过程出错: {str(e)}")
         return False
 
 
@@ -1064,17 +1104,33 @@ def get_llm_api_status():
         # 从数据库获取配置
         llm_api_url = SystemSettings.get_setting('llm_api_url', 'http://172.25.48.1:1234')
         llm_api_key = SystemSettings.get_setting('llm_api_key', '')
+        timeout = int(SystemSettings.get_setting('llm_healthcheck_timeout', '10'))
 
-        # 状态检查使用基础地址 + /v1/models
-        check_url = f"{llm_api_url.rstrip('/')}/v1/models"
+        # 状态检查端点（可配置）
+        healthcheck_endpoint = SystemSettings.get_setting(
+            'llm_healthcheck_endpoint',
+            '/v1/models'
+        )
+        check_url = f"{llm_api_url.rstrip('/')}/{healthcheck_endpoint.lstrip('/')}"
 
         headers = {}
         if llm_api_key:
             headers['Authorization'] = f"Bearer {llm_api_key}"
 
-        response = requests.get(check_url, headers=headers, timeout=5)
-        return response.status_code in [200, 401]  # 200=OK, 401=需要认证
-    except:
+        print(f"[LLM健康检查] 检查URL: {check_url}")
+
+        response = requests.get(check_url, headers=headers, timeout=timeout)
+
+        # 可接受的状态码（可配置）
+        acceptable_codes_str = SystemSettings.get_setting('llm_healthcheck_codes', '200,401')
+        acceptable_codes = [int(code.strip()) for code in acceptable_codes_str.split(',')]
+
+        print(f"[LLM健康检查] 响应状态码: {response.status_code}, 可接受: {acceptable_codes}")
+
+        return response.status_code in acceptable_codes
+
+    except Exception as e:
+        print(f"[LLM健康检查] 检查失败: {str(e)}")
         return False
 
 
@@ -2003,16 +2059,33 @@ def get_vision_model_api_status():
         if not config['api_url']:
             return False
 
-        # 状态检查使用基础地址 + /v1/models
-        check_url = f"{config['api_url'].rstrip('/')}/v1/models"
+        timeout = int(SystemSettings.get_setting('vl_model_healthcheck_timeout', '10'))
+
+        # 状态检查端点（可配置）
+        healthcheck_endpoint = SystemSettings.get_setting(
+            'vl_model_healthcheck_endpoint',
+            '/v1/models'
+        )
+        check_url = f"{config['api_url'].rstrip('/')}/{healthcheck_endpoint.lstrip('/')}"
 
         headers = {}
         if config.get('api_key'):
             headers['Authorization'] = f"Bearer {config['api_key']}"
 
-        response = requests.get(check_url, headers=headers, timeout=5)
-        return response.status_code in [200, 401]  # 200=OK, 401=需要认证
-    except:
+        print(f"[VLM健康检查] 检查URL: {check_url}")
+
+        response = requests.get(check_url, headers=headers, timeout=timeout)
+
+        # 可接受的状态码（可配置）
+        acceptable_codes_str = SystemSettings.get_setting('vl_model_healthcheck_codes', '200,401')
+        acceptable_codes = [int(code.strip()) for code in acceptable_codes_str.split(',')]
+
+        print(f"[VLM健康检查] 响应状态码: {response.status_code}, 可接受: {acceptable_codes}")
+
+        return response.status_code in acceptable_codes
+
+    except Exception as e:
+        print(f"[VLM健康检查] 检查失败: {str(e)}")
         return False
 
 

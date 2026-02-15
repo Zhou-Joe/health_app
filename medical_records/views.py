@@ -1718,6 +1718,25 @@ def system_settings(request):
     """系统设置页面"""
     if request.method == 'POST':
         form = SystemSettingsForm(request.POST)
+
+        # 手动处理健康检查配置项（不在form中的字段）
+        if 'ocr_healthcheck_timeout' in request.POST:
+            SystemSettings.set_setting('ocr_healthcheck_timeout', request.POST['ocr_healthcheck_timeout'])
+        if 'ocr_healthcheck_endpoints' in request.POST:
+            SystemSettings.set_setting('ocr_healthcheck_endpoints', request.POST['ocr_healthcheck_endpoints'])
+        if 'llm_healthcheck_timeout' in request.POST:
+            SystemSettings.set_setting('llm_healthcheck_timeout', request.POST['llm_healthcheck_timeout'])
+        if 'llm_healthcheck_endpoint' in request.POST:
+            SystemSettings.set_setting('llm_healthcheck_endpoint', request.POST['llm_healthcheck_endpoint'])
+        if 'llm_healthcheck_codes' in request.POST:
+            SystemSettings.set_setting('llm_healthcheck_codes', request.POST['llm_healthcheck_codes'])
+        if 'vl_model_healthcheck_timeout' in request.POST:
+            SystemSettings.set_setting('vl_model_healthcheck_timeout', request.POST['vl_model_healthcheck_timeout'])
+        if 'vl_model_healthcheck_endpoint' in request.POST:
+            SystemSettings.set_setting('vl_model_healthcheck_endpoint', request.POST['vl_model_healthcheck_endpoint'])
+        if 'vl_model_healthcheck_codes' in request.POST:
+            SystemSettings.set_setting('vl_model_healthcheck_codes', request.POST['vl_model_healthcheck_codes'])
+
         if form.is_valid():
             form.save()
             messages.success(request, '设置已保存成功！')
@@ -1751,6 +1770,15 @@ def system_settings(request):
         'vl_model_timeout': SystemSettings.get_setting('vl_model_timeout', '300'),
         'vl_model_max_tokens': SystemSettings.get_setting('vl_model_max_tokens', '4000'),
         'default_workflow': SystemSettings.get_setting('default_workflow', 'ocr_llm'),
+        # 健康检查配置
+        'ocr_healthcheck_timeout': SystemSettings.get_setting('ocr_healthcheck_timeout', '10'),
+        'ocr_healthcheck_endpoints': SystemSettings.get_setting('ocr_healthcheck_endpoints', '/health,/api/health,/docs,/'),
+        'llm_healthcheck_timeout': SystemSettings.get_setting('llm_healthcheck_timeout', '10'),
+        'llm_healthcheck_endpoint': SystemSettings.get_setting('llm_healthcheck_endpoint', '/v1/models'),
+        'llm_healthcheck_codes': SystemSettings.get_setting('llm_healthcheck_codes', '200,401'),
+        'vl_model_healthcheck_timeout': SystemSettings.get_setting('vl_model_healthcheck_timeout', '10'),
+        'vl_model_healthcheck_endpoint': SystemSettings.get_setting('vl_model_healthcheck_endpoint', '/v1/models'),
+        'vl_model_healthcheck_codes': SystemSettings.get_setting('vl_model_healthcheck_codes', '200,401'),
     }
 
     context = {
@@ -1764,57 +1792,19 @@ def system_settings(request):
 
 @login_required
 def check_services_status(request):
-    """检查OCR和AI服务状态"""
-    import requests
+    """检查OCR和AI服务状态（使用services.py中的函数）"""
+    from .services import get_mineru_api_status, get_llm_api_status, get_vision_model_api_status
 
-    # 获取系统设置中的服务URL
-    ocr_service_url = SystemSettings.get_setting('mineru_api_url', 'http://localhost:8000')
-    ai_service_url = SystemSettings.get_setting('llm_api_url', 'http://172.25.48.1:1234')
+    # 使用services.py中的状态检查函数（已支持可配置）
+    ocr_status = get_mineru_api_status()
+    llm_status = get_llm_api_status()
+    vl_status = get_vision_model_api_status()
 
-    # 详细调试信息
-    all_settings = SystemSettings.objects.all()
-    print(f"[DEBUG] 数据库中所有系统设置:")
-    for setting in all_settings:
-        print(f"  {setting.key}: {setting.value}")
-    print(f"[DEBUG] 最终OCR服务地址: {ocr_service_url}")
-    print(f"[DEBUG] 最终AI服务地址: {ai_service_url}")
-
-    result = {
-        'ocr_status': 'offline',
-        'ocr_error': None,
-        'ai_status': 'offline',
-        'ai_error': None
-    }
-
-    # 检查OCR服务
-    try:
-        ocr_check_url = f"{ocr_service_url.rstrip('/')}/docs"
-        response = requests.get(ocr_check_url, timeout=5)
-        if response.status_code == 200:
-            result['ocr_status'] = 'online'
-        else:
-            result['ocr_error'] = f"HTTP {response.status_code}"
-    except requests.exceptions.RequestException as e:
-        result['ocr_error'] = str(e)
-
-    # 检查AI服务
-    try:
-        ai_check_url = f"{ai_service_url.rstrip('/')}/v1/models"
-        ai_api_key = SystemSettings.get_setting('llm_api_key', '')
-
-        headers = {}
-        if ai_api_key:
-            headers['Authorization'] = f'Bearer {ai_api_key}'
-
-        response = requests.get(ai_check_url, headers=headers, timeout=5)
-        if response.status_code == 200:
-            result['ai_status'] = 'online'
-        else:
-            result['ai_error'] = f"HTTP {response.status_code}"
-    except requests.exceptions.RequestException as e:
-        result['ai_error'] = str(e)
-
-    return JsonResponse(result)
+    return JsonResponse({
+        'ocr_status': 'online' if ocr_status else 'offline',
+        'llm_status': 'online' if llm_status else 'offline',
+        'vlm_status': 'online' if vl_status else 'offline'
+    })
 
 
 @login_required

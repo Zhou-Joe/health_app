@@ -312,10 +312,42 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-12">
+                                    <div class="alert alert-warning mb-3">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        <strong>OCR健康检查配置（高级）：</strong>
+                                        用于服务状态检测的配置。通过frps等内网穿透访问时，建议增加超时时间并配置正确的健康检查端点。
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="id_ocr_healthcheck_timeout" class="form-label fw-bold">
+                                            OCR健康检查超时（秒）
+                                        </label>
+                                        <input type="number" class="form-control" name="ocr_healthcheck_timeout"
+                                               id="id_ocr_healthcheck_timeout" value="10" min="3" max="60">
+                                        <small class="form-text text-muted">健康检查请求的超时时间。通过frps访问建议设置为15-30秒</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="id_ocr_healthcheck_endpoints" class="form-label fw-bold">
+                                            OCR健康检查端点
+                                        </label>
+                                        <input type="text" class="form-control" name="ocr_healthcheck_endpoints"
+                                               id="id_ocr_healthcheck_endpoints" value="/health,/api/health,/docs,/"
+                                               placeholder="/health,/api/health,/docs">
+                                        <small class="form-text text-muted">多个端点用逗号分隔，将依次尝试直到成功</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
                                     <div class="mb-3">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" 
-                                                   name="is_mac_system" 
+                                            <input class="form-check-input" type="checkbox"
+                                                   name="is_mac_system"
                                                    id="id_is_mac_system"
                                                    {% if form.is_mac_system.value %}checked{% endif %}>
                                             <label class="form-check-label fw-bold" for="id_is_mac_system">

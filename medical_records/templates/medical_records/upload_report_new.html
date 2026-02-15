@@ -1112,8 +1112,23 @@ async function handleUpload() {
 
     } catch (error) {
         console.error('上传失败:', error);
-        showError(error.message || '上传失败');
+
+        // 检查是否是网络连接错误
+        const errorMessage = error.message || '上传失败';
+        if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network') || errorMessage.includes('network connection')) {
+            showError('网络连接中断。可能原因：\n1. OCR处理时间过长导致连接超时\n2. 网络不稳定\n3. 服务器负载过高\n\n建议：检查服务器日志，或尝试使用较小的文件');
+        } else {
+            showError(errorMessage);
+        }
+
         if (submitBtn) submitBtn.disabled = false;
+
+        // 更新状态徽章
+        const uploadLogStatus = document.getElementById('uploadLogStatus');
+        if (uploadLogStatus) {
+            uploadLogStatus.textContent = '连接失败';
+            uploadLogStatus.className = 'badge bg-danger small';
+        }
     }
 }
 
@@ -1121,9 +1136,14 @@ function handleStreamData(data) {
     const statusDetails = document.getElementById('statusDetails');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
+    const uploadLogStatus = document.getElementById('uploadLogStatus');
 
     if (data.error) {
         showError(data.error);
+        if (uploadLogStatus) {
+            uploadLogStatus.textContent = '失败';
+            uploadLogStatus.className = 'badge bg-danger small';
+        }
         return;
     }
 
@@ -1131,6 +1151,10 @@ function handleStreamData(data) {
         // 设置进度到100%
         if (progressBar) progressBar.style.width = '100%';
         if (progressText) progressText.textContent = '100%';
+        if (uploadLogStatus) {
+            uploadLogStatus.textContent = '完成';
+            uploadLogStatus.className = 'badge bg-success small';
+        }
 
         updateUploadStepIndicator(3);
         showSuccess({
@@ -1143,6 +1167,14 @@ function handleStreamData(data) {
     // 更新进度消息
     if (data.message && statusDetails) {
         statusDetails.textContent = data.message;
+        // 同时更新日志区域
+        const uploadProgressLog = document.getElementById('uploadProgressLog');
+        if (uploadProgressLog) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${data.message}`;
+            uploadProgressLog.appendChild(logEntry);
+            uploadProgressLog.scrollTop = uploadProgressLog.scrollHeight;
+        }
     }
 
     // 根据状态更新进度条
@@ -1151,10 +1183,14 @@ function handleStreamData(data) {
     else if (data.status === 'saving_start') progress = 80;
     else if (data.status === 'ocr_start') progress = 20;
     else if (data.status === 'ocr_complete') progress = 50;
+    else if (data.status === 'ocr_processing') {
+        // OCR处理中的心跳状态，不改变进度，只更新消息
+        progress = null;
+    }
     else if (data.status === 'ai_start') progress = 60;
 
-    if (progressBar) progressBar.style.width = progress + '%';
-    if (progressText) progressText.textContent = progress + '%';
+    if (progress !== null && progressBar) progressBar.style.width = progress + '%';
+    if (progress !== null && progressText) progressText.textContent = progress + '%';
 }
 
 function startProgressTracking() {

@@ -2424,9 +2424,60 @@ def stream_upload_and_process(request):
                 # 发送OCR开始消息
                 yield f"data: {json.dumps({'status': 'ocr_start', 'message': '🔍 开始OCR文字识别...'}, ensure_ascii=False)}\n\n"
 
-                # 执行OCR
-                ocr_text = service.perform_ocr(tmp_file_path)
-                yield f"data: {json.dumps({'status': 'ocr_complete', 'message': f'✅ OCR识别完成，识别了 {len(ocr_text)} 个字符'}, ensure_ascii=False)}\n\n"
+                # 在后台线程中执行OCR，主线程定期发送心跳保持SSE连接
+                import threading
+                import queue
+                result_queue = queue.Queue()
+
+                def ocr_worker():
+                    """后台线程执行OCR"""
+                    try:
+                        ocr_text = service.perform_ocr(tmp_file_path)
+                        result_queue.put(('success', ocr_text))
+                    except Exception as e:
+                        result_queue.put(('error', str(e)))
+
+                # 启动OCR后台线程
+                ocr_thread = threading.Thread(target=ocr_worker)
+                ocr_thread.start()
+
+                # 定期发送心跳保持连接，同时检查OCR是否完成
+                import time
+                heartbeat_count = 0
+                ocr_complete = False
+                start_time = time.time()
+
+                print(f"[流式上传] OCR处理开始，将在后台线程执行，主线程每10秒发送心跳")
+
+                while not ocr_complete:
+                    try:
+                        # 非阻塞检查队列
+                        result_type, result_data = result_queue.get(timeout=10)
+                        if result_type == 'success':
+                            ocr_text = result_data
+                            ocr_complete = True
+                            elapsed = int(time.time() - start_time)
+                            print(f"[流式上传] OCR完成，总耗时: {elapsed}秒")
+                            yield f"data: {json.dumps({'status': 'ocr_complete', 'message': f'✅ OCR识别完成，识别了 {len(ocr_text)} 个字符 (耗时{elapsed}秒)'}, ensure_ascii=False)}\n\n"
+                        else:
+                            # OCR出错
+                            raise Exception(result_data)
+                    except queue.Empty:
+                        # 队列为空，发送心跳继续等待
+                        heartbeat_count += 1
+                        elapsed = int(time.time() - start_time)
+                        heartbeat_messages = [
+                            '⏳ OCR正在处理中...',
+                            '🔍 正在识别文字...',
+                            '📄 正在解析文档...',
+                            '⚡ 正在处理表格和图表...'
+                        ]
+                        message = heartbeat_messages[heartbeat_count % len(heartbeat_messages)]
+                        print(f"[流式上传] 发送心跳 #{heartbeat_count}, 已等待 {elapsed}秒")
+                        yield f"data: {json.dumps({'status': 'ocr_processing', 'message': f'{message} (已处理 {elapsed}秒)'}, ensure_ascii=False)}\n\n"
+
+                # 等待线程结束
+                ocr_thread.join()
 
                 # 发送AI分析开始消息
                 yield f"data: {json.dumps({'status': 'ai_start', 'message': '🤖 AI正在分析数据...'}, ensure_ascii=False)}\n\n"
