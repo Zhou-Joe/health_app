@@ -455,6 +455,9 @@ def stream_ai_summary(request):
 
             except Exception as e:
                 error_msg = str(e)
+                import traceback
+                print(f"[stream_event_ai_summary] Error: {error_msg}")
+                print(f"[stream_event_ai_summary] Trace: {traceback.format_exc()}")
                 yield f"data: {json.dumps({'error': error_msg, 'done': True}, ensure_ascii=False)}\n\n"
 
             try:
@@ -587,6 +590,7 @@ def stream_event_ai_summary(request):
             error_msg = None
 
             try:
+                print(f"[stream_event_ai_summary] Starting LLM call for event_id: {event.id}")
                 yield f"data: {json.dumps({'prompt': prompt}, ensure_ascii=False)}\n\n"
 
                 if provider == 'gemini':
@@ -659,9 +663,13 @@ def stream_event_ai_summary(request):
                             yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
 
                     yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+                    print(f"[stream_event_ai_summary] LLM streaming completed, full_response length: {len(full_response)}")
 
             except Exception as e:
                 error_msg = str(e)
+                import traceback
+                print(f"[stream_event_ai_summary] LLM Error: {error_msg}")
+                print(f"[stream_event_ai_summary] Trace: {traceback.format_exc()}")
                 yield f"data: {json.dumps({'error': error_msg, 'done': True}, ensure_ascii=False)}\n\n"
 
             try:
