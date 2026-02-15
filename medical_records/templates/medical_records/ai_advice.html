@@ -2145,12 +2145,20 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
             sseBuffer = lines.pop() || '';
 
             for (const line of lines) {
-                handleSSELine(line.trim());
+                try {
+                    handleSSELine(line.trim());
+                } catch (e) {
+                    console.warn('解析SSE行失败，跳过:', e.message);
+                }
             }
         }
 
         if (sseBuffer.trim()) {
-            handleSSELine(sseBuffer.trim());
+            try {
+                handleSSELine(sseBuffer.trim());
+            } catch (e) {
+                console.warn('解析SSE buffer失败:', e.message);
+            }
         }
 
         textarea.value = '';
@@ -2339,12 +2347,20 @@ async function generateAiSummary(conversationId) {
             sseBuffer = lines.pop() || '';
             
             for (const line of lines) {
-                handleSSELine(line.trim());
+                try {
+                    handleSSELine(line.trim());
+                } catch (e) {
+                    console.warn('解析SSE行失败:', e.message);
+                }
             }
         }
         
         if (sseBuffer.trim()) {
-            handleSSELine(sseBuffer.trim());
+            try {
+                handleSSELine(sseBuffer.trim());
+            } catch (e) {
+                console.warn('解析SSE buffer失败:', e.message);
+            }
         }
         
     } catch (error) {
