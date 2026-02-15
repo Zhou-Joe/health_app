@@ -154,7 +154,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid py-4">
     <div class="management-header">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -170,21 +170,20 @@
     </div>
 
     <div class="management-tabs">
-        <a class="btn management-tab {% if active_tab == 'diary' %}active{% else %}btn-light{% endif %}" href="{% url 'medical_records:health_management' %}?tab=diary">
-            <i class="bi bi-activity me-1"></i> 日志
-        </a>
-        <a class="btn management-tab {% if active_tab == 'plans' %}active{% else %}btn-light{% endif %}" href="{% url 'medical_records:health_management' %}?tab=plans">
-            <i class="bi bi-clipboard2-pulse me-1"></i> 计划
-        </a>
         <a class="btn management-tab {% if active_tab == 'medications' %}active{% else %}btn-light{% endif %}" href="{% url 'medical_records:health_management' %}?tab=medications">
             <i class="bi bi-capsule me-1"></i> 药单
         </a>
+        <a class="btn management-tab {% if active_tab == 'health_log' %}active{% else %}btn-light{% endif %}" href="{% url 'medical_records:health_management' %}?tab=health_log">
+            <i class="bi bi-activity me-1"></i> 日志
+        </a>
     </div>
 
-    {% if active_tab == 'diary' %}
+
+    {% if active_tab == 'health_log' %}
     <div class="row g-4">
+        <!-- 左侧：日志 -->
         <div class="col-lg-6">
-            <div class="card section-card">
+            <div class="card section-card mb-3">
                 <div class="card-header" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e;">
                     <i class="bi bi-activity me-2"></i>添加症状
                 </div>
@@ -207,38 +206,7 @@
                     </form>
                 </div>
             </div>
-        </div>
 
-        <div class="col-lg-6">
-            <div class="card section-card">
-                <div class="card-header" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); color: #065f46;">
-                    <i class="bi bi-heart-pulse me-2"></i>添加体征
-                </div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="module" value="diary">
-                        <input type="hidden" name="form_type" value="vital">
-                        <div class="row g-3">
-                            <div class="col-md-4">{{ vital_form.entry_date.label_tag }}{{ vital_form.entry_date }}</div>
-                            <div class="col-md-4">{{ vital_form.vital_type.label_tag }}{{ vital_form.vital_type }}</div>
-                            <div class="col-md-4">{{ vital_form.value.label_tag }}{{ vital_form.value }}</div>
-                            <div class="col-md-4">{{ vital_form.unit.label_tag }}{{ vital_form.unit }}</div>
-                            <div class="col-md-8">{{ vital_form.notes.label_tag }}{{ vital_form.notes }}</div>
-                            <div class="col-md-6">{{ vital_form.related_checkup.label_tag }}{{ vital_form.related_checkup }}</div>
-                            <div class="col-md-6">{{ vital_form.related_medication.label_tag }}{{ vital_form.related_medication }}</div>
-                        </div>
-                        <button type="submit" class="btn btn-primary mt-3">
-                            <i class="bi bi-plus-circle"></i> 保存体征
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mt-2">
-        <div class="col-lg-6">
             <div class="card section-card">
                 <div class="card-header" style="background: var(--bg-soft);">
                     <i class="bi bi-clock-history me-2"></i>最近症状
@@ -265,156 +233,127 @@
             </div>
         </div>
 
+        <!-- 右侧：计划 -->
         <div class="col-lg-6">
-            <div class="card section-card">
-                <div class="card-header" style="background: var(--bg-soft);">
-                    <i class="bi bi-activity me-2"></i>最近体征
-                </div>
-                <div class="card-body">
-                    {% if vitals %}
-                        <ul class="list-group">
-                            {% for item in vitals %}
-                            <li class="list-group-item d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong>{{ item.entry_date }}</strong> - {{ item.get_vital_type_display }} {{ item.value }}{{ item.unit|default:'' }}
-                                    {% if item.notes %}
-                                    <div class="text-muted" style="font-size: 0.85rem;">{{ item.notes }}</div>
-                                    {% endif %}
-                                </div>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <div class="text-muted">暂无体征记录</div>
-                    {% endif %}
-                </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0 fw-bold">健康计划</h6>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createPlanModal">
+                    <i class="bi bi-plus-circle me-1"></i> 创建计划
+                </button>
             </div>
-        </div>
-    </div>
-    {% elif active_tab == 'plans' %}
-    <div class="card section-card mb-4">
-        <div class="card-header" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #92400e;">
-            <i class="bi bi-plus-circle me-2"></i>创建新计划
-        </div>
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                <input type="hidden" name="module" value="plans">
-                <input type="hidden" name="action" value="create_plan">
-                <div class="row g-3">
-                    <div class="col-md-4">{{ plan_form.title.label_tag }}{{ plan_form.title }}</div>
-                    <div class="col-md-6">{{ plan_form.description.label_tag }}{{ plan_form.description }}</div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <div class="form-check">{{ plan_form.is_active }} {{ plan_form.is_active.label_tag }}</div>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-plus-circle"></i> 创建计划</button>
-            </form>
-        </div>
-    </div>
 
-    {% if plans %}
-        {% for plan in plans %}
-        <div class="card section-card mb-4">
-            <div class="card-header" style="background: var(--bg-soft);">
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong>{{ plan.title }}</strong>
-                    <span class="badge" style="background: {% if plan.is_active %}var(--success){% else %}var(--secondary){% endif %};">{% if plan.is_active %}进行中{% else %}已停用{% endif %}</span>
-                </div>
-            </div>
-            <div class="card-body">
-                {% if plan.description %}
-                <p class="text-muted">{{ plan.description }}</p>
-                {% endif %}
-
-                <div class="mb-3">
-                    <form method="post">
-                        {% csrf_token %}
-                        <input type="hidden" name="module" value="plans">
-                        <input type="hidden" name="action" value="create_goal">
-                        <input type="hidden" name="plan_id" value="{{ plan.id }}">
-                        <div class="row g-2">
-                            <div class="col-md-4"><input class="form-control" name="title" placeholder="目标标题"></div>
-                            <div class="col-md-2"><input class="form-control" name="target_value" placeholder="目标值"></div>
-                            <div class="col-md-2"><input class="form-control" name="unit" placeholder="单位"></div>
-                            <div class="col-md-2"><input type="date" class="form-control" name="due_date"></div>
-                            <div class="col-md-2">
-                                <select class="form-control" name="status">
-                                    <option value="active">进行中</option>
-                                    <option value="paused">已暂停</option>
-                                    <option value="completed">已完成</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-outline-primary mt-2">添加目标</button>
-                    </form>
-                </div>
-
-                {% if plan.goals.all %}
-                    {% for goal in plan.goals.all %}
-                    <div class="border p-3 mb-3" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-soft);">
+            {% if plans %}
+                {% for plan in plans %}
+                <div class="card section-card mb-3">
+                    <div class="card-header" style="background: var(--bg-soft); cursor: pointer; padding: 0.75rem 1rem;" data-bs-toggle="collapse" data-bs-target="#planCollapse{{ plan.id }}">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <strong>{{ goal.title }}</strong>
-                                {% if goal.target_value %}<span class="text-muted">(目标：{{ goal.target_value }}{{ goal.unit|default:'' }})</span>{% endif %}
-                                {% if goal.due_date %}<span class="text-muted">截止：{{ goal.due_date }}</span>{% endif %}
+                                <strong style="font-size: 0.95rem;">{{ plan.title }}</strong>
+                                {% if plan.description %}
+                                <small class="text-muted ms-2">{{ plan.description|truncatewords:5 }}</small>
+                                {% endif %}
                             </div>
-                            <span class="badge" style="background: var(--secondary);">{{ goal.get_status_display }}</span>
+                            <div>
+                                <span class="badge me-2" style="background: {% if plan.is_active %}var(--success){% else %}var(--secondary){% endif %}; font-size: 0.75rem;">{% if plan.is_active %}进行中{% else %}已停用{% endif %}</span>
+                                <i class="bi bi-chevron-down"></i>
+                            </div>
                         </div>
-                        <div class="progress mt-2"><div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div></div>
-                        <div class="small text-muted mt-1">进度：{{ goal.progress_percent }}%</div>
-
-                        <div class="mt-3">
-                            <form method="post" class="d-flex gap-2 flex-wrap">
-                                {% csrf_token %}
-                                <input type="hidden" name="module" value="plans">
-                                <input type="hidden" name="action" value="create_action">
-                                <input type="hidden" name="goal_id" value="{{ goal.id }}">
-                                <input class="form-control" name="title" placeholder="行动内容" style="max-width:240px;">
-                                <input class="form-control" name="frequency" placeholder="频率" style="max-width:160px;">
-                                <select class="form-control" name="status" style="max-width:140px;">
-                                    <option value="pending">待完成</option>
-                                    <option value="done">已完成</option>
-                                </select>
-                                <button type="submit" class="btn btn-outline-primary">添加行动</button>
-                                <button type="button" class="btn btn-outline-secondary" onclick="suggestActions({{ goal.id }}, this)">AI建议行动</button>
-                            </form>
-                        </div>
-
-                        {% if goal.actions.all %}
-                        <ul class="list-group mt-3">
-                            {% for action_item in goal.actions.all %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    {% if action_item.status == 'done' %}<s>{{ action_item.title }}</s>{% else %}{{ action_item.title }}{% endif %}
-                                    {% if action_item.frequency %}<span class="text-muted">({{ action_item.frequency }})</span>{% endif %}
-                                    {% if action_item.suggested_by_ai %}<span class="badge" style="background: var(--info);">AI</span>{% endif %}
-                                </div>
-                                <form method="post">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="module" value="plans">
-                                    <input type="hidden" name="action" value="toggle_action">
-                                    <input type="hidden" name="action_id" value="{{ action_item.id }}">
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">切换状态</button>
-                                </form>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        {% else %}
-                        <div class="text-muted mt-2">暂无行动</div>
-                        {% endif %}
                     </div>
-                    {% endfor %}
-                {% else %}
-                <div class="text-muted">暂无目标</div>
-                {% endif %}
+                    <div class="collapse" id="planCollapse{{ plan.id }}">
+                        <div class="card-body">
+                            <div class="d-flex gap-2 mb-3">
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createGoalModal" onclick="setPlanId({{ plan.id }})">
+                                    <i class="bi bi-plus-circle me-1"></i> 添加目标
+                                </button>
+                            </div>
+
+                            {% if plan.goals.all %}
+                                {% for goal in plan.goals.all %}
+                                <div class="border p-2 mb-2" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-soft);">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <strong style="font-size: 0.9rem;">{{ goal.title }}</strong>
+                                                <span class="badge" style="background: var(--secondary); font-size: 0.75rem;">{{ goal.get_status_display }}</span>
+                                            </div>
+                                            {% if goal.target_value or goal.due_date %}
+                                            <small class="text-muted">
+                                                {% if goal.target_value %}目标：{{ goal.target_value }}{{ goal.unit|default:'' }}{% endif %}
+                                                {% if goal.target_value and goal.due_date %} | {% endif %}
+                                                {% if goal.due_date %}截止：{{ goal.due_date }}{% endif %}
+                                            </small>
+                                            {% endif %}
+                                            <div class="progress mt-2" style="height: 5px;">
+                                                <div class="progress-bar" role="progressbar" style="width: {{ goal.progress_percent }}%;"></div>
+                                            </div>
+                                            <small class="text-muted">进度：{{ goal.progress_percent }}%</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-2">
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#goalActions{{ goal.id }}">
+                                            <i class="bi bi-list-ul me-1"></i> 行动 ({{ goal.actions.count }})
+                                        </button>
+                                        <button class="btn btn-outline-primary btn-sm ms-1" data-bs-toggle="modal" data-bs-target="#createActionModal" onclick="setGoalId({{ goal.id }})">
+                                            <i class="bi bi-plus-circle me-1"></i> 添加
+                                        </button>
+                                        <button type="button" class="btn btn-outline-info btn-sm ms-1" onclick="suggestActions({{ goal.id }}, this)">
+                                            <i class="bi bi-magic me-1"></i> AI
+                                        </button>
+                                    </div>
+
+                                    <div class="collapse mt-2" id="goalActions{{ goal.id }}">
+                                        {% if goal.actions.all %}
+                                        <ul class="list-group mb-0">
+                                            {% for action_item in goal.actions.all %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center py-1 px-2">
+                                                <div class="flex-grow-1">
+                                                    {% if action_item.status == 'done' %}
+                                                        <span class="text-muted text-decoration-line-through">{{ action_item.title }}</span>
+                                                    {% else %}
+                                                        {{ action_item.title }}
+                                                    {% endif %}
+                                                    {% if action_item.frequency %}
+                                                        <small class="text-muted">({{ action_item.frequency }})</small>
+                                                    {% endif %}
+                                                    {% if action_item.suggested_by_ai %}
+                                                        <span class="badge bg-info" style="font-size: 0.7rem;">AI</span>
+                                                    {% endif %}
+                                                </div>
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="module" value="plans">
+                                                    <input type="hidden" name="action" value="toggle_action">
+                                                    <input type="hidden" name="action_id" value="{{ action_item.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                        <i class="bi bi-arrow-repeat"></i>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <div class="text-muted small">暂无行动</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                            <div class="text-muted small">暂无目标</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-clipboard2-pulse" style="font-size: 2.5rem;"></i>
+                <p class="mt-2 mb-0 small">暂无健康计划</p>
             </div>
+            {% endif %}
         </div>
-        {% endfor %}
-    {% else %}
-    <div class="text-muted">暂无健康计划</div>
-    {% endif %}
-    {% else %}
+    </div>
+{% elif active_tab == 'medications' %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">我的药单</h5>
         <button class="btn btn-primary" onclick="showAddMedicationModal()">
@@ -509,6 +448,130 @@
             </div>
         </div>
     </div>
+
+    <!-- 创建计划模态框 -->
+    <div class="modal fade" id="createPlanModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard2-pulse me-2"></i>创建健康计划</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <input type="hidden" name="module" value="plans">
+                        <input type="hidden" name="action" value="create_plan">
+                        <div class="mb-3">
+                            <label for="planTitle" class="form-label">计划标题 *</label>
+                            <input type="text" class="form-control" name="title" id="planTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="planDescription" class="form-label">计划描述</label>
+                            <textarea class="form-control" name="description" id="planDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="planIsActive" checked>
+                            <label class="form-check-label" for="planIsActive">启用计划</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">创建计划</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建目标模态框 -->
+    <div class="modal fade" id="createGoalModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-bullseye me-2"></i>添加目标</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <input type="hidden" name="module" value="plans">
+                        <input type="hidden" name="action" value="create_goal">
+                        <input type="hidden" name="plan_id" id="goalPlanId">
+                        <div class="mb-3">
+                            <label for="goalTitle" class="form-label">目标标题 *</label>
+                            <input type="text" class="form-control" name="title" id="goalTitle" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="goalTargetValue" class="form-label">目标值</label>
+                                <input type="text" class="form-control" name="target_value" id="goalTargetValue">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="goalUnit" class="form-label">单位</label>
+                                <input type="text" class="form-control" name="unit" id="goalUnit">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalDueDate" class="form-label">截止日期</label>
+                            <input type="date" class="form-control" name="due_date" id="goalDueDate">
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalStatus" class="form-label">状态</label>
+                            <select class="form-control" name="status" id="goalStatus">
+                                <option value="active">进行中</option>
+                                <option value="paused">已暂停</option>
+                                <option value="completed">已完成</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">添加目标</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 创建行动模态框 -->
+    <div class="modal fade" id="createActionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-check2-circle me-2"></i>添加行动</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <input type="hidden" name="module" value="plans">
+                        <input type="hidden" name="action" value="create_action">
+                        <input type="hidden" name="goal_id" id="actionGoalId">
+                        <div class="mb-3">
+                            <label for="actionTitle" class="form-label">行动内容 *</label>
+                            <input type="text" class="form-control" name="title" id="actionTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="actionFrequency" class="form-label">频率</label>
+                            <input type="text" class="form-control" name="frequency" id="actionFrequency" placeholder="例如：每天、每周3次">
+                        </div>
+                        <div class="mb-3">
+                            <label for="actionStatus" class="form-label">状态</label>
+                            <select class="form-control" name="status" id="actionStatus">
+                                <option value="pending">待完成</option>
+                                <option value="done">已完成</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">添加行动</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}
@@ -521,7 +584,7 @@ function getCookie(name) {
     if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-{% if active_tab == 'plans' %}
+{% if active_tab == 'health_log' %}
 async function suggestActions(goalId, btn) {
     const csrfToken = getCookie('csrftoken');
     btn.disabled = true;
@@ -571,8 +634,16 @@ async function suggestActions(goalId, btn) {
         alert('请求失败');
     } finally {
         btn.disabled = false;
-        btn.textContent = 'AI建议行动';
+        btn.textContent = 'AI建议';
     }
+}
+
+function setPlanId(planId) {
+    document.getElementById('goalPlanId').value = planId;
+}
+
+function setGoalId(goalId) {
+    document.getElementById('actionGoalId').value = goalId;
 }
 {% endif %}
 

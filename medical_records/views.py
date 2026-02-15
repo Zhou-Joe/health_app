@@ -2201,12 +2201,17 @@ def export_checkups_word(request):
 # ==================== 药单管理 ====================
 
 @login_required
-def health_management(request, default_tab='diary'):
-    """统一健康管理页：日志 / 计划 / 药单"""
-    allowed_tabs = {'diary', 'plans', 'medications'}
+def health_management(request, default_tab='medications'):
+    """统一健康管理页：药单 / 日志与计划"""
+    allowed_tabs = {'health_log', 'medications'}
     active_tab = request.GET.get('tab', default_tab)
+
+    # 兼容旧链接
+    if active_tab in ('diary', 'plans'):
+        active_tab = 'health_log'
+
     if active_tab not in allowed_tabs:
-        active_tab = default_tab if default_tab in allowed_tabs else 'diary'
+        active_tab = default_tab if default_tab in allowed_tabs else 'medications'
 
     symptom_form = SymptomEntryForm(request.user)
     vital_form = VitalEntryForm(request.user)

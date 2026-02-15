@@ -4,6 +4,11 @@
 
 {% block extra_css %}
 <style>
+/* CSS变量定义 */
+:root {
+    --primary-light: #5eead4;
+}
+
 /* 专业医疗仪表板样式 */
 
 .dashboard-header {
@@ -263,6 +268,224 @@
     color: var(--text-primary);
 }
 
+/* 横向时间轴 - 每行代表一年 */
+.events-timeline-wrapper {
+    position: relative;
+    padding: 1.5rem 0;
+    overflow-x: auto;
+}
+
+.events-timeline-wrapper::-webkit-scrollbar {
+    height: 8px;
+}
+
+.events-timeline-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-soft);
+    border-radius: 4px;
+}
+
+.events-timeline-wrapper::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+.events-timeline-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* 年份行容器 */
+.timeline-year-row {
+    position: relative;
+    margin-bottom: 3rem;
+    padding-top: 1rem;
+    min-width: max-content;
+}
+
+.timeline-year-row:last-child {
+    margin-bottom: 0;
+}
+
+/* 年份标签 */
+.timeline-year-label {
+    position: absolute;
+    left: 0;
+    top: -0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-md);
+    z-index: 2;
+}
+
+/* 横向时间轴线 */
+.timeline-year-line {
+    position: relative;
+    height: 3px;
+    background: linear-gradient(90deg,
+        var(--primary-light, #5eead4) 0%,
+        var(--primary) 50%,
+        var(--primary-light, #5eead4) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0;
+    min-width: 100%;
+}
+
+/* 行与行之间的连接曲线（S型连接） */
+.timeline-year-connector {
+    position: absolute;
+    right: -1.5rem;
+    width: 1.5rem;
+    height: 3rem;
+    border-right: 3px solid var(--primary);
+    border-radius: 0 0.75rem 0.75rem 0;
+    z-index: 0;
+}
+
+.timeline-year-row:not(:last-child) .timeline-year-connector {
+    /* 奇数行（从左到右）：右侧向下连接 */
+    border-bottom: 3px solid var(--primary);
+    border-top: none;
+    border-left: none;
+    top: 0;
+}
+
+.timeline-year-row:not(:last-child):nth-child(even) .timeline-year-connector {
+    /* 偶数行（从右到左）：左侧向下连接 */
+    right: auto;
+    left: -1.5rem;
+    border-left: 3px solid var(--primary);
+    border-bottom: 3px solid var(--primary);
+    border-right: none;
+    border-radius: 0.75rem 0 0 0.75rem;
+}
+
+/* 从右到左的行（偶数行） */
+.timeline-year-row:nth-child(even) .timeline-year-line {
+    flex-direction: row-reverse;
+}
+
+.timeline-year-row:nth-child(even) .timeline-year-label {
+    left: auto;
+    right: 0;
+}
+
+/* 时间轴节点 - 事件卡片容器 */
+.event-timeline-item {
+    position: relative;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 140px;
+    padding: 0 0.5rem;
+}
+
+/* 时间轴节点圆点 */
+.event-timeline-item::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 3px solid var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light, #5eead4);
+    transform: translateX(-50%);
+    z-index: 1;
+    transition: var(--transition);
+}
+
+.event-timeline-item:hover::before {
+    transform: translateX(-50%) scale(1.4);
+    box-shadow: 0 0 0 4px var(--primary-light, #5eead4);
+}
+
+/* 事件卡片 - 横向时间轴卡片 */
+.event-timeline-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    transition: var(--transition);
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    min-width: 120px;
+    max-width: 160px;
+    margin-top: 1.25rem;
+}
+
+.event-timeline-card:hover {
+    background: var(--primary-soft);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+}
+
+.event-timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 0.25rem;
+}
+
+.event-timeline-date {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.event-timeline-title {
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.event-timeline-type {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.event-timeline-type.illness {
+    background: var(--danger);
+}
+
+.event-timeline-type.checkup {
+    background: var(--primary);
+}
+
+.event-timeline-type.chronic_management {
+    background: var(--warning);
+}
+
+.event-timeline-type.emergency {
+    background: var(--danger);
+}
+
+.event-timeline-type.wellness {
+    background: var(--success);
+}
+
+.event-timeline-type.medication_course {
+    background: var(--info);
+}
+
 /* S型时间轴样式 */
 .s-timeline {
     position: relative;
@@ -437,35 +660,57 @@
     padding: 0.2rem 0.4rem;
 }
 
-/* 响应式：移动端改为单列 */
+/* 响应式：移动端改为垂直时间轴 */
 @media (max-width: 768px) {
-    .s-timeline::before {
-        left: 0.5rem;
+    .events-timeline-wrapper {
+        padding: 1rem 0.5rem;
+        overflow-x: hidden;
     }
-    
-    .s-timeline-item {
-        width: 100%;
-        left: 0 !important;
-        text-align: left !important;
-        padding-left: 2rem !important;
-        padding-right: 0.5rem !important;
+
+    .timeline-year-row {
+        padding-left: 1.5rem;
     }
-    
-    .s-timeline-item::before {
-        left: -1.43rem !important;
-        right: auto !important;
+
+    .timeline-year-label {
+        position: static;
+        display: inline-block;
+        margin-bottom: 1rem;
     }
-    
-    .s-timeline-item .s-timeline-header {
-        flex-direction: row !important;
+
+    .timeline-year-line {
+        flex-direction: column !important;
+        height: auto;
+        width: 3px;
+        background: linear-gradient(180deg,
+            var(--primary-light, #5eead4) 0%,
+            var(--primary) 50%,
+            var(--primary-light, #5eead4) 100%);
+        padding: 0;
+        margin-left: 0;
+        align-items: flex-start;
     }
-    
-    .s-timeline-item .s-timeline-title,
-    .s-timeline-item .s-timeline-meta,
-    .s-timeline-item .s-timeline-item-record {
-        text-align: left !important;
-        justify-content: flex-start !important;
-        flex-direction: row !important;
+
+    .timeline-year-connector {
+        display: none;
+    }
+
+    .event-timeline-item {
+        padding: 0.75rem 0 0.75rem 0.75rem;
+        width: 100% !important;
+        min-width: auto !important;
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .event-timeline-item::before {
+        left: -1.4rem !important;
+        top: 0.6rem !important;
+    }
+
+    .event-timeline-card {
+        margin-left: 0;
+        margin-top: 0;
+        max-width: 100%;
     }
 }
 
@@ -679,6 +924,70 @@
     </div>
 </div>
 
+<!-- 健康事件时间轴 -->
+{% if health_events %}
+<div class="mb-4">
+    <div class="events-timeline">
+        <div class="events-header">
+            <h6 class="events-title">
+                <i class="bi bi-activity me-2"></i>健康事件时间轴
+            </h6>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <!-- 时间范围选择 -->
+                <select id="clusterDaysSelect" class="form-select form-select-sm" style="width: auto;">
+                    <option value="3">3天</option>
+                    <option value="7" selected>7天</option>
+                    <option value="14">14天</option>
+                    <option value="30">30天</option>
+                </select>
+                <!-- 聚类按钮 -->
+                <button id="autoClusterBtn" class="btn btn-sm btn-primary" title="基于现有记录自动生成事件">
+                    <i class="bi bi-magic me-1"></i>自动聚类
+                </button>
+                <button id="reclusterBtn" class="btn btn-sm btn-outline-warning" title="删除所有事件并重新聚类">
+                    <i class="bi bi-arrow-clockwise me-1"></i>重新聚类
+                </button>
+                <span class="badge bg-primary">{{ total_events }} 个事件</span>
+            </div>
+        </div>
+
+        <!-- 事件时间轴 -->
+        <div class="events-timeline-wrapper">
+            {% regroup health_events by date|date:"Y" as year_groups %}
+            {% for year_group in year_groups %}
+            <div class="timeline-year-row">
+                <div class="timeline-year-label">{{ year_group.grouper }}年</div>
+                <div class="timeline-year-line">
+                    {% for event in year_group.list %}
+                    <div class="event-timeline-item">
+                        <a href="{% url 'medical_records:event_detail' event.id %}" class="event-timeline-card text-decoration-none">
+                            <div class="event-timeline-header">
+                                <span class="event-timeline-type {{ event.type }}"></span>
+                                <span class="event-timeline-date">{{ event.date|date:"m-d" }}</span>
+                            </div>
+                            <div class="event-timeline-title">
+                                {% if event.is_auto_generated %}
+                                <i class="bi bi-sparkles text-info me-1 small"></i>
+                                {% endif %}
+                                {{ event.title }}
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                    <div class="timeline-year-connector"></div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                暂无健康事件，点击"自动聚类"生成事件
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row g-4">
     <!-- 左侧：健康指标趋势表格 -->
     <div class="col-lg-8">
@@ -801,103 +1110,6 @@
 
     <!-- 右侧：时间线和建议 -->
     <div class="col-lg-4">
-        <!-- 健康事件 S型时间轴 -->
-        <div class="events-timeline mb-4">
-            <div class="events-header">
-                <h6 class="events-title">
-                    <i class="bi bi-activity me-1"></i>健康事件时间轴
-                </h6>
-                <span class="badge bg-primary">{{ total_events }} 个事件</span>
-            </div>
-            
-            {% if health_events %}
-            <div class="s-timeline">
-                {% for event in health_events %}
-                <div class="s-timeline-item {% cycle 'left' 'right' %}">
-                    <div class="s-timeline-content">
-                        <div class="s-timeline-header">
-                            <span class="s-timeline-date">
-                                <i class="bi bi-calendar3"></i>
-                                {{ event.date|date:"Y年m月d日" }}
-                                {% if event.end_date %}
-                                <small class="text-muted"> - {{ event.end_date|date:"m月d日" }}</small>
-                                {% endif %}
-                            </span>
-                            <span class="badge 
-                                {% if event.type == 'illness' %}bg-danger
-                                {% elif event.type == 'checkup' %}bg-primary
-                                {% elif event.type == 'chronic_management' %}bg-warning text-dark
-                                {% elif event.type == 'emergency' %}bg-danger
-                                {% elif event.type == 'wellness' %}bg-success
-                                {% elif event.type == 'medication_course' %}bg-info
-                                {% else %}bg-secondary{% endif %} badge-sm">
-                                {{ event.get_type_display|default:event.type }}
-                            </span>
-                        </div>
-                        
-                        <h6 class="s-timeline-title">
-                            {% if event.is_auto_generated %}
-                            <i class="bi bi-magic text-info" title="自动生成"></i>
-                            {% endif %}
-                            {{ event.title }}
-                        </h6>
-                        
-                        {% if event.description %}
-                        <p class="s-timeline-desc">{{ event.description|truncatewords:15 }}</p>
-                        {% endif %}
-                        
-                        <div class="s-timeline-meta">
-                            <span class="me-3">
-                                <i class="bi bi-link-45deg"></i>
-                                {{ event.item_count }} 条关联记录
-                            </span>
-                            <span>
-                                <i class="bi bi-clock"></i>
-                                {{ event.duration_days }} 天
-                            </span>
-                        </div>
-                        
-                        {% if event.items %}
-                        <div class="s-timeline-items">
-                            {% for item in event.items %}
-                            <div class="s-timeline-item-record">
-                                <i class="bi 
-                                    {% if item.added_by == 'auto' %}bi-magic text-info
-                                    {% else %}bi-hand-index text-secondary{% endif %} small">
-                                </i>
-                                <span>{{ item.summary }}</span>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="s-timeline-status">
-                            {% if event.status == 'pending' %}
-                            <span class="status-badge status-pending">
-                                <i class="bi bi-hourglass"></i> 待处理
-                            </span>
-                            {% elif event.status == 'observing' %}
-                            <span class="status-badge status-observing">
-                                <i class="bi bi-eye"></i> 观察中
-                            </span>
-                            {% elif event.status == 'recovered' %}
-                            <span class="status-badge status-recovered">
-                                <i class="bi bi-check-circle"></i> 已治愈
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state py-4">
-                <i class="bi bi-activity"></i>
-                <h6>暂无健康事件</h6>
-                <p class="small">上传体检报告后，系统将自动聚类生成健康事件</p>
-            </div>
-            {% endif %}
-        </div>
 
         <!-- AI健康建议 -->
         <div class="card">
@@ -1046,6 +1258,131 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+// 健康事件聚类功能
+const autoClusterBtn = document.getElementById('autoClusterBtn');
+const reclusterBtn = document.getElementById('reclusterBtn');
+const clusterDaysSelect = document.getElementById('clusterDaysSelect');
+
+if (autoClusterBtn && reclusterBtn && clusterDaysSelect) {
+    // 自动聚类
+    autoClusterBtn.addEventListener('click', async function() {
+        const days = clusterDaysSelect.value;
+
+        // 禁用按钮
+        autoClusterBtn.disabled = true;
+        reclusterBtn.disabled = true;
+        autoClusterBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>聚类中...';
+
+        try {
+            const response = await fetch('{% url "medical_records:api_event_auto_cluster" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    days_threshold: parseInt(days)
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // 显示成功消息
+                showAlert(`成功！${data.message}`, 'success');
+                // 刷新页面
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('聚类失败: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('聚类失败: ' + error.message, 'danger');
+        } finally {
+            // 恢复按钮
+            autoClusterBtn.disabled = false;
+            reclusterBtn.disabled = false;
+            autoClusterBtn.innerHTML = '<i class="bi bi-magic me-1"></i>自动聚类';
+        }
+    });
+
+    // 重新聚类
+    reclusterBtn.addEventListener('click', async function() {
+        const days = clusterDaysSelect.value;
+
+        // 确认操作
+        if (!confirm('重新聚类将删除所有现有事件并重新生成，确定要继续吗？')) {
+            return;
+        }
+
+        // 禁用按钮
+        autoClusterBtn.disabled = true;
+        reclusterBtn.disabled = true;
+        reclusterBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>重新聚类中...';
+
+        try {
+            const response = await fetch('{% url "medical_records:api_event_recluster" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    days_threshold: parseInt(days)
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // 显示成功消息
+                showAlert(`成功！${data.message}`, 'success');
+                // 刷新页面
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('重新聚类失败: ' + data.error, 'danger');
+            }
+        } catch (error) {
+            showAlert('重新聚类失败: ' + error.message, 'danger');
+        } finally {
+            // 恢复按钮
+            autoClusterBtn.disabled = false;
+            reclusterBtn.disabled = false;
+            reclusterBtn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>重新聚类';
+        }
+    });
+
+    // 显示提示消息
+    function showAlert(message, type = 'info') {
+        // 移除现有的 alert
+        const existingAlert = document.querySelector('.cluster-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        // 创建新的 alert
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show cluster-alert`;
+        alert.style.position = 'fixed';
+        alert.style.top = '20px';
+        alert.style.right = '20px';
+        alert.style.zIndex = '9999';
+        alert.style.minWidth = '300px';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(alert);
+
+        // 3秒后自动消失
+        setTimeout(() => {
+            if (alert && alert.parentNode) {
+                alert.remove();
+            }
+        }, 3000);
+    }
 }
 </script>
 {% endblock %}
