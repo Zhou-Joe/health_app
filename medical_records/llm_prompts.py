@@ -3,6 +3,8 @@ LLM提示词统一配置模块
 整合了非流式和流式响应的所有提示词
 """
 
+from .models import HealthIndicator
+
 # ============================================================================
 # 1. OCR提取模块提示词
 # ============================================================================
@@ -526,76 +528,111 @@ def build_ai_summary_prompt(conversation_content: str) -> str:
 {user_prompt}"""
 
 
-EVENT_AI_SUMMARY_SYSTEM_PROMPT = """你是一位专业的医疗健康顾问，擅长分析患者的健康事件并提供结构化的健康总结。你的任务是分析用户的健康事件及相关健康记录，生成一份全面的健康分析报告。"""
+EVENT_AI_SUMMARY_SYSTEM_PROMPT = """你是一位专业的医疗健康顾问，擅长分析患者的健康事件并提供结构化的健康总结。你的任务是分析用户的健康事件及相关健康记录，生成一份全面的健康分析报告。
+
+【重要输出要求】
+1. 直接输出结构化分析内容，不要有任何开场白、问候语或客套话
+2. 直接以Markdown格式输出报告内容
+3. 语言简洁专业，避免过于医学术语化
+4. 如果某项内容为空，在报告中说明"无相关记录"
+5. 确保分析内容忠实于原始记录数据"""
 
 EVENT_AI_SUMMARY_USER_PROMPT_TEMPLATE = """请分析以下健康事件及其关联的健康记录，生成结构化的健康分析报告。
 
-【事件名称】：{event_name}
-【事件类型】：{event_type}
-【事件描述】：{event_description}
-【开始日期】：{start_date}
-【结束日期】：{end_date}
-【当前状态】：{status}
+【事件信息】
+- 事件名称：{event_name}
+- 事件类型：{event_type}
+- 事件描述：{event_description}
+- 开始日期：{start_date}
+- 结束日期：{end_date}
+- 当前状态：{status}
 
-【关联的健康记录】
-{event_items_content}
+【关联的体检报告】
+{checkups_content}
 
-【总结要求】
-请按照以下结构输出分析报告：
+【关联的药单】
+{medications_content}
+
+【关联的健康指标】
+{indicators_content}
+
+【关联的症状记录】
+{symptoms_content}
+
+【关联的服药记录】
+{medication_records_content}
+
+请按照以下结构直接输出分析报告，不要有任何开场白：
 
 ## 🔍 检查异常项
-- 列出该事件中涉及的所有异常检查指标
-- 说明异常指标的具体数值和参考范围
-- 分析异常指标可能的原因
-
 ## 🤒 症状分析
-- 汇总记录中提到的所有症状
-- 分析症状的特点、持续时间和变化趋势
-
 ## 💊 用药情况
-- 列出所有使用的药物
-- 说明用药时间、剂量和频次
-- 如有药物调整，说明调整原因
-
 ## 📊 检查结果
-- 汇总各项检查的主要结果
-- 突出显示需要特别关注的异常结果
-- 如有趋势变化，说明变化情况
-
 ## 💡 健康建议
-- 基于分析给出专业的健康建议
-- 包括生活方式、饮食、运动等方面的建议
-- 如需就医或复查，明确指出
-
-## ⚠️ 注意事项
-- 列出需要特别关注的健康风险
-- 说明需要定期监测的指标
-
-【输出要求】
-1. 使用Markdown格式输出
-2. 语言简洁专业，避免过于医学术语化
-3. 突出重点，便于用户快速阅读
-4. 如果某项内容为空，在报告中说明"无相关记录"
-5. 确保分析内容忠实于原始记录数据"""
+## ⚠️ 注意事项"""
 
 
 def build_event_ai_summary_prompt(event) -> str:
     """构建健康事件AI总结提示词"""
     from django.utils import timezone
+    from django.contrib.contenttypes.models import ContentType
     
     event_type_display = dict(event.EVENT_TYPE_CHOICES).get(event.event_type, event.event_type)
     status_display = dict(event.EVENT_STATUS_CHOICES).get(event.status, event.status)
     
-    items_content = []
-    for item in event.get_all_items():
-        summary = item.item_summary
-        notes = item.notes or "无备注"
-        items_content.append(f"- {summary} | 备注: {notes}")
+    checkups_content = []
+    medications_content = []
+    indicators_content = []
+    symptoms_content = []
+    medication_records_content = []
     
-    if not items_content:
-        event_items_content = "该事件暂无关联的健康记录"
-    else:
-        event_items_content = "\n".join(items_content)
+    for item in event.get_all_items():
+        content_type = item.content_type
+        obj = item.content_object
+        
+        if not obj:
+            continue
+        
+        try:
+            if content_type.model == 'healthcheckup':
+                checkups_content.append(f"\n【体检报告 - {obj.hospital}】")
+                checkups_content.append(f"体检日期: {obj.checkup_date}")
+                checkups_content.append(f"备注: {obj.notes or '无'}")
+                try:
+                    for indicator in obj.indicators.all():
+                        indicators_content.append(f"- {indicator.indicator_name}: {indicator.value} {indicator.unit or ''} (参考: {indicator.reference_range or '无'})")
+                except Exception:
+                    pass
+                    
+            elif content_type.model == 'medication':
+                medications_content.append(f"\n【药单 - {obj.medicine_name}】")
+                medications_content.append(f"用药时间: {obj.start_date} 至 {obj.end_date or '进行中'}")
+                medications_content.append(f"剂量: {obj.dosage or '未指定'}")
+                medications_content.append(f"频次: {obj.frequency or '未指定'}")
+                medications_content.append(f"用途: {obj.purpose or '未指定'}")
+                medications_content.append(f"备注: {obj.notes or '无'}")
+                
+            elif content_type.model == 'healthindicator':
+                indicators_content.append(f"- {obj.indicator_name}: {obj.value} {obj.unit or ''} (参考: {obj.reference_range or '无'}, 类型: {dict(HealthIndicator.INDICATOR_TYPES).get(obj.indicator_type, obj.indicator_type)})")
+                
+            elif content_type.model == 'symptomentry':
+                symptoms_content.append(f"\n【症状记录 - {obj.entry_date}】")
+                symptoms_content.append(f"症状: {obj.symptom}")
+                symptoms_content.append(f"严重程度: {obj.severity or '未记录'}")
+                symptoms_content.append(f"持续时间: {obj.duration or '未记录'}")
+                symptoms_content.append(f"备注: {obj.notes or '无'}")
+                
+            elif content_type.model == 'medicationrecord':
+                med_name = obj.medication.medicine_name if obj.medication else '未知'
+                medication_records_content.append(f"- {obj.record_date}: {med_name} - {obj.status or '未记录'}")
+        except Exception as e:
+            print(f"Error processing event item: {e}")
+    
+    checkups_content_str = "\n".join(checkups_content) if checkups_content else "无关联体检报告"
+    medications_content_str = "\n".join(medications_content) if medications_content else "无关联药单"
+    indicators_content_str = "\n".join(indicators_content) if indicators_content else "无关联健康指标"
+    symptoms_content_str = "\n".join(symptoms_content) if symptoms_content else "无关联症状记录"
+    medication_records_content_str = "\n".join(medication_records_content) if medication_records_content else "无关联服药记录"
     
     user_prompt = EVENT_AI_SUMMARY_USER_PROMPT_TEMPLATE.format(
         event_name=event.name,
@@ -604,7 +641,11 @@ def build_event_ai_summary_prompt(event) -> str:
         start_date=event.start_date.strftime('%Y年%m月%d日'),
         end_date=event.end_date.strftime('%Y年%m月%d日') if event.end_date else "进行中",
         status=status_display,
-        event_items_content=event_items_content
+        checkups_content=checkups_content_str,
+        medications_content=medications_content_str,
+        indicators_content=indicators_content_str,
+        symptoms_content=symptoms_content_str,
+        medication_records_content=medication_records_content_str
     )
     
     return f"""{EVENT_AI_SUMMARY_SYSTEM_PROMPT}
