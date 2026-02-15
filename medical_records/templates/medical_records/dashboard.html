@@ -1430,6 +1430,10 @@ async function generateEventAiSummary(eventId) {
             throw new Error(errorData.error || '请求失败');
         }
         
+        if (!response.body) {
+            throw new Error('响应体为空');
+        }
+        
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
@@ -1465,9 +1469,13 @@ async function generateEventAiSummary(eventId) {
         }
     } catch (error) {
         console.error('生成AI分析失败:', error);
+        let errorMsg = error.message || '未知错误';
+        if (error.name === 'TypeError' && error.message === 'Load failed') {
+            errorMsg = '网络请求失败，请检查网络连接或刷新页面重试';
+        }
         summaryContent.innerHTML = `
             <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> 生成分析失败：${error.message}
+                <i class="bi bi-exclamation-triangle"></i> 生成分析失败：${errorMsg}
             </div>
         `;
     }

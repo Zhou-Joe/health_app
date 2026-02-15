@@ -679,15 +679,18 @@ def stream_event_ai_summary(request):
                 import traceback
                 yield f"data: {json.dumps({'save_error': str(save_error), 'trace': traceback.format_exc()}, ensure_ascii=False)}\n\n"
 
-        response = StreamingHttpResponse(generate(), content_type='text/event-stream')
+        response = StreamingHttpResponse(generate(), content_type='text/event-stream; charset=utf-8')
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'
+        response['Connection'] = 'keep-alive'
         return response
 
     except Exception as e:
+        import traceback
         return JsonResponse({
             'success': False,
-            'error': f'生成AI总结失败: {str(e)}'
+            'error': f'生成AI总结失败: {str(e)}',
+            'trace': traceback.format_exc()[:500]
         }, status=500)
 
 
