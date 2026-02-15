@@ -524,3 +524,89 @@ def build_ai_summary_prompt(conversation_content: str) -> str:
     return f"""{AI_SUMMARY_SYSTEM_PROMPT}
 
 {user_prompt}"""
+
+
+EVENT_AI_SUMMARY_SYSTEM_PROMPT = """你是一位专业的医疗健康顾问，擅长分析患者的健康事件并提供结构化的健康总结。你的任务是分析用户的健康事件及相关健康记录，生成一份全面的健康分析报告。"""
+
+EVENT_AI_SUMMARY_USER_PROMPT_TEMPLATE = """请分析以下健康事件及其关联的健康记录，生成结构化的健康分析报告。
+
+【事件名称】：{event_name}
+【事件类型】：{event_type}
+【事件描述】：{event_description}
+【开始日期】：{start_date}
+【结束日期】：{end_date}
+【当前状态】：{status}
+
+【关联的健康记录】
+{event_items_content}
+
+【总结要求】
+请按照以下结构输出分析报告：
+
+## 🔍 检查异常项
+- 列出该事件中涉及的所有异常检查指标
+- 说明异常指标的具体数值和参考范围
+- 分析异常指标可能的原因
+
+## 🤒 症状分析
+- 汇总记录中提到的所有症状
+- 分析症状的特点、持续时间和变化趋势
+
+## 💊 用药情况
+- 列出所有使用的药物
+- 说明用药时间、剂量和频次
+- 如有药物调整，说明调整原因
+
+## 📊 检查结果
+- 汇总各项检查的主要结果
+- 突出显示需要特别关注的异常结果
+- 如有趋势变化，说明变化情况
+
+## 💡 健康建议
+- 基于分析给出专业的健康建议
+- 包括生活方式、饮食、运动等方面的建议
+- 如需就医或复查，明确指出
+
+## ⚠️ 注意事项
+- 列出需要特别关注的健康风险
+- 说明需要定期监测的指标
+
+【输出要求】
+1. 使用Markdown格式输出
+2. 语言简洁专业，避免过于医学术语化
+3. 突出重点，便于用户快速阅读
+4. 如果某项内容为空，在报告中说明"无相关记录"
+5. 确保分析内容忠实于原始记录数据"""
+
+
+def build_event_ai_summary_prompt(event) -> str:
+    """构建健康事件AI总结提示词"""
+    from django.utils import timezone
+    
+    event_type_display = dict(event.EVENT_TYPE_CHOICES).get(event.event_type, event.event_type)
+    status_display = dict(event.EVENT_STATUS_CHOICES).get(event.status, event.status)
+    
+    items_content = []
+    for item in event.get_all_items():
+        summary = item.item_summary
+        notes = item.notes or "无备注"
+        items_content.append(f"- {summary} | 备注: {notes}")
+    
+    if not items_content:
+        event_items_content = "该事件暂无关联的健康记录"
+    else:
+        event_items_content = "\n".join(items_content)
+    
+    user_prompt = EVENT_AI_SUMMARY_USER_PROMPT_TEMPLATE.format(
+        event_name=event.name,
+        event_type=event_type_display,
+        event_description=event.description or "无描述",
+        start_date=event.start_date.strftime('%Y年%m月%d日'),
+        end_date=event.end_date.strftime('%Y年%m月%d日') if event.end_date else "进行中",
+        status=status_display,
+        event_items_content=event_items_content
+    )
+    
+    return f"""{EVENT_AI_SUMMARY_SYSTEM_PROMPT}
+
+{user_prompt}"""

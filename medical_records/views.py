@@ -2130,6 +2130,56 @@ def export_ai_summary_word(request, conversation_id):
         return redirect('medical_records:ai_health_advice')
 
 
+@login_required
+def export_event_ai_summary_pdf(request, event_id):
+    """导出事件AI分析为PDF"""
+    try:
+        from .export_utils import EventAiSummaryExporter
+        from .models import HealthEvent
+
+        event = get_object_or_404(
+            HealthEvent,
+            id=event_id,
+            user=request.user
+        )
+
+        if not event.ai_summary:
+            messages.error(request, '该事件暂无AI分析，请先生成AI分析')
+            return redirect('medical_records:dashboard')
+
+        exporter = EventAiSummaryExporter(event_id)
+        return exporter.export_to_pdf()
+
+    except Exception as e:
+        messages.error(request, f'导出PDF失败: {str(e)}')
+        return redirect('medical_records:dashboard')
+
+
+@login_required
+def export_event_ai_summary_word(request, event_id):
+    """导出事件AI分析为Word"""
+    try:
+        from .export_utils import EventAiSummaryExporter
+        from .models import HealthEvent
+
+        event = get_object_or_404(
+            HealthEvent,
+            id=event_id,
+            user=request.user
+        )
+
+        if not event.ai_summary:
+            messages.error(request, '该事件暂无AI分析，请先生成AI分析')
+            return redirect('medical_records:dashboard')
+
+        exporter = EventAiSummaryExporter(event_id)
+        return exporter.export_to_word()
+
+    except Exception as e:
+        messages.error(request, f'导出Word失败: {str(e)}')
+        return redirect('medical_records:dashboard')
+
+
 # ==================== 导出健康趋势为PDF/Word ====================
 @login_required
 def export_health_trends_pdf(request):

@@ -645,6 +645,170 @@ class AISummaryExporter:
         return response
 
 
+class EventAiSummaryExporter:
+    """健康事件AI分析导出器"""
+
+    def __init__(self, event_id):
+        self.event = HealthEvent.objects.get(id=event_id)
+        self.ai_summary = self.event.ai_summary
+        self.ai_summary_created_at = self.event.ai_summary_created_at
+
+    def export_to_pdf(self):
+        """导出事件AI分析为PDF"""
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"健康事件分析_{datetime.now().strftime('%Y年%m月%d日_%H%M')}.pdf"
+        encoded_filename = quote(filename)
+        response['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
+
+        doc = SimpleDocTemplate(response, pagesize=A4,
+                               leftMargin=2*cm, rightMargin=2*cm,
+                               topMargin=2*cm, bottomMargin=2*cm)
+        story = []
+        styles = getSampleStyleSheet()
+
+        if CHINESE_FONT_AVAILABLE:
+            title_style = ParagraphStyle(
+                'ChineseTitle',
+                parent=styles['Heading1'],
+                fontName='ChineseFont',
+                fontSize=18,
+                textColor=colors.HexColor('#1a1a1a'),
+                spaceAfter=12,
+                leading=22
+            )
+            heading_style = ParagraphStyle(
+                'ChineseHeading',
+                parent=styles['Heading2'],
+                fontName='ChineseFont',
+                fontSize=14,
+                textColor=colors.HexColor('#0066cc'),
+                spaceAfter=8,
+                leading=18
+            )
+            normal_style = ParagraphStyle(
+                'ChineseNormal',
+                parent=styles['Normal'],
+                fontName='ChineseFont',
+                fontSize=11,
+                leading=16,
+                alignment=TA_LEFT
+            )
+            label_font = 'ChineseFont'
+        else:
+            title_style = styles['Heading1']
+            heading_style = styles['Heading2']
+            normal_style = styles['Normal']
+            label_font = 'Helvetica-Bold'
+
+        story.append(Paragraph(f"{self.event.name} - AI健康分析", title_style))
+        story.append(Spacer(1, 0.5 * cm))
+
+        event_type_display = dict(HealthEvent.EVENT_TYPE_CHOICES).get(self.event.event_type, self.event.event_type)
+        status_display = dict(HealthEvent.EVENT_STATUS_CHOICES).get(self.event.status, self.event.status)
+
+        info_data = [
+            ['事件名称', self.event.name],
+            ['事件类型', event_type_display],
+            ['开始日期', self.event.start_date.strftime('%Y年%m月%d日')],
+            ['结束日期', self.event.end_date.strftime('%Y年%m月%d日') if self.event.end_date else '进行中'],
+            ['当前状态', status_display],
+        ]
+        if self.ai_summary_created_at:
+            info_data.append(['分析生成时间', self.ai_summary_created_at.strftime('%Y年%m月%d日 %H:%M')])
+
+        info_table = Table(info_data, colWidths=[4*cm, 11*cm])
+        info_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), label_font if CHINESE_FONT_AVAILABLE else 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 1 * cm))
+
+        if self.event.description:
+            story.append(Paragraph('事件描述', heading_style))
+            story.append(Spacer(1, 0.3 * cm))
+            story.append(Paragraph(self.event.description, normal_style))
+            story.append(Spacer(1, 0.5 * cm))
+
+        if self.ai_summary:
+            story.append(Paragraph('AI健康分析', heading_style))
+            story.append(Spacer(1, 0.3 * cm))
+            summary_html = markdown_to_pdf_text(self.ai_summary)
+            story.append(Paragraph(summary_html, normal_style))
+        else:
+            story.append(Paragraph('暂无AI分析内容', normal_style))
+
+        doc.build(story)
+        return response
+
+    def export_to_word(self):
+        """导出事件AI分析为Word"""
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+        filename = f"健康事件分析_{datetime.now().strftime('%Y年%m月%d日_%H%M')}.docx"
+        encoded_filename = quote(filename)
+        response['Content-Disposition'] = f"attachment; filename*=UTF-8''{encoded_filename}"
+
+        doc = Document()
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = '微软雅黑'
+        font.size = Pt(11)
+
+        title = doc.add_heading(f"{self.event.name} - AI健康分析", level=1)
+        title.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        title_run = title.runs[0]
+        title_run.font.size = Pt(18)
+        title_run.font.color.rgb = RGBColor(26, 26, 26)
+
+        event_type_display = dict(HealthEvent.EVENT_TYPE_CHOICES).get(self.event.event_type, self.event.event_type)
+        status_display = dict(HealthEvent.EVENT_STATUS_CHOICES).get(self.event.status, self.event.status)
+
+        doc.add_paragraph('事件信息：')
+        info_table = doc.add_table(rows=6, cols=2)
+        info_table.style = 'Light Grid Accent 1'
+
+        info_data = [
+            ['事件名称', self.event.name],
+            ['事件类型', event_type_display],
+            ['开始日期', self.event.start_date.strftime('%Y-%m-%d')],
+            ['结束日期', self.event.end_date.strftime('%Y-%m-%d') if self.event.end_date else '进行中'],
+            ['当前状态', status_display],
+        ]
+        if self.ai_summary_created_at:
+            info_data.append(['分析生成时间', self.ai_summary_created_at.strftime('%Y-%m-%d %H:%M')])
+        else:
+            info_data.append(['分析生成时间', '暂无'])
+
+        for i, (label, value) in enumerate(info_data):
+            row = info_table.rows[i]
+            row.cells[0].text = label
+            row.cells[1].text = value
+            row.cells[0].paragraphs[0].runs[0].font.bold = True
+
+        doc.add_paragraph()
+
+        if self.event.description:
+            doc.add_heading('事件描述', level=2)
+            doc.add_paragraph(self.event.description)
+            doc.add_paragraph()
+
+        if self.ai_summary:
+            doc.add_heading('AI健康分析', level=2)
+            summary_para = doc.add_paragraph()
+            add_formatted_text_to_paragraph(summary_para, self.ai_summary)
+        else:
+            doc.add_paragraph('暂无AI分析内容')
+
+        doc.save(response)
+        return response
+
+
 class HealthTrendsExporter:
     """健康趋势数据导出器"""
 

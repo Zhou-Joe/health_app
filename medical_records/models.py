@@ -622,6 +622,8 @@ class HealthEvent(models.Model):
     event_type = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES, default='other', verbose_name='事件类型')
     status = models.CharField(max_length=20, choices=EVENT_STATUS_CHOICES, default=STATUS_OBSERVING, verbose_name='状态')
     is_auto_generated = models.BooleanField(default=False, verbose_name='是否自动生成')
+    ai_summary = models.TextField(blank=True, null=True, verbose_name='AI事件总结')
+    ai_summary_created_at = models.DateTimeField(blank=True, null=True, verbose_name='AI总结生成时间')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 

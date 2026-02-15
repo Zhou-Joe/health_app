@@ -930,6 +930,9 @@
                                 {% if event.is_auto_generated %}
                                 <i class="bi bi-sparkles text-info small"></i>
                                 {% endif %}
+                                <button class="btn btn-sm btn-outline-info ms-auto" onclick="showEventAiSummary({{ event.id }}, event)" title="AI智能分析">
+                                    <i class="bi bi-stars"></i>
+                                </button>
                             </div>
                             {% if event.description %}
                             <div class="event-description">{{ event.description|truncatechars:50 }}</div>
@@ -1346,5 +1349,219 @@ if (autoClusterBtn && reclusterBtn && clusterDaysSelect) {
         }, 3000);
     }
 }
+
+let currentEventAiSummaryConversationId = null;
+
+async function showEventAiSummary(eventId, evt) {
+    if (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+    }
+    
+    currentEventAiSummaryConversationId = eventId;
+    const modal = new bootstrap.Modal(document.getElementById('eventAiSummaryModal'));
+    const summaryContent = document.getElementById('eventAiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateEventSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在分析事件...</span>
+            </div>
+            <p class="text-muted">AI正在分析健康事件，请稍候...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/events/${eventId}/summary/`);
+        const data = await response.json();
+        
+        if (data.success && data.has_summary) {
+            summaryContent.innerHTML = `
+                <div class="mb-3 text-muted small">
+                    <i class="bi bi-clock"></i> 分析时间：${data.ai_summary_created_at}
+                </div>
+                <div class="ai-content-modal">${marked.parse(data.ai_summary)}</div>
+            `;
+            regenerateBtn.style.display = 'inline-block';
+            showEventExportButtons(eventId);
+        } else {
+            await generateEventAiSummary(eventId);
+        }
+    } catch (error) {
+        console.error('获取AI分析失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 获取分析失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+async function generateEventAiSummary(eventId) {
+    const summaryContent = document.getElementById('eventAiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateEventSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在生成分析...</span>
+            </div>
+            <p class="text-muted">AI正在分析健康事件，请稍候...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/stream-event-ai-summary/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ event_id: eventId })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '请求失败');
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        
+                        if (data.content) {
+                            fullContent += data.content;
+                            summaryContent.innerHTML = `
+                                <div class="ai-content-modal">${marked.parse(fullContent)}</div>
+                            `;
+                        } else if (data.done) {
+                            regenerateBtn.style.display = 'inline-block';
+                            showEventExportButtons(eventId);
+                        } else if (data.error) {
+                            throw new Error(data.error);
+                        }
+                    } catch (e) {
+                        console.error('解析响应失败:', e);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('生成AI分析失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 生成分析失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+async function regenerateEventAiSummary() {
+    if (!currentEventAiSummaryConversationId) return;
+    
+    const summaryContent = document.getElementById('eventAiSummaryContent');
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在重新分析...</span>
+            </div>
+            <p class="text-muted">AI正在重新分析健康事件，请稍候...</p>
+        </div>
+    `;
+    
+    await generateEventAiSummary(currentEventAiSummaryConversationId);
+}
+
+function showEventExportButtons(eventId) {
+    const exportBtns = document.getElementById('exportEventSummaryBtns');
+    const pdfBtn = document.getElementById('exportEventSummaryPdfBtn');
+    const wordBtn = document.getElementById('exportEventSummaryWordBtn');
+    
+    if (pdfBtn && wordBtn) {
+        pdfBtn.href = `{% url 'medical_records:export_event_ai_summary_pdf' 0 %}`.replace('0', eventId);
+        wordBtn.href = `{% url 'medical_records:export_event_ai_summary_word' 0 %}`.replace('0', eventId);
+    }
+    
+    if (exportBtns) {
+        exportBtns.style.display = 'inline-block';
+    }
+}
+
+function getCsrfToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 </script>
+
+<!-- 健康事件AI分析模态框 -->
+<div class="modal fade" id="eventAiSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                        <i class="bi bi-stars text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0">健康事件智能分析</h5>
+                        <small class="text-muted">基于事件关联的健康记录生成全面分析报告</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="eventAiSummaryContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">AI正在分析...</span>
+                        </div>
+                        <p class="text-muted">AI正在分析健康事件，请稍候...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-outline-info" id="regenerateEventSummaryBtn" style="display: none;" onclick="regenerateEventAiSummary()">
+                    <i class="bi bi-arrow-clockwise"></i> 重新生成
+                </button>
+                <div id="exportEventSummaryBtns" style="display: none;" class="btn-group ms-2">
+                    <a href="#" id="exportEventSummaryPdfBtn" class="btn btn-outline-danger" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> 导出PDF
+                    </a>
+                    <a href="#" id="exportEventSummaryWordBtn" class="btn btn-outline-primary" target="_blank">
+                        <i class="bi bi-file-earmark-word"></i> 导出Word
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

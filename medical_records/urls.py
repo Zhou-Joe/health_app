@@ -50,6 +50,8 @@ urlpatterns = [
     path('api/stream-advice-sync/', api_views.stream_advice_sync, name='api_stream_ai_advice_sync'),
     path('api/stream-ai-summary/', api_views.stream_ai_summary, name='api_stream_ai_summary'),
     path('api/conversations/<int:conversation_id>/summary/', api_views.get_ai_summary, name='api_get_ai_summary'),
+    path('api/stream-event-ai-summary/', api_views.stream_event_ai_summary, name='api_stream_event_ai_summary'),
+    path('api/events/<int:event_id>/summary/', api_views.get_event_ai_summary, name='api_get_event_ai_summary'),
     path('api/stream-upload/', api_views.stream_upload_and_process, name='api_stream_upload'),
     path('api/stream-integrate/', api_views.stream_integrate_data, name='api_stream_integrate'),
     path('api/checkup/<int:checkup_id>/update-notes/', api_views.update_checkup_notes, name='api_update_checkup_notes'),
@@ -62,6 +64,8 @@ urlpatterns = [
     path('conversations/<int:conversation_id>/export/word/', views.export_conversation_word, name='export_conversation_word'),
     path('conversations/<int:conversation_id>/export-summary/pdf/', views.export_ai_summary_pdf, name='export_ai_summary_pdf'),
     path('conversations/<int:conversation_id>/export-summary/word/', views.export_ai_summary_word, name='export_ai_summary_word'),
+    path('events/<int:event_id>/export-summary/pdf/', views.export_event_ai_summary_pdf, name='export_event_ai_summary_pdf'),
+    path('events/<int:event_id>/export-summary/word/', views.export_event_ai_summary_word, name='export_event_ai_summary_word'),
 
     # 健康趋势导出
     path('dashboard/export/pdf/', views.export_health_trends_pdf, name='export_health_trends_pdf'),

@@ -507,6 +507,213 @@ def get_ai_summary(request, conversation_id):
         }, status=500)
 
 
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def stream_event_ai_summary(request):
+    """流式输出健康事件AI总结（使用LangChain）"""
+    import json
+    from django.http import StreamingHttpResponse
+    from .models import SystemSettings, HealthEvent
+    from .llm_prompts import build_event_ai_summary_prompt
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    try:
+        data = _safe_get_request_json(request)
+        if not isinstance(data, dict):
+            data = {}
+        event_id = data.get('event_id')
+
+        if not event_id:
+            return JsonResponse({
+                'success': False,
+                'error': '事件ID不能为空'
+            }, status=400)
+
+        try:
+            event = HealthEvent.objects.get(id=event_id, user=request.user)
+        except HealthEvent.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '事件不存在或无权访问'
+            }, status=404)
+
+        prompt = build_event_ai_summary_prompt(event)
+
+        provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
+        api_url = None
+        api_key = None
+        model_name = None
+
+        if provider == 'gemini':
+            gemini_config = SystemSettings.get_gemini_config()
+            api_key = gemini_config['api_key']
+            model_name = gemini_config['model_name']
+        else:
+            api_url = SystemSettings.get_setting('ai_doctor_api_url')
+            api_key = SystemSettings.get_setting('ai_doctor_api_key')
+            model_name = SystemSettings.get_setting('ai_doctor_model_name')
+
+        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+        max_tokens = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
+
+        if provider == 'gemini':
+            if not api_key:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Gemini API密钥未配置'
+                }, status=500)
+        else:
+            if not api_url or not model_name:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI医生API未配置'
+                }, status=500)
+
+        is_baichuan = (
+            provider == 'baichuan' or
+            (api_url and 'baichuan' in api_url.lower()) or
+            (model_name and 'Baichuan' in model_name)
+        )
+
+        def generate():
+            nonlocal event
+            full_response = ""
+            error_msg = None
+
+            try:
+                yield f"data: {json.dumps({'prompt': prompt}, ensure_ascii=False)}\n\n"
+
+                if provider == 'gemini':
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    llm = ChatGoogleGenerativeAI(
+                        model=model_name,
+                        google_api_key=api_key,
+                        temperature=0.7,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages_list = [HumanMessage(content=prompt)]
+
+                    for chunk in llm.stream(messages_list):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            chunk_content = chunk.content
+                            if isinstance(chunk_content, list):
+                                content_text = ""
+                                for item in chunk_content:
+                                    if isinstance(item, str):
+                                        content_text += item
+                                    elif hasattr(item, 'text'):
+                                        content_text += item.text
+                                    elif isinstance(item, dict) and 'text' in item:
+                                        content_text += item['text']
+                                content = content_text
+                            else:
+                                content = str(chunk_content)
+
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+                else:
+                    from langchain_openai import ChatOpenAI
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    base_url = api_url
+                    if '/chat/completions' in base_url:
+                        base_url = base_url.split('/chat/completions')[0].rstrip('/')
+                    elif base_url.endswith('/'):
+                        base_url = base_url.rstrip('/')
+
+                    llm = ChatOpenAI(
+                        model=model_name,
+                        api_key=api_key or 'not-needed',
+                        base_url=base_url,
+                        temperature=0.3,
+                        max_tokens=max_tokens,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages_list = []
+                    if is_baichuan:
+                        from .llm_prompts import EVENT_AI_SUMMARY_SYSTEM_PROMPT
+                        messages_list.append(AIMessage(content=EVENT_AI_SUMMARY_SYSTEM_PROMPT))
+                        messages_list.append(HumanMessage(content=prompt.replace(EVENT_AI_SUMMARY_SYSTEM_PROMPT + '\n\n', '')))
+                    else:
+                        messages_list.append(HumanMessage(content=prompt))
+
+                    for chunk in llm.stream(messages_list):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            content = chunk.content
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+            except Exception as e:
+                error_msg = str(e)
+                yield f"data: {json.dumps({'error': error_msg, 'done': True}, ensure_ascii=False)}\n\n"
+
+            try:
+                if full_response and not error_msg:
+                    from django.utils import timezone
+                    event.ai_summary = full_response
+                    event.ai_summary_created_at = timezone.now()
+                    event.save(update_fields=['ai_summary', 'ai_summary_created_at'])
+
+                    yield f"data: {json.dumps({'saved': True, 'event_id': event.id}, ensure_ascii=False)}\n\n"
+
+            except Exception as save_error:
+                yield f"data: {json.dumps({'save_error': str(save_error)}, ensure_ascii=False)}\n\n"
+
+        response = StreamingHttpResponse(generate(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'生成AI总结失败: {str(e)}'
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_event_ai_summary(request, event_id):
+    """获取健康事件的AI总结"""
+    try:
+        event = HealthEvent.objects.get(id=event_id, user=request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'ai_summary': event.ai_summary,
+            'ai_summary_created_at': event.ai_summary_created_at.strftime('%Y-%m-%d %H:%M:%S') if event.ai_summary_created_at else None,
+            'has_summary': bool(event.ai_summary)
+        })
+    
+    except HealthEvent.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '事件不存在或无权访问'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'获取总结失败: {str(e)}'
+        }, status=500)
+
+
 def process_document_background(processing_id, file_path):
     """后台处理文档"""
     import threading
