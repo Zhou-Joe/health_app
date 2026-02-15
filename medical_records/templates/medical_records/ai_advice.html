@@ -545,6 +545,9 @@ small {
                                 <div class="ms-2">
                                     {% if advice.is_conversation %}
                                         <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-info" onclick="showAiSummary({{ advice.conversation_id }})" title="AI总结">
+                                                <i class="bi bi-robot"></i>
+                                            </button>
                                             <a href="{% url 'medical_records:export_conversation_pdf' advice.conversation_id %}"
                                                class="btn btn-outline-danger" title="导出为PDF">
                                                 <i class="bi bi-file-earmark-pdf"></i>
@@ -989,6 +992,36 @@ small {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI总结模态框 -->
+<div class="modal fade" id="aiSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-robot"></i> AI对话总结
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="aiSummaryContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">AI正在生成总结...</span>
+                        </div>
+                        <p class="text-muted">AI正在分析对话内容，请稍候...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-outline-info" id="regenerateSummaryBtn" style="display: none;" onclick="regenerateAiSummary()">
+                    <i class="bi bi-arrow-clockwise"></i> 重新生成
+                </button>
             </div>
         </div>
     </div>
@@ -2167,6 +2200,163 @@ textarea.addEventListener('input', function() {
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
 });
+
+// ==================== AI总结相关 ====================
+
+let currentSummaryConversationId = null;
+
+async function showAiSummary(conversationId) {
+    currentSummaryConversationId = conversationId;
+    const modal = new bootstrap.Modal(document.getElementById('aiSummaryModal'));
+    const summaryContent = document.getElementById('aiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="text-muted">正在检查是否有已存在的总结...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    modal.show();
+    
+    try {
+        const response = await fetch(`{% url 'medical_records:api_get_ai_summary' 0 %}`.replace('0', conversationId), {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.has_summary) {
+            summaryContent.innerHTML = `
+                <div class="mb-3 text-muted small">
+                    <i class="bi bi-clock"></i> 总结生成时间：${data.ai_summary_created_at}
+                </div>
+                <div class="ai-content-modal">${marked.parse(data.ai_summary)}</div>
+            `;
+            regenerateBtn.style.display = 'inline-block';
+        } else {
+            await generateAiSummary(conversationId);
+        }
+    } catch (error) {
+        console.error('获取AI总结失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 获取总结失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+async function generateAiSummary(conversationId) {
+    const summaryContent = document.getElementById('aiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在生成总结...</span>
+            </div>
+            <p class="text-muted">AI正在分析对话内容，请稍候...</p>
+        </div>
+    `;
+    
+    try {
+        const streamUrl = '{% url "medical_records:api_stream_ai_summary" %}';
+        const response = await fetch(streamUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ conversation_id: conversationId })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '请求失败');
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullSummary = '';
+        let sseBuffer = '';
+        
+        summaryContent.innerHTML = '<div class="ai-content-modal"></div>';
+        const contentDiv = summaryContent.querySelector('.ai-content-modal');
+        
+        const handleSSELine = (line) => {
+            if (!line.startsWith('data: ')) return;
+            
+            try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.error) {
+                    summaryContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i> ${data.error}
+                        </div>
+                    `;
+                } else if (data.content) {
+                    fullSummary += data.content;
+                    contentDiv.innerHTML = marked.parse(fullSummary);
+                } else if (data.done) {
+                    contentDiv.innerHTML = marked.parse(fullSummary);
+                } else if (data.saved) {
+                    console.log('AI总结已保存');
+                    regenerateBtn.style.display = 'inline-block';
+                }
+            } catch (parseError) {
+                console.error('解析SSE数据失败:', parseError);
+            }
+        };
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            sseBuffer += decoder.decode(value, { stream: true });
+            const lines = sseBuffer.split('\n');
+            sseBuffer = lines.pop() || '';
+            
+            for (const line of lines) {
+                handleSSELine(line.trim());
+            }
+        }
+        
+        if (sseBuffer.trim()) {
+            handleSSELine(sseBuffer.trim());
+        }
+        
+    } catch (error) {
+        console.error('生成AI总结失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 生成总结失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+async function regenerateAiSummary() {
+    if (!currentSummaryConversationId) return;
+    
+    const summaryContent = document.getElementById('aiSummaryContent');
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在重新生成总结...</span>
+            </div>
+            <p class="text-muted">AI正在重新分析对话内容，请稍候...</p>
+        </div>
+    `;
+    
+    await generateAiSummary(currentSummaryConversationId);
+}
 </script>
 
 <style>

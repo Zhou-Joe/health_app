@@ -275,6 +275,238 @@ def upload_and_process(request):
         }, status=500)
 
 
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def stream_ai_summary(request):
+    """流式输出AI对话总结（使用LangChain）"""
+    import json
+    import traceback
+    from django.http import StreamingHttpResponse
+    from .models import SystemSettings, Conversation, HealthAdvice
+    from .llm_prompts import build_ai_summary_prompt
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    try:
+        data = _safe_get_request_json(request)
+        if not isinstance(data, dict):
+            data = {}
+        conversation_id = data.get('conversation_id')
+
+        if not conversation_id:
+            return JsonResponse({
+                'success': False,
+                'error': '对话ID不能为空'
+            }, status=400)
+
+        try:
+            conversation = Conversation.objects.get(id=conversation_id, user=request.user, is_active=True)
+        except Conversation.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '对话不存在或无权访问'
+            }, status=404)
+
+        messages = HealthAdvice.objects.filter(conversation=conversation).order_by('created_at')
+        if not messages.exists():
+            return JsonResponse({
+                'success': False,
+                'error': '该对话暂无消息内容'
+            }, status=400)
+
+        conversation_content_parts = []
+        for i, msg in enumerate(messages, 1):
+            conversation_content_parts.append(f"【第{i}轮对话】")
+            conversation_content_parts.append(f"时间: {msg.created_at.strftime('%Y-%m-%d %H:%M')}")
+            conversation_content_parts.append(f"用户问题: {msg.question}")
+            answer_preview = msg.answer[:500] + '...' if len(msg.answer) > 500 else msg.answer
+            conversation_content_parts.append(f"AI回答: {answer_preview}")
+            conversation_content_parts.append("")
+
+        conversation_content = "\n".join(conversation_content_parts)
+
+        prompt = build_ai_summary_prompt(conversation_content)
+
+        provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
+        api_url = None
+        api_key = None
+        model_name = None
+
+        if provider == 'gemini':
+            gemini_config = SystemSettings.get_gemini_config()
+            api_key = gemini_config['api_key']
+            model_name = gemini_config['model_name']
+        else:
+            api_url = SystemSettings.get_setting('ai_doctor_api_url')
+            api_key = SystemSettings.get_setting('ai_doctor_api_key')
+            model_name = SystemSettings.get_setting('ai_doctor_model_name')
+
+        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+        max_tokens = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
+
+        if provider == 'gemini':
+            if not api_key:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Gemini API密钥未配置'
+                }, status=500)
+        else:
+            if not api_url or not model_name:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI医生API未配置'
+                }, status=500)
+
+        is_baichuan = (
+            provider == 'baichuan' or
+            (api_url and 'baichuan' in api_url.lower()) or
+            (model_name and 'Baichuan' in model_name)
+        )
+
+        def generate():
+            """生成流式响应"""
+            nonlocal conversation
+            full_response = ""
+            error_msg = None
+
+            try:
+                yield f"data: {json.dumps({'prompt': prompt}, ensure_ascii=False)}\n\n"
+
+                if provider == 'gemini':
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    llm = ChatGoogleGenerativeAI(
+                        model=model_name,
+                        google_api_key=api_key,
+                        temperature=0.7,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages_list = []
+                    if is_baichuan:
+                        messages_list.append(AIMessage(content=build_ai_summary_prompt.__doc__ or ""))
+                        messages_list.append(HumanMessage(content=prompt))
+                    else:
+                        messages_list.append(HumanMessage(content=prompt))
+
+                    for chunk in llm.stream(messages_list):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            chunk_content = chunk.content
+                            if isinstance(chunk_content, list):
+                                content_text = ""
+                                for item in chunk_content:
+                                    if isinstance(item, str):
+                                        content_text += item
+                                    elif hasattr(item, 'text'):
+                                        content_text += item.text
+                                    elif isinstance(item, dict) and 'text' in item:
+                                        content_text += item['text']
+                                content = content_text
+                            else:
+                                content = str(chunk_content)
+
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+                else:
+                    from langchain_openai import ChatOpenAI
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    base_url = api_url
+                    if '/chat/completions' in base_url:
+                        base_url = base_url.split('/chat/completions')[0].rstrip('/')
+                    elif base_url.endswith('/'):
+                        base_url = base_url.rstrip('/')
+
+                    llm = ChatOpenAI(
+                        model=model_name,
+                        api_key=api_key or 'not-needed',
+                        base_url=base_url,
+                        temperature=0.3,
+                        max_tokens=max_tokens,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages_list = []
+                    if is_baichuan:
+                        from .llm_prompts import AI_SUMMARY_SYSTEM_PROMPT
+                        messages_list.append(AIMessage(content=AI_SUMMARY_SYSTEM_PROMPT))
+                        messages_list.append(HumanMessage(content=prompt.replace(AI_SUMMARY_SYSTEM_PROMPT + '\n\n', '')))
+                    else:
+                        messages_list.append(HumanMessage(content=prompt))
+
+                    for chunk in llm.stream(messages_list):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            content = chunk.content
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+            except Exception as e:
+                error_msg = str(e)
+                yield f"data: {json.dumps({'error': error_msg, 'done': True}, ensure_ascii=False)}\n\n"
+
+            try:
+                if full_response and not error_msg:
+                    from django.utils import timezone
+                    conversation.ai_summary = full_response
+                    conversation.ai_summary_created_at = timezone.now()
+                    conversation.save(update_fields=['ai_summary', 'ai_summary_created_at'])
+
+                    yield f"data: {json.dumps({'saved': True, 'conversation_id': conversation.id}, ensure_ascii=False)}\n\n"
+
+            except Exception as save_error:
+                yield f"data: {json.dumps({'save_error': str(save_error)}, ensure_ascii=False)}\n\n"
+
+        response = StreamingHttpResponse(generate(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'服务器错误: {str(e)}'
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_ai_summary(request, conversation_id):
+    """获取对话的AI总结"""
+    try:
+        conversation = Conversation.objects.get(id=conversation_id, user=request.user, is_active=True)
+        
+        return JsonResponse({
+            'success': True,
+            'ai_summary': conversation.ai_summary,
+            'ai_summary_created_at': conversation.ai_summary_created_at.strftime('%Y-%m-%d %H:%M:%S') if conversation.ai_summary_created_at else None,
+            'has_summary': bool(conversation.ai_summary)
+        })
+    
+    except Conversation.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '对话不存在或无权访问'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'获取总结失败: {str(e)}'
+        }, status=500)
+
+
 def process_document_background(processing_id, file_path):
     """后台处理文档"""
     import threading

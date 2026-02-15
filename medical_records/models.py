@@ -85,6 +85,8 @@ class Conversation(models.Model):
     """对话模型"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
     title = models.CharField(max_length=200, verbose_name='对话标题')
+    ai_summary = models.TextField(blank=True, null=True, verbose_name='AI对话总结')
+    ai_summary_created_at = models.DateTimeField(blank=True, null=True, verbose_name='AI总结生成时间')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     is_active = models.BooleanField(default=True, verbose_name='是否活跃')
