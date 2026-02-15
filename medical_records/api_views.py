@@ -2595,11 +2595,13 @@ def stream_upload_and_process(request):
 
                 # 发送完成消息
                 yield f"data: {json.dumps({'status': 'complete', 'message': f'✅ 处理完成！成功保存 {saved_count} 个指标', 'checkup_id': health_checkup.id, 'indicators_count': saved_count}, ensure_ascii=False)}\n\n"
+                return  # 明确结束生成器
 
         except Exception as e:
             import traceback
             error_trace = traceback.format_exc()
             yield f"data: {json.dumps({'error': str(e), 'trace': error_trace}, ensure_ascii=False)}\n\n"
+            return  # 明确结束生成器
 
     response = StreamingHttpResponse(generate(), content_type='text/event-stream')
     response['Cache-Control'] = 'no-cache'
