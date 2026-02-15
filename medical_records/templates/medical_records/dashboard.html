@@ -247,7 +247,7 @@
     font-size: 0.8125rem;
 }
 
-/* 事件时间线 */
+/* 事件时间线 - 垂直时间轴设计 */
 .events-timeline {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -268,182 +268,199 @@
     color: var(--text-primary);
 }
 
-/* 横向时间轴 - 每行代表一年 */
+/* 垂直时间轴容器 */
 .events-timeline-wrapper {
     position: relative;
-    padding: 1.5rem 0;
-    overflow-x: auto;
+    padding: 0;
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 .events-timeline-wrapper::-webkit-scrollbar {
-    height: 8px;
+    width: 6px;
 }
 
 .events-timeline-wrapper::-webkit-scrollbar-track {
     background: var(--bg-soft);
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 .events-timeline-wrapper::-webkit-scrollbar-thumb {
     background: var(--primary);
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
-.events-timeline-wrapper::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-dark);
+/* 年份分组 */
+.timeline-year-group {
+    margin-bottom: 2rem;
 }
 
-/* 年份行容器 */
-.timeline-year-row {
-    position: relative;
-    margin-bottom: 4.5rem;
-    padding-top: 0.5rem;
-    min-width: max-content;
-}
-
-.timeline-year-row:last-child {
+.timeline-year-group:last-child {
     margin-bottom: 0;
 }
 
-/* 年份标签 */
+/* 年份标题 */
+.timeline-year-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary-soft);
+}
+
 .timeline-year-label {
-    position: absolute;
-    left: 0;
-    top: -0.75rem;
-    font-size: 0.75rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--primary);
     background: var(--primary-soft);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-    z-index: 2;
+    padding: 0.375rem 1rem;
+    border-radius: var(--radius-md);
 }
 
-/* 横向时间轴线 */
-.timeline-year-line {
-    position: relative;
-    height: 2px;
-    background: linear-gradient(90deg,
-        var(--primary-light, #5eead4) 0%,
-        var(--primary) 50%,
-        var(--primary-light, #5eead4) 100%);
-    display: flex;
-    align-items: flex-start;
-    padding: 0 0.25rem;
-    min-width: 100%;
-    gap: 0.25rem;
-}
-
-/* 时间轴节点 - 事件卡片容器 */
-.event-timeline-item {
-    position: relative;
-    flex: 0 0 auto;
+/* 事件列表 */
+.timeline-events-list {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    min-width: 80px;
-    padding: 0 0.125rem;
+    gap: 0.75rem;
 }
 
-/* 时间轴节点圆点 */
-.event-timeline-item::before {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--bg-card);
-    border: 3px solid var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-light, #5eead4);
-    transform: translate(-50%, -50%);
-    z-index: 10;
-    transition: var(--transition);
-}
-
-.event-timeline-item:hover::before {
-    transform: translate(-50%, -50%) scale(1.3);
-    box-shadow: 0 0 0 3px var(--primary-light, #5eead4);
-}
-
-/* 事件卡片 - 横向时间轴卡片 */
-.event-timeline-card {
+/* 事件卡片 - 水平布局 */
+.timeline-event-card {
+    display: flex;
+    align-items: stretch;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-md);
     transition: var(--transition);
     cursor: pointer;
     text-decoration: none;
-    display: block;
-    width: 100%;
-    min-width: 70px;
-    max-width: 100px;
-    margin-top: 1.25rem;
-}
-
-.event-timeline-card:hover {
-    background: var(--primary-soft);
-    border-color: var(--primary);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-2px);
-}
-
-.event-timeline-header {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-bottom: 0.15rem;
-}
-
-.event-timeline-date {
-    font-size: 0.6rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.event-timeline-title {
-    font-weight: 600;
-    font-size: 0.65rem;
-    color: var(--text-primary);
-    line-height: 1.2;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-.event-timeline-type {
-    display: inline-block;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
+.timeline-event-card:hover {
+    background: var(--bg-soft);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateX(4px);
 }
 
-.event-timeline-type.illness {
-    background: var(--danger);
+/* 事件日期区块 */
+.event-date-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 70px;
+    padding: 0.75rem 0.5rem;
+    background: var(--bg-soft);
+    border-right: 1px solid var(--border-color);
 }
 
-.event-timeline-type.checkup {
+.event-date-day {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.event-date-month {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-top: 0.25rem;
+}
+
+/* 事件内容区块 */
+.event-content-block {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.event-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.event-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.event-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.event-type-badge.illness {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.event-type-badge.checkup {
+    background: var(--primary-soft);
+    color: var(--primary-dark);
+}
+
+.event-type-badge.chronic_management {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.event-type-badge.emergency {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.event-type-badge.wellness {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.event-type-badge.medication_course {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.event-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* 事件状态指示器 */
+.event-status-indicator {
+    width: 4px;
     background: var(--primary);
 }
 
-.event-timeline-type.chronic_management {
-    background: var(--warning);
-}
-
-.event-timeline-type.emergency {
+.event-status-indicator.illness,
+.event-status-indicator.emergency {
     background: var(--danger);
 }
 
-.event-timeline-type.wellness {
+.event-status-indicator.checkup {
+    background: var(--primary);
+}
+
+.event-status-indicator.chronic_management {
+    background: var(--warning);
+}
+
+.event-status-indicator.wellness {
     background: var(--success);
 }
 
-.event-timeline-type.medication_course {
+.event-status-indicator.medication_course {
     background: var(--info);
 }
 
@@ -621,53 +638,27 @@
     padding: 0.2rem 0.4rem;
 }
 
-/* 响应式：移动端改为垂直时间轴 */
+/* 响应式：移动端适配 */
 @media (max-width: 768px) {
-    .events-timeline-wrapper {
-        padding: 1rem 0.5rem;
-        overflow-x: hidden;
+    .timeline-event-card {
+        flex-direction: column;
     }
 
-    .timeline-year-row {
-        padding-left: 1.5rem;
-    }
-
-    .timeline-year-label {
-        position: static;
-        display: inline-block;
-        margin-bottom: 1rem;
-    }
-
-    .timeline-year-line {
-        flex-direction: column !important;
-        height: auto;
-        width: 3px;
-        background: linear-gradient(180deg,
-            var(--primary-light, #5eead4) 0%,
-            var(--primary) 50%,
-            var(--primary-light, #5eead4) 100%);
-        padding: 0;
-        margin-left: 0;
-        align-items: flex-start;
-    }
-
-    .event-timeline-item {
-        padding: 0.75rem 0 0.75rem 0.75rem;
-        width: 100% !important;
-        min-width: auto !important;
+    .event-date-block {
         flex-direction: row;
-        align-items: flex-start;
+        gap: 0.5rem;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.5rem;
     }
 
-    .event-timeline-item::before {
-        left: -1.4rem !important;
-        top: 0.6rem !important;
+    .event-date-day {
+        font-size: 1.2rem;
     }
 
-    .event-timeline-card {
-        margin-left: 0;
-        margin-top: 0;
-        max-width: 100%;
+    .event-status-indicator {
+        width: 100%;
+        height: 4px;
     }
 }
 
@@ -908,28 +899,43 @@
             </div>
         </div>
 
-        <!-- 事件时间轴 -->
+        <!-- 事件时间轴 - 垂直列表布局 -->
         <div class="events-timeline-wrapper">
             {% regroup health_events by date|date:"Y" as year_groups %}
             {% for year_group in year_groups %}
-            <div class="timeline-year-row">
-                <div class="timeline-year-label">{{ year_group.grouper }}年</div>
-                <div class="timeline-year-line">
+            <div class="timeline-year-group">
+                <div class="timeline-year-header">
+                    <span class="timeline-year-label">{{ year_group.grouper }}年</span>
+                </div>
+                <div class="timeline-events-list">
                     {% for event in year_group.list %}
-                    <div class="event-timeline-item">
-                        <a href="{% url 'medical_records:event_detail' event.id %}" class="event-timeline-card text-decoration-none">
-                            <div class="event-timeline-header">
-                                <span class="event-timeline-type {{ event.type }}"></span>
-                                <span class="event-timeline-date">{{ event.date|date:"m-d" }}</span>
-                            </div>
-                            <div class="event-timeline-title">
+                    <a href="{% url 'medical_records:event_detail' event.id %}" class="timeline-event-card text-decoration-none">
+                        <div class="event-status-indicator {{ event.type }}"></div>
+                        <div class="event-date-block">
+                            <span class="event-date-day">{{ event.date|date:"d" }}</span>
+                            <span class="event-date-month">{{ event.date|date:"m" }}月</span>
+                        </div>
+                        <div class="event-content-block">
+                            <div class="event-title-row">
+                                <span class="event-title">{{ event.title }}</span>
+                                <span class="event-type-badge {{ event.type }}">
+                                    {% if event.type == 'illness' %}疾病
+                                    {% elif event.type == 'checkup' %}体检
+                                    {% elif event.type == 'chronic_management' %}慢病
+                                    {% elif event.type == 'emergency' %}急诊
+                                    {% elif event.type == 'wellness' %}健康
+                                    {% elif event.type == 'medication_course' %}用药
+                                    {% else %}其他{% endif %}
+                                </span>
                                 {% if event.is_auto_generated %}
                                 <i class="bi bi-sparkles text-info small"></i>
                                 {% endif %}
-                                {{ event.title }}
                             </div>
-                        </a>
-                    </div>
+                            {% if event.description %}
+                            <div class="event-description">{{ event.description|truncatechars:50 }}</div>
+                            {% endif %}
+                        </div>
+                    </a>
                     {% endfor %}
                 </div>
             </div>
