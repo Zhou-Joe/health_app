@@ -2,16 +2,18 @@ import json
 import os
 import re
 import tempfile
+from datetime import timedelta
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.contenttypes.models import ContentType
 from .models import (HealthCheckup, DocumentProcessing, HealthIndicator, Conversation, HealthAdvice, SystemSettings,
-                    Medication, MedicationRecord, HealthEvent, EventItem, CareGoal, CareAction)
+                    Medication, MedicationRecord, MedicationGroup, HealthEvent, EventItem, CareGoal, CareAction)
 from .forms import HealthCheckupForm
 from .services import DocumentProcessingService
 from .utils import convert_image_to_pdf, is_image_file
@@ -4518,3 +4520,247 @@ def upload_avatar(request):
             'success': False,
             'error': f'上传失败: {str(e)}'
         }, status=500)
+
+
+@csrf_exempt
+@login_required
+def api_medication_recognize_image(request):
+    """识别药单图片并创建药单组"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '只支持 POST 请求'}, status=405)
+
+    try:
+        if 'image' not in request.FILES:
+            return JsonResponse({'success': False, 'error': '未找到上传的图片'}, status=400)
+
+        image_file = request.FILES['image']
+
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        if image_file.content_type not in allowed_types:
+            return JsonResponse({'success': False, 'error': '只支持 JPG、PNG、GIF、WEBP 格式的图片'}, status=400)
+
+        max_size = 10 * 1024 * 1024
+        if image_file.size > max_size:
+            return JsonResponse({'success': False, 'error': '图片大小不能超过 10MB'}, status=400)
+
+        from django.conf import settings
+        import uuid
+        import tempfile
+        import os
+
+        temp_dir = tempfile.mkdtemp()
+        file_ext = os.path.splitext(image_file.name)[1]
+        temp_file_path = os.path.join(temp_dir, f"medication_{uuid.uuid4().hex}{file_ext}")
+
+        with open(temp_file_path, 'wb+') as destination:
+            for chunk in image_file.chunks():
+                destination.write(chunk)
+
+        from .services import MedicationRecognitionService
+        from .models import MedicationGroup, Medication
+
+        service = MedicationRecognitionService()
+        result = service.recognize_medication_image(temp_file_path)
+
+        try:
+            os.unlink(temp_file_path)
+            os.rmdir(temp_dir)
+        except:
+            pass
+
+        medications_data = result.get('medications', [])
+        summary = result.get('summary', '')
+
+        if not medications_data:
+            return JsonResponse({
+                'success': False,
+                'error': '未能从图片中识别出药物信息'
+            }, status=400)
+
+        group_name = f"药单组 {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+        medication_group = MedicationGroup.objects.create(
+            user=request.user,
+            name=group_name,
+            ai_summary=summary,
+            raw_result=result
+        )
+
+        if image_file:
+            medication_group.source_image.save(
+                f"medication_{uuid.uuid4().hex}{file_ext}",
+                image_file,
+                save=True
+            )
+
+        created_medications = []
+        from datetime import datetime as dt
+
+        for med_data in medications_data:
+            medicine_name = med_data.get('medicine_name', '').strip()
+            dosage = med_data.get('dosage', '').strip()
+
+            if not medicine_name:
+                continue
+
+            start_date_str = med_data.get('start_date')
+            end_date_str = med_data.get('end_date')
+
+            try:
+                if start_date_str and start_date_str != 'null':
+                    start_date = dt.strptime(start_date_str, '%Y-%m-%d').date()
+                else:
+                    start_date = timezone.now().date()
+            except:
+                start_date = timezone.now().date()
+
+            try:
+                if end_date_str and end_date_str != 'null':
+                    end_date = dt.strptime(end_date_str, '%Y-%m-%d').date()
+                else:
+                    end_date = start_date + timedelta(days=7)
+            except:
+                end_date = start_date + timedelta(days=7)
+
+            notes = med_data.get('notes', '')
+            if notes == 'null':
+                notes = ''
+
+            medication = Medication.objects.create(
+                user=request.user,
+                group=medication_group,
+                medicine_name=medicine_name,
+                dosage=dosage or '按医嘱服用',
+                start_date=start_date,
+                end_date=end_date,
+                notes=notes
+            )
+
+            created_medications.append({
+                'id': medication.id,
+                'medicine_name': medication.medicine_name,
+                'dosage': medication.dosage,
+                'start_date': medication.start_date.strftime('%Y-%m-%d'),
+                'end_date': medication.end_date.strftime('%Y-%m-%d'),
+                'notes': medication.notes,
+                'total_days': medication.total_days,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'group': {
+                'id': medication_group.id,
+                'name': medication_group.name,
+                'ai_summary': medication_group.ai_summary,
+                'medication_count': len(created_medications),
+                'created_at': medication_group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            },
+            'medications': created_medications,
+            'raw_result': result
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'识别失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@login_required
+def api_medication_groups(request):
+    """获取用户的药单组列表"""
+    if request.method != 'GET':
+        return JsonResponse({'success': False, 'error': '只支持 GET 请求'}, status=405)
+
+    from .models import MedicationGroup, Medication
+
+    groups = MedicationGroup.objects.filter(user=request.user).order_by('-created_at')
+
+    group_list = []
+    for group in groups:
+        medications = Medication.objects.filter(group=group)
+        medication_list = []
+        for med in medications:
+            medication_list.append({
+                'id': med.id,
+                'medicine_name': med.medicine_name,
+                'dosage': med.dosage,
+                'start_date': med.start_date.strftime('%Y-%m-%d'),
+                'end_date': med.end_date.strftime('%Y-%m-%d'),
+                'notes': med.notes,
+                'is_active': med.is_active,
+                'total_days': med.total_days,
+                'days_taken': med.days_taken,
+                'progress_percentage': med.progress_percentage,
+            })
+
+        group_list.append({
+            'id': group.id,
+            'name': group.name,
+            'ai_summary': group.ai_summary,
+            'source_image': group.source_image.url if group.source_image else None,
+            'medication_count': group.medication_count,
+            'created_at': group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'medications': medication_list,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'groups': group_list
+    })
+
+
+@csrf_exempt
+@login_required
+def api_medication_group_detail(request, group_id):
+    """获取、更新或删除药单组"""
+    from .models import MedicationGroup, Medication
+
+    try:
+        group = get_object_or_404(MedicationGroup, id=group_id, user=request.user)
+    except:
+        return JsonResponse({
+            'success': False,
+            'error': '药单组不存在或无权访问'
+        }, status=404)
+
+    if request.method == 'GET':
+        medications = Medication.objects.filter(group=group)
+        medication_list = []
+        for med in medications:
+            medication_list.append({
+                'id': med.id,
+                'medicine_name': med.medicine_name,
+                'dosage': med.dosage,
+                'start_date': med.start_date.strftime('%Y-%m-%d'),
+                'end_date': med.end_date.strftime('%Y-%m-%d'),
+                'notes': med.notes,
+                'is_active': med.is_active,
+                'total_days': med.total_days,
+                'days_taken': med.days_taken,
+                'progress_percentage': med.progress_percentage,
+            })
+
+        return JsonResponse({
+            'success': True,
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'ai_summary': group.ai_summary,
+                'source_image': group.source_image.url if group.source_image else None,
+                'medication_count': group.medication_count,
+                'created_at': group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            },
+            'medications': medication_list
+        })
+
+    elif request.method == 'DELETE':
+        group.delete()
+        return JsonResponse({
+            'success': True,
+            'message': '药单组已删除'
+        })
+
+    return JsonResponse({'success': False, 'error': '不支持的请求方法'}, status=405)

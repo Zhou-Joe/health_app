@@ -20,6 +20,7 @@ from .models import (
     UserProfile,
     Medication,
     MedicationRecord,
+    MedicationGroup,
     HealthEvent,
     EventItem,
     SymptomEntry,
@@ -2399,7 +2400,8 @@ def health_management(request, default_tab='medications'):
     symptoms = SymptomEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
     vitals = VitalEntry.objects.filter(user=request.user).order_by('-entry_date', '-created_at')[:20]
     plans = CarePlan.objects.filter(user=request.user).prefetch_related('goals__actions')
-    medications = Medication.objects.filter(user=request.user).order_by('-created_at')
+    medications = Medication.objects.filter(user=request.user, group__isnull=True).order_by('-created_at')
+    medication_groups = MedicationGroup.objects.filter(user=request.user).prefetch_related('medications').order_by('-created_at')
 
     context = {
         'active_tab': active_tab,
@@ -2412,6 +2414,7 @@ def health_management(request, default_tab='medications'):
         'action_form': action_form,
         'plans': plans,
         'medications': medications,
+        'medication_groups': medication_groups,
         'page_title': '健康管理'
     }
     return render(request, 'medical_records/health_management.html', context)

@@ -80,6 +80,9 @@ urlpatterns = [
     path('api/medications/<int:medication_id>/', api_views.api_medication_detail, name='api_medication_detail'),
     path('api/medications/checkin/', api_views.api_medication_checkin, name='api_medication_checkin'),
     path('api/medications/<int:medication_id>/records/', api_views.api_medication_records, name='api_medication_records'),
+    path('api/medications/recognize-image/', api_views.api_medication_recognize_image, name='api_medication_recognize_image'),
+    path('api/medication-groups/', api_views.api_medication_groups, name='api_medication_groups'),
+    path('api/medication-groups/<int:group_id>/', api_views.api_medication_group_detail, name='api_medication_group_detail'),
 
     # 健康事件管理页面
     path('events/', views.events_list, name='events_list'),

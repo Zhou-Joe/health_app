@@ -478,10 +478,71 @@
 {% elif active_tab == 'medications' %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">我的药单</h5>
-        <button class="btn btn-primary" onclick="showAddMedicationModal()">
-            <i class="bi bi-plus-circle me-1"></i> 添加药单
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-info" onclick="showRecognizeImageModal()">
+                <i class="bi bi-camera me-1"></i> 拍照识别
+            </button>
+            <button class="btn btn-primary" onclick="showAddMedicationModal()">
+                <i class="bi bi-plus-circle me-1"></i> 添加药单
+            </button>
+        </div>
     </div>
+
+    {% if medication_groups %}
+    <div class="mb-4">
+        <h6 class="mb-3 fw-bold" style="color: var(--text-secondary);">药单组（图片识别）</h6>
+        {% for group in medication_groups %}
+        <div class="card section-card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); color: #0369a1;">
+                <div>
+                    <i class="bi bi-collection me-2"></i>{{ group.name }}
+                    <span class="badge ms-2" style="background: #0369a1;">{{ group.medication_count }} 个药物</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleGroupMedications({{ group.id }})">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicationGroup({{ group.id }})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if group.ai_summary %}
+                <div class="alert alert-info py-2 mb-3" style="font-size: 0.9rem;">
+                    <i class="bi bi-robot me-1"></i> <strong>AI总结：</strong>{{ group.ai_summary }}
+                </div>
+                {% endif %}
+                <div id="groupMedications{{ group.id }}" class="row">
+                    {% for medication in group.medications.all %}
+                    <div class="col-lg-6 col-xl-4 mb-2">
+                        <div class="card medication-card" style="margin-bottom: 0;">
+                            <div class="card-header py-2">
+                                <i class="bi bi-capsule me-2"></i>{{ medication.medicine_name }}
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="mb-1" style="font-size: 0.85rem;"><strong>服药方式：</strong>{{ medication.dosage }}</div>
+                                <div class="mb-1" style="font-size: 0.85rem;"><strong>周期：</strong>{{ medication.start_date|date:"Y-m-d" }} 至 {{ medication.end_date|date:"Y-m-d" }}</div>
+                                <div class="mb-1" style="font-size: 0.85rem;"><strong>进度：</strong>{{ medication.days_taken }}/{{ medication.total_days }}（{{ medication.progress_percentage }}%）</div>
+                                {% if medication.notes %}
+                                <div class="mb-1 text-muted" style="font-size: 0.8rem;">备注：{{ medication.notes }}</div>
+                                {% endif %}
+                                <div class="d-flex gap-1 flex-wrap mt-2">
+                                    <button class="btn btn-success btn-sm" style="font-size: 0.75rem;" onclick="checkin({{ medication.id }})"><i class="bi bi-check2-circle"></i></button>
+                                    <button class="btn btn-outline-secondary btn-sm" style="font-size: 0.75rem;" onclick="showBackdateModal({{ medication.id }}, '{{ medication.medicine_name|escapejs }}')"><i class="bi bi-calendar-plus"></i></button>
+                                    <button class="btn btn-outline-primary btn-sm" style="font-size: 0.75rem;" onclick="viewRecords({{ medication.id }})"><i class="bi bi-list-ul"></i></button>
+                                    <button class="btn btn-outline-danger btn-sm" style="font-size: 0.75rem;" onclick="deleteMedication({{ medication.id }})"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="row">
         {% if medications %}
@@ -511,6 +572,62 @@
         {% else %}
         <div class="col-12"><div class="text-muted">暂无药单</div></div>
         {% endif %}
+    </div>
+
+    <div class="modal fade" id="recognizeImageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-camera me-2"></i>拍照识别药单</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-1"></i> 上传药单或处方图片，AI将自动识别并创建药单组
+                    </div>
+                    <form id="recognizeImageForm">
+                        <div class="mb-3">
+                            <label for="medicationImage" class="form-label">选择图片 *</label>
+                            <input type="file" class="form-control" id="medicationImage" accept="image/*" required>
+                        </div>
+                        <div id="imagePreviewContainer" class="mb-3" style="display: none;">
+                            <img id="imagePreview" class="img-fluid rounded" style="max-height: 300px;">
+                        </div>
+                    </form>
+                    <div id="recognitionProgress" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                            <span>正在识别药单...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="startRecognitionBtn" onclick="startRecognition()">
+                        <i class="bi bi-magic me-1"></i> 开始识别
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="recognitionResultModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-check-circle me-2 text-success"></i>识别结果</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="recognitionSummary" class="alert alert-info mb-3"></div>
+                    <div id="recognitionMedications"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="location.reload()">查看药单</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade" id="addMedicationModal" tabindex="-1">
@@ -824,6 +941,145 @@ async function deleteMedication(medicationId) {
         }
     } catch (error) {
         alert('删除失败：' + error);
+    }
+}
+
+let recognizeImageModal;
+let recognitionResultModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('recognizeImageModal')) {
+        recognizeImageModal = new bootstrap.Modal(document.getElementById('recognizeImageModal'));
+        recognitionResultModal = new bootstrap.Modal(document.getElementById('recognitionResultModal'));
+        
+        const imageInput = document.getElementById('medicationImage');
+        if (imageInput) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('imagePreview').src = e.target.result;
+                        document.getElementById('imagePreviewContainer').style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    }
+});
+
+function showRecognizeImageModal() {
+    document.getElementById('medicationImage').value = '';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    document.getElementById('recognitionProgress').style.display = 'none';
+    document.getElementById('startRecognitionBtn').disabled = false;
+    recognizeImageModal.show();
+}
+
+async function startRecognition() {
+    const imageInput = document.getElementById('medicationImage');
+    if (!imageInput.files || !imageInput.files[0]) {
+        alert('请选择图片');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', imageInput.files[0]);
+
+    document.getElementById('recognitionProgress').style.display = 'block';
+    document.getElementById('startRecognitionBtn').disabled = true;
+
+    try {
+        const response = await fetch('{% url "medical_records:api_medication_recognize_image" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        
+        document.getElementById('recognitionProgress').style.display = 'none';
+        document.getElementById('startRecognitionBtn').disabled = false;
+
+        if (data.success) {
+            recognizeImageModal.hide();
+            showRecognitionResult(data);
+        } else {
+            alert('识别失败：' + (data.error || '未知错误'));
+        }
+    } catch (error) {
+        document.getElementById('recognitionProgress').style.display = 'none';
+        document.getElementById('startRecognitionBtn').disabled = false;
+        alert('识别失败：' + error);
+    }
+}
+
+function showRecognitionResult(data) {
+    const summaryDiv = document.getElementById('recognitionSummary');
+    const medicationsDiv = document.getElementById('recognitionMedications');
+
+    summaryDiv.innerHTML = `
+        <strong>药单组：</strong>${data.group.name}<br>
+        <strong>识别药物数量：</strong>${data.group.medication_count} 个<br>
+        ${data.group.ai_summary ? `<strong>AI总结：</strong>${data.group.ai_summary}` : ''}
+    `;
+
+    if (data.medications && data.medications.length > 0) {
+        medicationsDiv.innerHTML = `
+            <h6 class="mb-3">识别到的药物：</h6>
+            <div class="row">
+                ${data.medications.map(med => `
+                    <div class="col-md-6 mb-2">
+                        <div class="card" style="border: 1px solid var(--border-color);">
+                            <div class="card-body py-2">
+                                <strong>${med.medicine_name}</strong><br>
+                                <small class="text-muted">服用方式：${med.dosage}</small><br>
+                                <small class="text-muted">周期：${med.start_date} 至 ${med.end_date}</small>
+                                ${med.notes ? `<br><small class="text-muted">备注：${med.notes}</small>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        medicationsDiv.innerHTML = '<p class="text-muted">未识别到药物信息</p>';
+    }
+
+    recognitionResultModal.show();
+}
+
+async function deleteMedicationGroup(groupId) {
+    if (!confirm('确定要删除这个药单组吗？组内所有药单也会被删除。')) return;
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_medication_groups" %}${groupId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        if (response.ok) {
+            alert('删除成功');
+            window.location.reload();
+        } else {
+            alert('删除失败');
+        }
+    } catch (error) {
+        alert('删除失败：' + error);
+    }
+}
+
+function toggleGroupMedications(groupId) {
+    const container = document.getElementById('groupMedications' + groupId);
+    if (container.style.display === 'none') {
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
     }
 }
 {% endif %}

@@ -359,9 +359,34 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
 
 
+class MedicationGroup(models.Model):
+    """药单组模型 - 用于存储一次图片识别产生的多条药单"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    name = models.CharField(max_length=200, verbose_name='药单组名称')
+    source_image = models.ImageField(upload_to='medication_images/%Y/%m/', blank=True, null=True, verbose_name='来源图片')
+    ai_summary = models.TextField(blank=True, null=True, verbose_name='AI总结')
+    raw_result = models.JSONField(blank=True, null=True, verbose_name='原始识别结果')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '药单组'
+        verbose_name_plural = '药单组'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
+
+    @property
+    def medication_count(self):
+        """药单数量"""
+        return self.medications.count()
+
+
 class Medication(models.Model):
     """药单模型"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    group = models.ForeignKey(MedicationGroup, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='所属药单组', related_name='medications')
     medicine_name = models.CharField(max_length=200, verbose_name='药名')
     dosage = models.CharField(max_length=100, verbose_name='服药方式')
     start_date = models.DateField(verbose_name='开始日期')

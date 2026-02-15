@@ -2553,3 +2553,261 @@ def call_gemini_vision_api(image_base64, prompt, timeout=300):
         raise Exception(f"Gemini Vision API请求超时（{timeout}秒）")
     except Exception as e:
         raise Exception(f"调用Gemini Vision API失败: {str(e)}")
+
+
+MEDICATION_RECOGNITION_PROMPT = """你是一个专业的医药助手，请分析这张药单/处方图片，提取所有药物信息。
+
+**任务要求：**
+1. 识别图片中的所有药物名称
+2. 提取每种药物的服用方式/剂量
+3. 识别服药周期（开始日期、结束日期）
+4. 提取任何备注信息（如饭前/饭后服用、注意事项等）
+5. 对药单内容进行总结
+
+**重要约束：**
+1. 只提取图片中明确可见的信息，不要编造
+2. 如果某些信息不清晰或不存在，请填null
+3. 药名使用图片中显示的原始名称
+4. 日期格式统一为 YYYY-MM-DD
+
+**JSON格式要求：**
+{
+    "medications": [
+        {
+            "medicine_name": "药物名称",
+            "dosage": "服用方式/剂量",
+            "start_date": "开始日期或null",
+            "end_date": "结束日期或null",
+            "notes": "备注信息或null"
+        }
+    ],
+    "summary": "对整个药单的总结说明"
+}
+
+请严格按照JSON格式返回，不要添加任何解释文字。
+"""
+
+
+class MedicationRecognitionService:
+    """药单图片识别服务"""
+
+    def __init__(self):
+        config = SystemSettings.get_vl_model_config()
+        self.vl_provider = config['provider']
+        self.vl_api_url = config['api_url']
+        self.vl_api_key = config['api_key']
+        self.vl_model_name = config['model_name']
+        self.vl_timeout = int(config['timeout'])
+        self.vl_max_tokens = int(config['max_tokens'])
+
+    def recognize_medication_image(self, image_path):
+        """识别药单图片"""
+        try:
+            print(f"\n{'='*80}")
+            print(f"[药单识别] 开始处理药单图片")
+            print(f"[药单识别] 文件路径: {image_path}")
+            print(f"[药单识别] 处理时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+            if self.vl_provider == 'gemini':
+                result = self._call_gemini_for_medication(image_path)
+            else:
+                result = self._call_openai_for_medication(image_path)
+
+            print(f"[药单识别] 识别完成")
+            print(f"{'='*80}\n")
+            return result
+
+        except Exception as e:
+            print(f"[药单识别] 识别失败: {str(e)}")
+            raise
+
+    def _call_gemini_for_medication(self, image_path):
+        """使用 Gemini Vision API 识别药单"""
+        try:
+            gemini_config = SystemSettings.get_gemini_config()
+            api_key = gemini_config['api_key']
+            model_name = gemini_config.get('model_name', self.vl_model_name)
+
+            if not api_key:
+                raise Exception("Gemini API密钥未配置")
+
+            with open(image_path, 'rb') as f:
+                image_data = base64.b64encode(f.read()).decode('utf-8')
+
+            request_data = {
+                "contents": [{
+                    "parts": [
+                        {
+                            "inline_data": {
+                                "mime_type": "image/jpeg",
+                                "data": image_data
+                            }
+                        },
+                        {
+                            "text": MEDICATION_RECOGNITION_PROMPT
+                        }
+                    ]
+                }],
+                "generationConfig": {
+                    "temperature": 0.1,
+                    "maxOutputTokens": self.vl_max_tokens
+                }
+            }
+
+            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+
+            print(f"[药单识别] 调用 Gemini API: {model_name}")
+
+            import time
+            start_time = time.time()
+
+            response = requests.post(
+                api_url,
+                json=request_data,
+                headers={"Content-Type": "application/json"},
+                timeout=self.vl_timeout
+            )
+
+            duration = time.time() - start_time
+            print(f"[药单识别] 响应时间: {duration:.2f}秒")
+
+            if response.status_code == 200:
+                result = response.json()
+                content = result['candidates'][0]['content']['parts'][0]['text']
+                
+                cleaned_content = self._clean_thinking_tags(content)
+                return self._parse_medication_response(cleaned_content)
+            else:
+                raise Exception(f"Gemini API调用失败: {response.status_code}")
+
+        except Exception as e:
+            print(f"[药单识别] Gemini调用失败: {str(e)}")
+            raise
+
+    def _call_openai_for_medication(self, image_path):
+        """使用 OpenAI 兼容 API 识别药单"""
+        try:
+            image_base64 = self._encode_image_to_base64(image_path)
+
+            request_data = {
+                "model": self.vl_model_name,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": MEDICATION_RECOGNITION_PROMPT
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": image_base64,
+                                    "detail": "high"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "temperature": 0.1,
+                "max_tokens": self.vl_max_tokens
+            }
+
+            headers = {
+                "Content-Type": "application/json"
+            }
+
+            if self.vl_api_key:
+                headers["Authorization"] = f"Bearer {self.vl_api_key}"
+
+            base_url = self.vl_api_url.rstrip('/')
+            if '/chat/completions' not in base_url:
+                api_url = f"{base_url}/v1/chat/completions"
+            else:
+                api_url = base_url
+
+            print(f"[药单识别] 调用 OpenAI 兼容 API: {self.vl_model_name}")
+
+            import time
+            start_time = time.time()
+
+            response = requests.post(
+                api_url,
+                json=request_data,
+                headers=headers,
+                timeout=self.vl_timeout
+            )
+
+            duration = time.time() - start_time
+            print(f"[药单识别] 响应时间: {duration:.2f}秒")
+
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content']
+                
+                cleaned_content = self._clean_thinking_tags(content)
+                return self._parse_medication_response(cleaned_content)
+            else:
+                raise Exception(f"API调用失败: {response.status_code}")
+
+        except Exception as e:
+            print(f"[药单识别] OpenAI调用失败: {str(e)}")
+            raise
+
+    def _encode_image_to_base64(self, image_path):
+        """将图片编码为base64"""
+        from PIL import Image
+        import io
+
+        with Image.open(image_path) as img:
+            max_size = 1024
+            if img.width > max_size or img.height > max_size:
+                img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            buffer = io.BytesIO()
+            img.save(buffer, format='JPEG', quality=85)
+            buffer.seek(0)
+
+            image_data = buffer.read()
+            base64_data = base64.b64encode(image_data).decode('utf-8')
+
+        return f"data:image/jpeg;base64,{base64_data}"
+
+    def _clean_thinking_tags(self, content):
+        """清理思考标签"""
+        cleaned_content = content.strip()
+        
+        thinking_patterns = [
+            (r'<thought>[\s\S]*?</thought>', '', re.IGNORECASE),
+            (r'<thinking>[\s\S]*?</thinking>', '', re.IGNORECASE),
+            (r'```json\s*', ''),
+            (r'```\s*', ''),
+        ]
+        
+        for pattern, replacement, *flags in thinking_patterns:
+            flags = flags[0] if flags else 0
+            cleaned_content = re.sub(pattern, replacement, cleaned_content, flags=flags)
+        
+        return cleaned_content.strip()
+
+    def _parse_medication_response(self, content):
+        """解析药单识别响应"""
+        try:
+            result = json.loads(content)
+            if 'medications' in result:
+                return result
+            else:
+                raise Exception("响应格式不正确：缺少 medications 字段")
+        except json.JSONDecodeError:
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                    if 'medications' in result:
+                        return result
+                except:
+                    pass
+            raise Exception("无法解析API响应为JSON格式")
