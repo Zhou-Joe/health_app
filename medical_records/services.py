@@ -2600,9 +2600,25 @@ class MedicationRecognitionService:
         self.vl_timeout = int(config['timeout'])
         self.vl_max_tokens = int(config['max_tokens'])
 
+    def _validate_config(self):
+        """验证配置是否完整"""
+        if self.vl_provider == 'gemini':
+            gemini_config = SystemSettings.get_gemini_config()
+            if not gemini_config.get('api_key'):
+                raise Exception("Gemini API密钥未配置，请在系统设置中配置 Gemini API Key")
+        else:
+            if not self.vl_api_url:
+                raise Exception("多模态模型 API URL 未配置，请在系统设置中配置 VL Model API URL")
+            if not self.vl_api_key:
+                raise Exception("多模态模型 API Key 未配置，请在系统设置中配置 VL Model API Key")
+            if not self.vl_model_name:
+                raise Exception("多模态模型名称未配置，请在系统设置中配置 VL Model Name")
+
     def recognize_medication_image(self, image_path):
         """识别药单图片"""
         try:
+            self._validate_config()
+            
             print(f"\n{'='*80}")
             print(f"[药单识别] 开始处理药单图片")
             print(f"[药单识别] 文件路径: {image_path}")
@@ -2721,10 +2737,16 @@ class MedicationRecognitionService:
                 headers["Authorization"] = f"Bearer {self.vl_api_key}"
 
             base_url = self.vl_api_url.rstrip('/')
+            if not base_url:
+                raise Exception("多模态模型 API URL 未配置，请在系统设置中配置 VL Model API URL")
+            
             if '/chat/completions' not in base_url:
                 api_url = f"{base_url}/v1/chat/completions"
             else:
                 api_url = base_url
+
+            if not api_url.startswith('http://') and not api_url.startswith('https://'):
+                raise Exception(f"多模态模型 API URL 格式错误，应以 http:// 或 https:// 开头: {api_url}")
 
             print(f"[药单识别] 调用 OpenAI 兼容 API: {self.vl_model_name}")
 
