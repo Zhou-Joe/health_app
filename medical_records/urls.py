@@ -60,6 +60,8 @@ urlpatterns = [
     # 导出功能
     path('conversations/<int:conversation_id>/export/pdf/', views.export_conversation_pdf, name='export_conversation_pdf'),
     path('conversations/<int:conversation_id>/export/word/', views.export_conversation_word, name='export_conversation_word'),
+    path('conversations/<int:conversation_id>/export-summary/pdf/', views.export_ai_summary_pdf, name='export_ai_summary_pdf'),
+    path('conversations/<int:conversation_id>/export-summary/word/', views.export_ai_summary_word, name='export_ai_summary_word'),
 
     # 健康趋势导出
     path('dashboard/export/pdf/', views.export_health_trends_pdf, name='export_health_trends_pdf'),

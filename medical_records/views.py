@@ -2079,6 +2079,57 @@ def export_conversation_word(request, conversation_id):
         messages.error(request, f'导出Word失败: {str(e)}')
         return redirect('medical_records:ai_health_advice')
 
+
+@login_required
+def export_ai_summary_pdf(request, conversation_id):
+    """导出AI总结为PDF"""
+    try:
+        from .export_utils import AISummaryExporter
+        from .models import Conversation
+
+        conversation = get_object_or_404(
+            Conversation,
+            id=conversation_id,
+            user=request.user
+        )
+
+        if not conversation.ai_summary:
+            messages.error(request, '该对话暂无AI总结，请先生成AI总结')
+            return redirect('medical_records:ai_health_advice')
+
+        exporter = AISummaryExporter(conversation_id)
+        return exporter.export_to_pdf()
+
+    except Exception as e:
+        messages.error(request, f'导出PDF失败: {str(e)}')
+        return redirect('medical_records:ai_health_advice')
+
+
+@login_required
+def export_ai_summary_word(request, conversation_id):
+    """导出AI总结为Word"""
+    try:
+        from .export_utils import AISummaryExporter
+        from .models import Conversation
+
+        conversation = get_object_or_404(
+            Conversation,
+            id=conversation_id,
+            user=request.user
+        )
+
+        if not conversation.ai_summary:
+            messages.error(request, '该对话暂无AI总结，请先生成AI总结')
+            return redirect('medical_records:ai_health_advice')
+
+        exporter = AISummaryExporter(conversation_id)
+        return exporter.export_to_word()
+
+    except Exception as e:
+        messages.error(request, f'导出Word失败: {str(e)}')
+        return redirect('medical_records:ai_health_advice')
+
+
 # ==================== 导出健康趋势为PDF/Word ====================
 @login_required
 def export_health_trends_pdf(request):
