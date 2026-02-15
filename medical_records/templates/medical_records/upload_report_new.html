@@ -1128,9 +1128,14 @@ function handleStreamData(data) {
     }
 
     if (data.status === 'complete') {
+        // 设置进度到100%
+        if (progressBar) progressBar.style.width = '100%';
+        if (progressText) progressText.textContent = '100%';
+
         updateUploadStepIndicator(3);
         showSuccess({
-            indicator_count: data.indicators_count
+            indicator_count: data.indicators_count,
+            checkup_id: data.checkup_id
         });
         return;
     }
@@ -1202,10 +1207,22 @@ function showSuccess(result) {
     updateUploadStepIndicator(3);
     const successAlert = document.getElementById('successAlert');
     const successMessage = document.getElementById('successMessage');
-    
+    const viewDetailsBtn = document.getElementById('viewDetailsBtn');
+
     if (successAlert) successAlert.style.display = 'block';
     if (successMessage) {
         successMessage.textContent = `成功处理体检报告，识别出 ${result.indicator_count || 0} 项健康指标`;
+    }
+
+    // 绑定查看详细信息按钮
+    if (viewDetailsBtn && result.checkup_id) {
+        viewDetailsBtn.onclick = function() {
+            window.location.href = `/checkup/${result.checkup_id}/`;
+        };
+        viewDetailsBtn.style.display = 'inline-block';
+    } else if (viewDetailsBtn) {
+        // 如果没有checkup_id，隐藏这个按钮
+        viewDetailsBtn.style.display = 'none';
     }
 }
 
