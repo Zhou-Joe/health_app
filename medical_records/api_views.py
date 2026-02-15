@@ -667,6 +667,8 @@ def stream_event_ai_summary(request):
             try:
                 if full_response and not error_msg:
                     from django.utils import timezone
+                    event_id = event.id
+                    event = HealthEvent.objects.get(id=event_id)
                     event.ai_summary = full_response
                     event.ai_summary_created_at = timezone.now()
                     event.save(update_fields=['ai_summary', 'ai_summary_created_at'])
@@ -674,7 +676,8 @@ def stream_event_ai_summary(request):
                     yield f"data: {json.dumps({'saved': True, 'event_id': event.id}, ensure_ascii=False)}\n\n"
 
             except Exception as save_error:
-                yield f"data: {json.dumps({'save_error': str(save_error)}, ensure_ascii=False)}\n\n"
+                import traceback
+                yield f"data: {json.dumps({'save_error': str(save_error), 'trace': traceback.format_exc()}, ensure_ascii=False)}\n\n"
 
         response = StreamingHttpResponse(generate(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'
