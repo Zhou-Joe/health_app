@@ -353,6 +353,128 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- health_log 标签页的模态框 -->
+    <div class="modal fade" id="createPlanModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard2-pulse me-2"></i>创建健康计划</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <input type="hidden" name="module" value="plans">
+                        <input type="hidden" name="action" value="create_plan">
+                        <div class="mb-3">
+                            <label for="planTitle" class="form-label">计划标题 *</label>
+                            <input type="text" class="form-control" name="title" id="planTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="planDescription" class="form-label">计划描述</label>
+                            <textarea class="form-control" name="description" id="planDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="is_active" id="planIsActive" checked>
+                            <label class="form-check-label" for="planIsActive">启用计划</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">创建计划</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createGoalModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-bullseye me-2"></i>添加目标</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <input type="hidden" name="module" value="plans">
+                        <input type="hidden" name="action" value="create_goal">
+                        <input type="hidden" name="plan_id" id="goalPlanId">
+                        <div class="mb-3">
+                            <label for="goalTitle" class="form-label">目标标题 *</label>
+                            <input type="text" class="form-control" name="title" id="goalTitle" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="goalTargetValue" class="form-label">目标值</label>
+                                <input type="text" class="form-control" name="target_value" id="goalTargetValue">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="goalUnit" class="form-label">单位</label>
+                                <input type="text" class="form-control" name="unit" id="goalUnit">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalDueDate" class="form-label">截止日期</label>
+                            <input type="date" class="form-control" name="due_date" id="goalDueDate">
+                        </div>
+                        <div class="mb-3">
+                            <label for="goalStatus" class="form-label">状态</label>
+                            <select class="form-control" name="status" id="goalStatus">
+                                <option value="active">进行中</option>
+                                <option value="paused">已暂停</option>
+                                <option value="completed">已完成</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">添加目标</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createActionModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-check2-circle me-2"></i>添加行动</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        {% csrf_token %}
+                        <input type="hidden" name="module" value="plans">
+                        <input type="hidden" name="action" value="create_action">
+                        <input type="hidden" name="goal_id" id="actionGoalId">
+                        <div class="mb-3">
+                            <label for="actionTitle" class="form-label">行动内容 *</label>
+                            <input type="text" class="form-control" name="title" id="actionTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="actionFrequency" class="form-label">频率</label>
+                            <input type="text" class="form-control" name="frequency" id="actionFrequency" placeholder="例如：每天、每周3次">
+                        </div>
+                        <div class="mb-3">
+                            <label for="actionStatus" class="form-label">状态</label>
+                            <select class="form-control" name="status" id="actionStatus">
+                                <option value="pending">待完成</option>
+                                <option value="done">已完成</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="btn btn-primary">添加行动</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 {% elif active_tab == 'medications' %}
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">我的药单</h5>
@@ -445,130 +567,6 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
                     <button type="button" class="btn btn-primary" onclick="submitBackdate()">确认补签</button>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 创建计划模态框 -->
-    <div class="modal fade" id="createPlanModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-clipboard2-pulse me-2"></i>创建健康计划</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    <div class="modal-body">
-                        {% csrf_token %}
-                        <input type="hidden" name="module" value="plans">
-                        <input type="hidden" name="action" value="create_plan">
-                        <div class="mb-3">
-                            <label for="planTitle" class="form-label">计划标题 *</label>
-                            <input type="text" class="form-control" name="title" id="planTitle" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="planDescription" class="form-label">计划描述</label>
-                            <textarea class="form-control" name="description" id="planDescription" rows="3"></textarea>
-                        </div>
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" name="is_active" id="planIsActive" checked>
-                            <label class="form-check-label" for="planIsActive">启用计划</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="submit" class="btn btn-primary">创建计划</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- 创建目标模态框 -->
-    <div class="modal fade" id="createGoalModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-bullseye me-2"></i>添加目标</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    <div class="modal-body">
-                        {% csrf_token %}
-                        <input type="hidden" name="module" value="plans">
-                        <input type="hidden" name="action" value="create_goal">
-                        <input type="hidden" name="plan_id" id="goalPlanId">
-                        <div class="mb-3">
-                            <label for="goalTitle" class="form-label">目标标题 *</label>
-                            <input type="text" class="form-control" name="title" id="goalTitle" required>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="goalTargetValue" class="form-label">目标值</label>
-                                <input type="text" class="form-control" name="target_value" id="goalTargetValue">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="goalUnit" class="form-label">单位</label>
-                                <input type="text" class="form-control" name="unit" id="goalUnit">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="goalDueDate" class="form-label">截止日期</label>
-                            <input type="date" class="form-control" name="due_date" id="goalDueDate">
-                        </div>
-                        <div class="mb-3">
-                            <label for="goalStatus" class="form-label">状态</label>
-                            <select class="form-control" name="status" id="goalStatus">
-                                <option value="active">进行中</option>
-                                <option value="paused">已暂停</option>
-                                <option value="completed">已完成</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="submit" class="btn btn-primary">添加目标</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- 创建行动模态框 -->
-    <div class="modal fade" id="createActionModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-check2-circle me-2"></i>添加行动</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="post">
-                    <div class="modal-body">
-                        {% csrf_token %}
-                        <input type="hidden" name="module" value="plans">
-                        <input type="hidden" name="action" value="create_action">
-                        <input type="hidden" name="goal_id" id="actionGoalId">
-                        <div class="mb-3">
-                            <label for="actionTitle" class="form-label">行动内容 *</label>
-                            <input type="text" class="form-control" name="title" id="actionTitle" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="actionFrequency" class="form-label">频率</label>
-                            <input type="text" class="form-control" name="frequency" id="actionFrequency" placeholder="例如：每天、每周3次">
-                        </div>
-                        <div class="mb-3">
-                            <label for="actionStatus" class="form-label">状态</label>
-                            <select class="form-control" name="status" id="actionStatus">
-                                <option value="pending">待完成</option>
-                                <option value="done">已完成</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                        <button type="submit" class="btn btn-primary">添加行动</button>
-                    </div>
-                </form>
             </div>
         </div>
     </div>
