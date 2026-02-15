@@ -32,15 +32,15 @@ preload_app = True
 proc_name = 'health_app_gunicorn'
 
 # 日志配置
-accesslog = '/var/log/gunicorn/health_app_access.log'
-errorlog = '/var/log/gunicorn/health_app_error.log'
+accesslog = '/tmp/gunicorn_health_app_access.log'
+errorlog = '/tmp/gunicorn_health_app_error.log'
 loglevel = 'info'  # 可选: debug, info, warning, error, critical
 
 # 日志格式
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
 # PID文件
-pidfile = '/var/run/gunicorn/health_app.pid'
+pidfile = '/tmp/gunicorn_health_app.pid'
 
 # Daemon模式（如果使用systemd/supervisor，设为False）
 daemon = False
@@ -50,10 +50,10 @@ daemon = False
 # group = 'www-data'
 
 # 目录
-chdir = '/path/to/health_app'  # 修改为项目路径
+chdir = '/home/projects/health_app'  # 修改为项目路径
 raw_env = [
     'DJANGO_SETTINGS_MODULE=health_report.settings',
-    'PYTHONPATH=/path/to/health_app',  # 修改为项目路径
+    'PYTHONPATH=/home/projects/health_app',  # 修改为项目路径
 ]
 
 # 临时目录

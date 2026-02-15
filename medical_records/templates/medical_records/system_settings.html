@@ -336,7 +336,7 @@
                                             OCR健康检查端点
                                         </label>
                                         <input type="text" class="form-control" name="ocr_healthcheck_endpoints"
-                                               id="id_ocr_healthcheck_endpoints" value="/health,/api/health,/docs,/"
+                                               id="id_ocr_healthcheck_endpoints" value="{{ current_settings.ocr_healthcheck_endpoints }}"
                                                placeholder="/health,/api/health,/docs">
                                         <small class="form-text text-muted">多个端点用逗号分隔，将依次尝试直到成功</small>
                                     </div>

@@ -605,13 +605,20 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = ['birth_date', 'gender']
         widgets = {
-            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}, format='%Y-%m-%d'),
             'gender': forms.Select(attrs={'class': 'form-control'}),
         }
         labels = {
             'birth_date': '出生日期',
             'gender': '性别',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 确保日期字段正确显示值
+        if self.instance and self.instance.pk:
+            if self.instance.birth_date:
+                self.fields['birth_date'].widget.attrs['value'] = self.instance.birth_date.strftime('%Y-%m-%d')
 
     def clean_birth_date(self):
         birth_date = self.cleaned_data.get('birth_date')

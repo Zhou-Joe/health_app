@@ -2,6 +2,87 @@
 
 {% block title %}个人信息 - 个人健康管理系统{% endblock %}
 
+{% block extra_css %}
+<style>
+.avatar-section {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--primary-soft) 0%, var(--bg-soft) 100%);
+    border-radius: var(--radius-lg);
+}
+
+.avatar-container {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 1rem;
+}
+
+.avatar-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: var(--bg-soft);
+}
+
+.avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: white;
+    border: 4px solid var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-upload-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--primary);
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-upload-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.avatar-input {
+    display: none;
+}
+
+.avatar-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-dark);
+    margin-bottom: 0.5rem;
+}
+
+.avatar-email {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-6">
@@ -13,6 +94,25 @@
                 <small class="text-muted">完善您的个人信息，获得更精准的健康建议</small>
             </div>
             <div class="card-body">
+                <!-- 头像区域 -->
+                <div class="avatar-section">
+                    <div class="avatar-container">
+                        {% if profile.avatar_url %}
+                            <img src="{{ profile.avatar_url }}" alt="用户头像" class="avatar-image" id="avatarImage">
+                        {% else %}
+                            <div class="avatar-placeholder">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                        {% endif %}
+                        <label for="avatarInput" class="avatar-upload-btn" title="更换头像">
+                            <i class="bi bi-camera-fill"></i>
+                        </label>
+                        <input type="file" id="avatarInput" class="avatar-input" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                    </div>
+                    <div class="avatar-name">{{ user.first_name|default:user.username }}</div>
+                    <div class="avatar-email">{{ user.email }}</div>
+                </div>
+
                 <form method="post">
                     {% csrf_token %}
 
@@ -50,4 +150,71 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('avatarInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 验证文件大小（5MB）
+    if (file.size > 5 * 1024 * 1024) {
+        alert('图片大小不能超过 5MB');
+        return;
+    }
+
+    // 验证文件类型
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('只支持 JPG、PNG、GIF、WEBP 格式的图片');
+        return;
+    }
+
+    // 创建 FormData
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    // 显示加载提示
+    const btn = document.querySelector('.avatar-upload-btn');
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+    btn.disabled = true;
+
+    // 上传头像
+    fetch('{% url 'medical_records:api_avatar_upload' %}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // 更新头像显示
+            const avatarContainer = document.querySelector('.avatar-container');
+            const existingImg = avatarContainer.querySelector('.avatar-image');
+
+            if (existingImg) {
+                existingImg.src = data.avatar_url + '?t=' + new Date().getTime();
+            } else {
+                const placeholder = avatarContainer.querySelector('.avatar-placeholder');
+                if (placeholder) {
+                    placeholder.outerHTML = '<img src="' + data.avatar_url + '?t=' + new Date().getTime() + '" alt="用户头像" class="avatar-image" id="avatarImage">';
+                }
+            }
+        } else {
+            alert('上传失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('上传失败，请重试');
+    })
+    .finally(() => {
+        btn.innerHTML = originalContent;
+        btn.disabled = false;
+        // 清空文件输入
+        document.getElementById('avatarInput').value = '';
+    });
+});
+</script>
 {% endblock %}

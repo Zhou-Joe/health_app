@@ -53,6 +53,7 @@ urlpatterns = [
     path('api/checkup/<int:checkup_id>/update-notes/', api_views.update_checkup_notes, name='api_update_checkup_notes'),
     path('api/task/<str:task_id>/status/', api_views.api_task_status, name='api_task_status'),
     path('api/processing-mode/', api_views.api_processing_mode, name='api_processing_mode'),
+    path('api/avatar/upload/', api_views.upload_avatar, name='api_avatar_upload'),
 
     # 导出功能
     path('conversations/<int:conversation_id>/export/pdf/', views.export_conversation_pdf, name='export_conversation_pdf'),

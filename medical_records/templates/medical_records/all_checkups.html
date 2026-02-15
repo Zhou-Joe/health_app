@@ -98,6 +98,26 @@
     color: #fff;
 }
 
+.btn-delete {
+    background: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #fff;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-delete:hover {
+    background: var(--danger-dark);
+    border-color: var(--danger-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    color: #fff;
+}
+
 .pagination {
     gap: 0.5rem;
 }
@@ -231,6 +251,9 @@
                                class="btn btn-view">
                                 <i class="bi bi-eye me-1"></i>查看详情
                             </a>
+                            <button class="btn btn-delete ms-2" onclick="deleteCheckup({{ checkup.id }}, '{% url 'medical_records:delete_checkup' checkup.id %}')">
+                                <i class="bi bi-trash me-1"></i>删除
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -310,4 +333,47 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteCheckup(checkupId, deleteUrl) {
+    if (!confirm('确定要删除这份体检报告吗？删除后无法恢复。')) {
+        return;
+    }
+
+    fetch(deleteUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+
+        // 先获取响应文本
+        return response.text().then(text => {
+            console.log('Response text:', text);
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('JSON parse error:', e);
+                console.error('Response text:', text);
+                throw new Error('服务器返回了无效的响应');
+            }
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('删除失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('删除失败：' + error.message);
+    });
+}
+</script>
 {% endblock %}

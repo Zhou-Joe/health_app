@@ -5,6 +5,7 @@ from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Avg
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -1975,16 +1976,19 @@ def all_checkups(request):
     })
 
 
+@csrf_exempt
 @login_required
 def delete_checkup(request, checkup_id):
     """删除体检报告"""
     if request.method == 'POST':
-        checkup = get_object_or_404(HealthCheckup, id=checkup_id, user=request.user)
-        checkup.delete()
-        messages.success(request, '体检报告已成功删除。')
-        return JsonResponse({'success': True})
+        try:
+            checkup = get_object_or_404(HealthCheckup, id=checkup_id, user=request.user)
+            checkup.delete()
+            return JsonResponse({'success': True, 'message': '体检报告已成功删除。'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
     else:
-        return JsonResponse({'error': '无效的请求方法'}, status=400)
+        return JsonResponse({'success': False, 'error': '无效的请求方法'}, status=400)
 
 
 @login_required
