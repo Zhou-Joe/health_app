@@ -1502,9 +1502,62 @@ function showEventExportButtons(eventId) {
     const pdfBtn = document.getElementById('exportEventSummaryPdfBtn');
     const wordBtn = document.getElementById('exportEventSummaryWordBtn');
     
-    if (pdfBtn && wordBtn) {
-        pdfBtn.href = `{% url 'medical_records:export_event_ai_summary_pdf' 0 %}`.replace('0', eventId);
-        wordBtn.href = `{% url 'medical_records:export_event_ai_summary_word' 0 %}`.replace('0', eventId);
+    if (pdfBtn) {
+        pdfBtn.onclick = function(e) {
+            e.preventDefault();
+            fetch(`/events/${eventId}/export-summary/pdf/`, {
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('导出失败');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `健康事件分析_${new Date().toISOString().slice(0,10)}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(err => {
+                console.error('导出PDF失败:', err);
+                alert('导出PDF失败，请重试');
+            });
+        };
+    }
+    
+    if (wordBtn) {
+        wordBtn.onclick = function(e) {
+            e.preventDefault();
+            fetch(`/events/${eventId}/export-summary/word/`, {
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('导出失败');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `健康事件分析_${new Date().toISOString().slice(0,10)}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(err => {
+                console.error('导出Word失败:', err);
+                alert('导出Word失败，请重试');
+            });
+        };
     }
     
     if (exportBtns) {
@@ -1561,12 +1614,12 @@ function getCsrfToken() {
                     <i class="bi bi-arrow-clockwise"></i> 重新生成
                 </button>
                 <div id="exportEventSummaryBtns" style="display: none;" class="btn-group ms-2">
-                    <a href="#" id="exportEventSummaryPdfBtn" class="btn btn-outline-danger" target="_blank">
+                    <button type="button" id="exportEventSummaryPdfBtn" class="btn btn-outline-danger">
                         <i class="bi bi-file-earmark-pdf"></i> 导出PDF
-                    </a>
-                    <a href="#" id="exportEventSummaryWordBtn" class="btn btn-outline-primary" target="_blank">
+                    </button>
+                    <button type="button" id="exportEventSummaryWordBtn" class="btn btn-outline-primary">
                         <i class="bi bi-file-earmark-word"></i> 导出Word
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
