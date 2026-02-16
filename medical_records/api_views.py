@@ -2286,12 +2286,43 @@ def stream_ai_advice(request):
 
             # 获取选择的药单ID
             if selected_medication_ids:
-                from .models import Medication
-                selected_medications = Medication.objects.filter(
-                    id__in=selected_medication_ids,
-                    user=request.user,
-                    is_active=True
-                )
+                from .models import Medication, MedicationGroup
+                selected_medications_list = []
+
+                for med_id in selected_medication_ids:
+                    # 处理药单组（前端可能传递 "group_3" 格式）
+                    if isinstance(med_id, str) and med_id.startswith('group_'):
+                        group_id = med_id.replace('group_', '')
+                        try:
+                            group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                            # 添加药单组中的所有药物
+                            group_medications = Medication.objects.filter(
+                                group=group,
+                                user=request.user,
+                                is_active=True
+                            )
+                            selected_medications_list.extend(group_medications)
+                        except MedicationGroup.DoesNotExist:
+                            pass
+                    else:
+                        # 处理单个药单
+                        try:
+                            medication = Medication.objects.get(
+                                id=med_id,
+                                user=request.user,
+                                is_active=True
+                            )
+                            selected_medications_list.append(medication)
+                        except (Medication.DoesNotExist, ValueError):
+                            pass
+
+                # 去重
+                selected_medications_list = list(set(selected_medications_list))
+
+                if selected_medications_list:
+                    selected_medications = Medication.objects.filter(
+                        id__in=[m.id for m in selected_medications_list]
+                    )
 
         # 获取AI医生设置
         provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
@@ -2373,12 +2404,43 @@ def stream_ai_advice(request):
                         user=request.user
                     )
                 if selected_medication_ids:
-                    from .models import Medication
-                    selected_medications = Medication.objects.filter(
-                        id__in=selected_medication_ids,
-                        user=request.user,
-                        is_active=True
-                    )
+                    from .models import Medication, MedicationGroup
+                    selected_medications_list = []
+
+                    for med_id in selected_medication_ids:
+                        # 处理药单组（前端可能传递 "group_3" 格式）
+                        if isinstance(med_id, str) and med_id.startswith('group_'):
+                            group_id = med_id.replace('group_', '')
+                            try:
+                                group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                                # 添加药单组中的所有药物
+                                group_medications = Medication.objects.filter(
+                                    group=group,
+                                    user=request.user,
+                                    is_active=True
+                                )
+                                selected_medications_list.extend(group_medications)
+                            except MedicationGroup.DoesNotExist:
+                                pass
+                        else:
+                            # 处理单个药单
+                            try:
+                                medication = Medication.objects.get(
+                                    id=med_id,
+                                    user=request.user,
+                                    is_active=True
+                                )
+                                selected_medications_list.append(medication)
+                            except (Medication.DoesNotExist, ValueError):
+                                pass
+
+                    # 去重
+                    selected_medications_list = list(set(selected_medications_list))
+
+                    if selected_medications_list:
+                        selected_medications = Medication.objects.filter(
+                            id__in=[m.id for m in selected_medications_list]
+                        )
 
         # 判断是否为百川API（支持system角色）
         is_baichuan = (
@@ -2740,12 +2802,43 @@ def stream_advice_sync(request):
         selected_medication_ids = data.get('selected_medication_ids', [])
         selected_medications = None
         if selected_medication_ids:
-            from .models import Medication
-            selected_medications = Medication.objects.filter(
-                id__in=selected_medication_ids,
-                user=request.user,
-                is_active=True
-            )
+            from .models import Medication, MedicationGroup
+            selected_medications_list = []
+
+            for med_id in selected_medication_ids:
+                # 处理药单组（前端可能传递 "group_3" 格式）
+                if isinstance(med_id, str) and med_id.startswith('group_'):
+                    group_id = med_id.replace('group_', '')
+                    try:
+                        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                        # 添加药单组中的所有药物
+                        group_medications = Medication.objects.filter(
+                            group=group,
+                            user=request.user,
+                            is_active=True
+                        )
+                        selected_medications_list.extend(group_medications)
+                    except MedicationGroup.DoesNotExist:
+                        pass
+                else:
+                    # 处理单个药单
+                    try:
+                        medication = Medication.objects.get(
+                            id=med_id,
+                            user=request.user,
+                            is_active=True
+                        )
+                        selected_medications_list.append(medication)
+                    except (Medication.DoesNotExist, ValueError):
+                        pass
+
+            # 去重
+            selected_medications_list = list(set(selected_medications_list))
+
+            if selected_medications_list:
+                selected_medications = Medication.objects.filter(
+                    id__in=[m.id for m in selected_medications_list]
+                )
 
         # 获取AI医生设置
         provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
@@ -2818,12 +2911,43 @@ def stream_advice_sync(request):
                         user=request.user
                     )
                 if selected_medication_ids:
-                    from .models import Medication
-                    selected_medications = Medication.objects.filter(
-                        id__in=selected_medication_ids,
-                        user=request.user,
-                        is_active=True
-                    )
+                    from .models import Medication, MedicationGroup
+                    selected_medications_list = []
+
+                    for med_id in selected_medication_ids:
+                        # 处理药单组（前端可能传递 "group_3" 格式）
+                        if isinstance(med_id, str) and med_id.startswith('group_'):
+                            group_id = med_id.replace('group_', '')
+                            try:
+                                group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                                # 添加药单组中的所有药物
+                                group_medications = Medication.objects.filter(
+                                    group=group,
+                                    user=request.user,
+                                    is_active=True
+                                )
+                                selected_medications_list.extend(group_medications)
+                            except MedicationGroup.DoesNotExist:
+                                pass
+                        else:
+                            # 处理单个药单
+                            try:
+                                medication = Medication.objects.get(
+                                    id=med_id,
+                                    user=request.user,
+                                    is_active=True
+                                )
+                                selected_medications_list.append(medication)
+                            except (Medication.DoesNotExist, ValueError):
+                                pass
+
+                    # 去重
+                    selected_medications_list = list(set(selected_medications_list))
+
+                    if selected_medications_list:
+                        selected_medications = Medication.objects.filter(
+                            id__in=[m.id for m in selected_medications_list]
+                        )
 
         # 构建系统提示词和用户消息（与stream_ai_advice完全相同）
         from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
