@@ -29,6 +29,7 @@ from .models import (
     CareGoal,
     CareAction,
     CaregiverAccess,
+    Conversation,
 )
 from .forms import (
     HealthCheckupForm,
@@ -690,7 +691,6 @@ def ai_health_advice(request):
                     # 继续现有对话（包含历史对话上下文）
                     conversation_id = request.POST.get('conversation_id')
                     if conversation_id:
-                        from .models import Conversation
                         try:
                             conversation = Conversation.objects.get(id=conversation_id, user=request.user, is_active=True)
                             conversation_for_context = conversation  # 继续对话时，传递 conversation 以包含历史上下文
@@ -706,7 +706,6 @@ def ai_health_advice(request):
                         })
                 else:
                     # 创建新对话（不包含历史对话上下文）
-                    from .models import Conversation
                     # 使用用户问题的前50个字符作为对话标题
                     question_text = advice.question[:50]
                     if len(advice.question) > 50:
@@ -727,7 +726,6 @@ def ai_health_advice(request):
                 
                 # 继续对话时，如果用户没有显式修改事件选择，则复用上次的选择
                 if conversation_for_context and conversation:
-                    from .models import HealthAdvice
                     latest_advice = HealthAdvice.objects.filter(
                         conversation=conversation,
                         user=request.user
@@ -735,7 +733,7 @@ def ai_health_advice(request):
 
                     if latest_advice:
                         # 如果用户没有显式修改事件模式，并且上次有选择事件，则复用
-                        if event_mode == 'no_event' and latest_advice.selected_event:
+                        if (event_mode == 'no_event' or event_mode is None) and latest_advice.selected_event:
                             try:
                                 selected_event = HealthEvent.objects.get(id=latest_advice.selected_event, user=request.user)
                                 selected_event_id_for_save = latest_advice.selected_event
@@ -827,7 +825,6 @@ def ai_health_advice(request):
                     if medication_mode == 'select_medications':
                         medication_ids = request.POST.getlist('selected_medications')
                         if medication_ids:
-                            from .models import Medication, MedicationGroup
                             for med_id in medication_ids:
                                 if med_id.startswith('group_'):
                                     # 处理药单组
@@ -941,8 +938,7 @@ def ai_health_advice(request):
 
     # 获取用户的历史咨询记录（按对话聚合显示）
     user_advices = []
-    from .models import Conversation
-    
+
     # 获取用户的活跃对话
     all_conversations = Conversation.get_user_conversations(request.user)
     
@@ -997,7 +993,6 @@ def ai_health_advice(request):
         })
 
     # 获取用户的药单和药单组
-    from .models import Medication, MedicationGroup
     medications = Medication.objects.filter(user=request.user, is_active=True, group__isnull=True).order_by('-created_at')
     medication_groups = MedicationGroup.objects.filter(user=request.user).order_by('-created_at')
     
@@ -2223,7 +2218,6 @@ def export_conversation_pdf(request, conversation_id):
     """导出对话为PDF"""
     try:
         from .export_utils import ConversationExporter
-        from .models import Conversation
 
         conversation = get_object_or_404(
             Conversation,
@@ -2244,7 +2238,6 @@ def export_conversation_word(request, conversation_id):
     """导出对话为Word"""
     try:
         from .export_utils import ConversationExporter
-        from .models import Conversation
 
         conversation = get_object_or_404(
             Conversation,
@@ -2265,7 +2258,6 @@ def export_ai_summary_pdf(request, conversation_id):
     """导出AI总结为PDF"""
     try:
         from .export_utils import AISummaryExporter
-        from .models import Conversation
 
         conversation = get_object_or_404(
             Conversation,
@@ -2290,7 +2282,6 @@ def export_ai_summary_word(request, conversation_id):
     """导出AI总结为Word"""
     try:
         from .export_utils import AISummaryExporter
-        from .models import Conversation
 
         conversation = get_object_or_404(
             Conversation,

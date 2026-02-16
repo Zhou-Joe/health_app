@@ -1343,6 +1343,22 @@ function loadConversationResources(conversationId) {
                 medicationSelectionState.userOverride = true;
                 updateSelectedMedicationsDisplay();
             }
+
+            // 更新事件选择状态
+            if (data.event) {
+                eventSelectionState.noEvent = false;
+                eventSelectionState.selectedEventId = data.event.id;
+                eventSelectionState.selectedEventName = data.event.name;
+                eventSelectionState.userOverride = true;
+                updateSelectedEventDisplay();
+            } else {
+                // 没有关联事件，重置为不使用
+                eventSelectionState.noEvent = true;
+                eventSelectionState.selectedEventId = null;
+                eventSelectionState.selectedEventName = null;
+                eventSelectionState.userOverride = true;
+                updateSelectedEventDisplay();
+            }
         } else {
             console.error('加载对话资源失败:', data.error);
         }
@@ -1358,7 +1374,8 @@ function loadConversationResources(conversationId) {
 let eventSelectionState = {
     noEvent: true,
     selectedEventId: null,
-    selectedEventName: null
+    selectedEventName: null,
+    userOverride: false
 };
 
 function openEventModal() {
@@ -1398,14 +1415,53 @@ function handleEventRadioChange() {
     }
 }
 
-function confirmEventSelection() {
-    const noEventCheckbox = document.getElementById('noEventCheckbox');
+function updateSelectedEventDisplay() {
     const eventModeInput = document.getElementById('eventMode');
     const eventButtonText = document.getElementById('eventButtonText');
     const selectedEventDisplay = document.getElementById('selectedEventDisplay');
     const reportSelectionSection = document.getElementById('reportSelectionSection');
     const medicationSelectionSection = document.getElementById('medicationSelectionSection');
 
+    if (eventSelectionState.noEvent || !eventSelectionState.selectedEventId) {
+        // 不使用事件
+        eventModeInput.value = 'no_event';
+        eventButtonText.textContent = '选择健康事件';
+        selectedEventDisplay.innerHTML = '<small class="text-muted"><i class="bi bi-info-circle"></i> 选择健康事件可自动包含关联的报告和药单</small>';
+
+        // 显示报告和药单选择区域
+        if (reportSelectionSection) reportSelectionSection.style.display = 'block';
+        if (medicationSelectionSection) medicationSelectionSection.style.display = 'block';
+    } else {
+        // 使用事件
+        eventModeInput.value = 'select_event';
+        eventButtonText.textContent = eventSelectionState.selectedEventName || '健康事件';
+
+        // 从DOM获取事件的记录数量（如果有选中的radio）
+        const checkedEvent = document.querySelector(`.event-radio[value="${eventSelectionState.selectedEventId}"]`);
+        let itemCountText = '';
+        if (checkedEvent) {
+            const label = checkedEvent.nextElementSibling;
+            const itemCountSpan = label.querySelector('.text-muted span:last-child');
+            if (itemCountSpan) {
+                itemCountText = itemCountSpan.textContent.trim();
+            }
+        }
+
+        selectedEventDisplay.innerHTML = `
+            <div class="alert alert-success py-2 mb-0">
+                <i class="bi bi-check-circle"></i> <strong>已选择：</strong> ${eventSelectionState.selectedEventName || '健康事件'}
+                ${itemCountText ? ` (${itemCountText})` : ''}
+            </div>
+        `;
+
+        // 隐藏报告和药单选择区域
+        if (reportSelectionSection) reportSelectionSection.style.display = 'none';
+        if (medicationSelectionSection) medicationSelectionSection.style.display = 'none';
+    }
+}
+
+function confirmEventSelection() {
+    const noEventCheckbox = document.getElementById('noEventCheckbox');
     const checkedEvent = document.querySelector('.event-radio:checked');
 
     console.log('确认事件选择:');
@@ -1414,44 +1470,19 @@ function confirmEventSelection() {
 
     eventSelectionState.noEvent = noEventCheckbox.checked;
     eventSelectionState.selectedEventId = checkedEvent ? checkedEvent.value : null;
+    eventSelectionState.userOverride = true;
 
-    if (noEventCheckbox.checked || !checkedEvent) {
-        // 不使用事件
-        eventModeInput.value = 'no_event';
-        eventSelectionState.selectedEventName = null;
-        eventButtonText.textContent = '选择健康事件';
-        selectedEventDisplay.innerHTML = '<small class="text-muted"><i class="bi bi-info-circle"></i> 选择健康事件可自动包含关联的报告和药单</small>';
-        
-        // 显示报告和药单选择区域
-        if (reportSelectionSection) reportSelectionSection.style.display = 'block';
-        if (medicationSelectionSection) medicationSelectionSection.style.display = 'block';
-    } else {
-        // 使用事件
-        eventModeInput.value = 'select_event';
-        // 获取选中事件的名称
+    // 获取选中事件的名称
+    if (checkedEvent && !noEventCheckbox.checked) {
         const label = checkedEvent.nextElementSibling;
         const strongElement = label.querySelector('strong');
         eventSelectionState.selectedEventName = strongElement ? strongElement.textContent : '健康事件';
-        eventButtonText.textContent = eventSelectionState.selectedEventName;
-        
-        // 获取事件的记录数量
-        const itemCountSpan = label.querySelector('.text-muted span:last-child');
-        let itemCountText = '';
-        if (itemCountSpan) {
-            itemCountText = itemCountSpan.textContent.trim();
-        }
-        
-        selectedEventDisplay.innerHTML = `
-            <div class="alert alert-success py-2 mb-0">
-                <i class="bi bi-check-circle"></i> <strong>已选择：</strong> ${eventSelectionState.selectedEventName}
-                ${itemCountText ? ` (${itemCountText})` : ''}
-            </div>
-        `;
-        
-        // 隐藏报告和药单选择区域
-        if (reportSelectionSection) reportSelectionSection.style.display = 'none';
-        if (medicationSelectionSection) medicationSelectionSection.style.display = 'none';
+    } else {
+        eventSelectionState.selectedEventName = null;
     }
+
+    // 更新显示
+    updateSelectedEventDisplay();
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
     if (modal) modal.hide();
@@ -2099,6 +2130,7 @@ function saveConsultationSettings() {
     lastConsultationSettings = {
         reportSelectionState: {...reportSelectionState},
         medicationSelectionState: {...medicationSelectionState},
+        eventSelectionState: {...eventSelectionState},
         conversationMode: conversationMode ? conversationMode.value : 'new_conversation',
         selectedConversationId: selectedConversation.id,
         selectedConversationTitle: selectedConversation.title
@@ -2143,6 +2175,13 @@ function continueConsultation() {
         medicationSelectionState.userOverride = true;
     }
     updateSelectedMedicationsDisplay();
+
+    // 恢复事件选择
+    if (lastConsultationSettings.eventSelectionState) {
+        eventSelectionState = {...lastConsultationSettings.eventSelectionState};
+        eventSelectionState.userOverride = true;
+    }
+    updateSelectedEventDisplay();
 
     const textarea = document.querySelector('textarea[name="question"]');
     textarea.focus();
@@ -2219,7 +2258,7 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
     let eventMode = eventSelectionState.noEvent ? 'no_event' : 'select_event';
     let selectedEventId = eventSelectionState.selectedEventId;
 
-    // 继续对话且用户未主动修改选择时：不发送“no_reports/no_medications”，让后端复用上次选择
+    // 继续对话且用户未主动修改选择时：不发送"no_reports/no_medications/no_event"，让后端复用上次选择
     if (isContinueConversation) {
         if (!reportSelectionState.userOverride && (!selectedReportIds || selectedReportIds.length === 0)) {
             reportMode = null;
@@ -2228,6 +2267,10 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
         if (!medicationSelectionState.userOverride && (!selectedMedicationIds || selectedMedicationIds.length === 0)) {
             medicationMode = null;
             selectedMedicationIds = [];
+        }
+        if (!eventSelectionState.userOverride && !selectedEventId) {
+            eventMode = null;
+            selectedEventId = null;
         }
     }
 

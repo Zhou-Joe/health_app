@@ -2206,7 +2206,7 @@ def stream_ai_advice(request):
 
             if latest_advice:
                 # 如果用户没有显式修改事件模式，并且上次有选择事件，则复用
-                if event_mode == 'no_event' and latest_advice.selected_event:
+                if (event_mode == 'no_event' or event_mode is None) and latest_advice.selected_event:
                     try:
                         selected_event_id = latest_advice.selected_event
                         selected_event_id_for_save = latest_advice.selected_event
@@ -2269,11 +2269,14 @@ def stream_ai_advice(request):
                 
             except HealthEvent.DoesNotExist:
                 pass
-        
+
+        # 初始化选择的报告和药单ID列表（无论是否选择事件）
+        selected_report_ids = data.get('selected_report_ids', [])
+        selected_medication_ids = data.get('selected_medication_ids', [])
+
         if event_mode != 'select_event' or not selected_event_id:
             # 没有选择事件，单独处理报告和药单
             # 获取选择的报告ID
-            selected_report_ids = data.get('selected_report_ids', [])
             if selected_report_ids:
                 from .models import HealthCheckup
                 selected_reports = HealthCheckup.objects.filter(
@@ -2282,7 +2285,6 @@ def stream_ai_advice(request):
                 )
 
             # 获取选择的药单ID
-            selected_medication_ids = data.get('selected_medication_ids', [])
             if selected_medication_ids:
                 from .models import Medication
                 selected_medications = Medication.objects.filter(
@@ -4181,7 +4183,7 @@ def api_medication_records(request, medication_id):
 @login_required
 def api_conversation_resources(request, conversation_id):
     """获取对话关联的报告和药单信息"""
-    from .models import Conversation, HealthAdvice, HealthCheckup, Medication
+    from .models import Conversation, HealthAdvice, HealthCheckup, Medication, HealthEvent
 
     try:
         conversation = get_object_or_404(Conversation, id=conversation_id, user=request.user, is_active=True)
@@ -4197,11 +4199,13 @@ def api_conversation_resources(request, conversation_id):
                 'success': True,
                 'reports': [],
                 'medications': [],
+                'event': None,
                 'message': '对话中没有保存的数据'
             })
 
         reports = []
         medications = []
+        event = None
 
         # 解析选中的报告
         if latest_advice.selected_reports:
@@ -4245,10 +4249,22 @@ def api_conversation_resources(request, conversation_id):
             except json.JSONDecodeError:
                 pass
 
+        # 解析选中的事件
+        if latest_advice.selected_event:
+            try:
+                event_obj = HealthEvent.objects.get(id=latest_advice.selected_event, user=request.user)
+                event = {
+                    'id': event_obj.id,
+                    'name': event_obj.name,
+                }
+            except HealthEvent.DoesNotExist:
+                pass
+
         return JsonResponse({
             'success': True,
             'reports': reports,
-            'medications': medications
+            'medications': medications,
+            'event': event
         })
 
     except Exception as e:
