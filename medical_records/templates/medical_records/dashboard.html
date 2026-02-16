@@ -1002,7 +1002,18 @@
                                     <tbody>
                                         {% for indicator in trend.indicators %}
                                         <tr>
-                                            <td class="fw-medium">{{ indicator.name }}</td>
+                                            <td class="fw-medium">
+                                                {{ indicator.name }}
+                                                {% if indicator.records|length > 1 %}
+                                                <button class="btn btn-link btn-sm p-0 ms-2" type="button" 
+                                                        data-bs-toggle="collapse" 
+                                                        data-bs-target="#collapse-{{ trend.indicator_type }}-{{ forloop.counter }}"
+                                                        aria-expanded="false" 
+                                                        aria-controls="collapse-{{ trend.indicator_type }}-{{ forloop.counter }}">
+                                                    <i class="bi bi-chevron-down text-muted"></i>
+                                                </button>
+                                                {% endif %}
+                                            </td>
                                             <td class="fw-bold text-primary">{{ indicator.records.0.value }}</td>
                                             <td class="text-muted small">{{ indicator.records.0.unit }}</td>
                                             <td class="text-muted small">{{ indicator.records.0.reference_range|default:"-" }}</td>
@@ -1040,6 +1051,51 @@
                                                 </span>
                                             </td>
                                         </tr>
+                                        {% if indicator.records|length > 1 %}
+                                        <tr>
+                                            <td colspan="7" class="p-0">
+                                                <div class="collapse" id="collapse-{{ trend.indicator_type }}-{{ forloop.counter }}">
+                                                    <div class="p-3 bg-light">
+                                                        <h6 class="fw-bold mb-3">历年记录</h6>
+                                                        <div class="table-responsive">
+                                                            <table class="table table-sm table-striped mb-0">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th style="width: 20%;">日期</th>
+                                                                        <th style="width: 20%;">检测值</th>
+                                                                        <th style="width: 15%;">单位</th>
+                                                                        <th style="width: 25%;">参考范围</th>
+                                                                        <th style="width: 20%;">状态</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {% for record in indicator.records %}
+                                                                    <tr>
+                                                                        <td>{{ record.date|date:"Y年m月d日" }}</td>
+                                                                        <td class="fw-medium">{{ record.value }}</td>
+                                                                        <td class="text-muted small">{{ record.unit }}</td>
+                                                                        <td class="text-muted small">{{ record.reference_range|default:"-" }}</td>
+                                                                        <td>
+                                                                            {% if record.status == 'normal' %}
+                                                                                <span class="badge bg-success">正常</span>
+                                                                            {% elif record.status == 'attention' %}
+                                                                                <span class="badge bg-warning text-dark">需关注</span>
+                                                                            {% elif record.status == 'abnormal' %}
+                                                                                <span class="badge bg-danger">异常</span>
+                                                                            {% else %}
+                                                                                <span class="badge bg-secondary">-</span>
+                                                                            {% endif %}
+                                                                        </td>
+                                                                    </tr>
+                                                                    {% endfor %}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endif %}
                                         {% endfor %}
                                     </tbody>
                                 </table>

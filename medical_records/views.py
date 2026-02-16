@@ -333,20 +333,35 @@ def dashboard(request):
     # 准备健康指标趋势数据 - 按大类分组，每个指标单独一个表格
     indicator_trends = []
 
-    # 定义指标分类映射
+    # 定义指标分类映射（使用完整的中文显示）
     category_mapping = {
-        'blood_pressure': '血压指标',
-        'heart_rate': '心率指标',
-        'blood_sugar': '血糖指标',
-        'weight': '体重指标',
-        'height': '身高指标',
-        'temperature': '体温指标',
-        'oxygen': '血氧指标',
-        'cholesterol': '胆固醇指标',
-        'liver_function': '肝功能指标',
-        'kidney_function': '肾功能指标',
-        'blood_routine': '血常规指标',
-        'urine_routine': '尿常规指标',
+        'general_exam': '一般检查',
+        'physical_exam': '体格检查',
+        'blood_routine': '血常规',
+        'biochemistry': '生化检验',
+        'liver_function': '肝功能',
+        'kidney_function': '肾功能',
+        'thyroid': '甲状腺',
+        'thyroid_function': '甲状腺功能',
+        'cardiac': '心脏标志物',
+        'tumor_markers': '肿瘤标志物',
+        'infection': '感染炎症',
+        'blood_rheology': '血液流变',
+        'coagulation': '凝血功能',
+        'urine': '尿液检查',
+        'urine_exam': '尿液检查',
+        'stool': '粪便检查',
+        'pathology': '病理检查',
+        'ultrasound': '超声检查',
+        'X_ray': 'X线检查',
+        'CT_MRI': 'CT和MRI',
+        'endoscopy': '内镜检查',
+        'special_organs': '专科检查',
+        'eye_exam': '眼科检查',
+        'imaging_exam': '影像学检查',
+        'diagnosis': '病症诊断',
+        'symptoms': '症状描述',
+        'other': '其他检查',
         'other_exam': '其他检查',
     }
 
