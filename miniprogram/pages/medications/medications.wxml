@@ -3,85 +3,158 @@
   <!-- 页面标题 -->
   <view class="page-header">
     <text class="page-title">我的药单</text>
-    <button class="add-btn" bindtap="showAddModal">
-      <view class="add-btn-content">
-        <text class="icon">+</text>
-        <text>添加药单</text>
-      </view>
-    </button>
+    <view class="header-actions">
+      <button class="action-btn" bindtap="showClusterModal">
+        <text class="icon">📦</text>
+        <text>创建药单组</text>
+      </button>
+      <button class="add-btn" bindtap="showAddModal">
+        <view class="add-btn-content">
+          <text class="icon">+</text>
+          <text>添加药单</text>
+        </view>
+      </button>
+    </view>
   </view>
 
-  <!-- 药单列表 -->
-  <view class="medication-list" wx:if="{{medications.length > 0}}">
-    <view class="medication-card"
-          wx:for="{{medications}}"
-          wx:key="id">
-      <!-- 药单头部 -->
-      <view class="card-header">
-        <view class="medicine-info">
-          <text class="medicine-name">{{item.medicine_name}}</text>
-          <text class="dosage">{{item.dosage}}</text>
+  <!-- 药单组列表 -->
+  <view class="section" wx:if="{{groups.length > 0}}">
+    <view class="section-header">
+      <text class="section-title">药单组</text>
+      <button class="auto-cluster-btn" bindtap="autoCluster">自动聚类</button>
+    </view>
+    <view class="group-list">
+      <view class="group-card" wx:for="{{groups}}" wx:key="id">
+        <!-- 药单组头部 -->
+        <view class="group-header" bindtap="toggleGroup" data-id="{{item.id}}">
+          <view class="group-info">
+            <text class="group-name">{{item.name}}</text>
+            <text class="group-count">{{item.medication_count}} 个药物</text>
+          </view>
+          <view class="group-actions">
+            <text class="expand-icon {{expandedGroups[item.id] ? 'expanded' : ''}}">▼</text>
+          </view>
         </view>
-        <view class="actions">
-          <text class="delete-btn" bindtap="deleteMedication" data-id="{{item.id}}">删除</text>
-        </view>
-      </view>
 
-      <!-- 进度信息 -->
-      <view class="progress-section">
-        <view class="progress-info">
-          <text class="progress-text">服药进度：{{item.days_taken}}/{{item.total_days}}天</text>
-          <text class="progress-percent">{{item.progress_percentage}}%</text>
+        <!-- 药单组备注 -->
+        <view class="group-summary" wx:if="{{item.ai_summary}}">
+          <text>{{item.ai_summary}}</text>
         </view>
-        <view class="progress-bar">
-          <view class="progress-fill" style="width: {{item.progress_percentage}}%"></view>
-        </view>
-      </view>
 
-      <!-- 日期信息 -->
-      <view class="date-section">
-        <view class="date-item">
-          <text class="date-label">开始日期</text>
-          <text class="date-value">{{item.start_date}}</text>
-        </view>
-        <view class="date-item">
-          <text class="date-label">结束日期</text>
-          <text class="date-value">{{item.end_date}}</text>
-        </view>
-      </view>
+        <!-- 展开的药物列表 -->
+        <view class="group-medications" wx:if="{{expandedGroups[item.id]}}">
+          <view class="medication-mini-card" wx:for="{{item.medications}}" wx:for-item="med" wx:key="id">
+            <view class="med-info">
+              <text class="med-name">{{med.medicine_name}}</text>
+              <text class="med-dosage">{{med.dosage}}</text>
+            </view>
+            <view class="med-progress">
+              <text>{{med.days_taken}}/{{med.total_days}}天</text>
+            </view>
+          </view>
 
-      <!-- 备注 -->
-      <view class="notes-section" wx:if="{{item.notes}}">
-        <text class="notes-label">备注：</text>
-        <text class="notes-text">{{item.notes}}</text>
-      </view>
+          <!-- 药单组操作按钮 -->
+          <view class="group-action-buttons">
+            <button class="group-checkin-btn" bindtap="groupCheckin" data-id="{{item.id}}">
+              <text class="icon">✓</text>
+              <text>批量签到</text>
+            </button>
+            <button class="group-edit-btn" bindtap="showEditGroupModal" data-group="{{item}}">
+              <text class="icon">✏️</text>
+              <text>编辑</text>
+            </button>
+            <button class="group-delete-btn" bindtap="deleteGroup" data-id="{{item.id}}">
+              <text class="icon">🗑️</text>
+              <text>删除</text>
+            </button>
+          </view>
+        </view>
 
-      <!-- 操作按钮 -->
-      <view class="card-actions">
-        <button class="checkin-btn primary-btn" bindtap="checkin" data-id="{{item.id}}">
-          <text class="icon">✓</text>
-          <text>今日签到</text>
-        </button>
-        <button class="records-btn secondary-btn" bindtap="viewRecords" data-id="{{item.id}}">
-          <text class="icon">📋</text>
-          <text>服药记录</text>
-        </button>
-        <picker class="makeup-btn secondary-btn" mode="date" end="{{today}}" bindchange="onMakeupDateChange" data-id="{{item.id}}">
-          <text class="icon">📅</text>
-          <text>补签</text>
-        </picker>
+        <!-- 未展开时的快捷操作 -->
+        <view class="group-quick-actions" wx:else>
+          <button class="quick-checkin-btn" bindtap="groupCheckin" data-id="{{item.id}}">
+            批量签到
+          </button>
+        </view>
       </view>
     </view>
   </view>
 
-  <!-- 空状态 -->
-  <view class="empty-state" wx:else>
-    <text class="empty-icon">💊</text>
-    <text class="empty-text">还没有药单</text>
-    <text class="empty-desc">点击"添加药单"开始记录您的服药情况</text>
-    <button class="empty-add-btn" bindtap="showAddModal">
-      <text>添加第一个药单</text>
-    </button>
+  <!-- 独立药单列表 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">独立药单</text>
+      <text class="section-count">{{medications.length}} 个</text>
+    </view>
+    
+    <view class="medication-list" wx:if="{{medications.length > 0}}">
+      <view class="medication-card"
+            wx:for="{{medications}}"
+            wx:key="id">
+        <!-- 药单头部 -->
+        <view class="card-header">
+          <view class="medicine-info">
+            <text class="medicine-name">{{item.medicine_name}}</text>
+            <text class="dosage">{{item.dosage}}</text>
+          </view>
+          <view class="actions">
+            <text class="delete-btn" bindtap="deleteMedication" data-id="{{item.id}}">删除</text>
+          </view>
+        </view>
+
+        <!-- 进度信息 -->
+        <view class="progress-section">
+          <view class="progress-info">
+            <text class="progress-text">服药进度：{{item.days_taken}}/{{item.total_days}}天</text>
+            <text class="progress-percent">{{item.progress_percentage}}%</text>
+          </view>
+          <view class="progress-bar">
+            <view class="progress-fill" style="width: {{item.progress_percentage}}%"></view>
+          </view>
+        </view>
+
+        <!-- 日期信息 -->
+        <view class="date-section">
+          <view class="date-item">
+            <text class="date-label">开始日期</text>
+            <text class="date-value">{{item.start_date}}</text>
+          </view>
+          <view class="date-item">
+            <text class="date-label">结束日期</text>
+            <text class="date-value">{{item.end_date}}</text>
+          </view>
+        </view>
+
+        <!-- 备注 -->
+        <view class="notes-section" wx:if="{{item.notes}}">
+          <text class="notes-label">备注：</text>
+          <text class="notes-text">{{item.notes}}</text>
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="card-actions">
+          <button class="checkin-btn primary-btn" bindtap="checkin" data-id="{{item.id}}">
+            <text class="icon">✓</text>
+            <text>今日签到</text>
+          </button>
+          <button class="records-btn secondary-btn" bindtap="viewRecords" data-id="{{item.id}}">
+            <text class="icon">📋</text>
+            <text>服药记录</text>
+          </button>
+          <picker class="makeup-btn secondary-btn" mode="date" end="{{today}}" bindchange="onMakeupDateChange" data-id="{{item.id}}">
+            <text class="icon">📅</text>
+            <text>补签</text>
+          </picker>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:else>
+      <text class="empty-icon">💊</text>
+      <text class="empty-text">还没有独立药单</text>
+      <text class="empty-desc">点击"添加药单"开始记录您的服药情况</text>
+    </view>
   </view>
 </view>
 
@@ -143,6 +216,121 @@
   </view>
 </view>
 
+<!-- 创建药单组弹窗 -->
+<view class="modal" wx:if="{{showClusterModal}}">
+  <view class="modal-mask" bindtap="hideClusterModal"></view>
+  <view class="modal-content cluster-modal">
+    <view class="modal-header">
+      <text class="modal-title">创建药单组</text>
+      <text class="modal-close" bindtap="hideClusterModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">药单组名称</text>
+        <input class="form-input"
+               placeholder="可选，默认使用日期命名"
+               value="{{clusterFormData.name}}"
+               bindinput="onClusterNameInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">备注</text>
+        <textarea class="form-textarea"
+                  placeholder="可选，添加药单组说明"
+                  value="{{clusterFormData.notes}}"
+                  bindinput="onClusterNotesInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">选择药物 *</text>
+        <view class="medication-select-list" wx:if="{{ungroupedMedications.length > 0}}">
+          <view class="medication-select-item {{item.selected ? 'selected' : ''}}"
+                wx:for="{{ungroupedMedications}}"
+                wx:key="id"
+                bindtap="toggleMedicationSelect"
+                data-id="{{item.id}}">
+            <view class="select-checkbox">
+              <text wx:if="{{item.selected}}">✓</text>
+            </view>
+            <view class="select-info">
+              <text class="select-name">{{item.medicine_name}}</text>
+              <text class="select-dosage">{{item.dosage}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="empty-select" wx:else>
+          <text>没有可选的独立药单</text>
+        </view>
+      </view>
+      <view class="selected-count" wx:if="{{selectedCount > 0}}">
+        已选择 {{selectedCount}} 个药物
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel-btn" bindtap="hideClusterModal">取消</button>
+      <button class="modal-btn confirm-btn" bindtap="createCluster">创建药单组</button>
+    </view>
+  </view>
+</view>
+
+<!-- 编辑药单组弹窗 -->
+<view class="modal" wx:if="{{showEditGroupModal}}">
+  <view class="modal-mask" bindtap="hideEditGroupModal"></view>
+  <view class="modal-content cluster-modal">
+    <view class="modal-header">
+      <text class="modal-title">编辑药单组</text>
+      <text class="modal-close" bindtap="hideEditGroupModal">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">药单组名称</text>
+        <input class="form-input"
+               value="{{editGroupData.name}}"
+               bindinput="onEditGroupNameInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">备注</text>
+        <textarea class="form-textarea"
+                  value="{{editGroupData.notes}}"
+                  bindinput="onEditGroupNotesInput" />
+      </view>
+      
+      <!-- 当前药物列表 -->
+      <view class="form-item">
+        <text class="form-label">当前药物 ({{editGroupData.medications.length}}个)</text>
+        <view class="current-medications-list">
+          <view class="current-med-item" wx:for="{{editGroupData.medications}}" wx:key="id">
+            <text class="med-name">{{item.medicine_name}}</text>
+            <text class="remove-med-btn" bindtap="removeMedFromGroup" data-id="{{item.id}}">移除</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 添加药物 -->
+      <view class="form-item" wx:if="{{availableMedications.length > 0}}">
+        <text class="form-label">添加药物</text>
+        <view class="medication-select-list">
+          <view class="medication-select-item {{item.selected ? 'selected' : ''}}"
+                wx:for="{{availableMedications}}"
+                wx:key="id"
+                bindtap="toggleAvailableMedSelect"
+                data-id="{{item.id}}">
+            <view class="select-checkbox">
+              <text wx:if="{{item.selected}}">✓</text>
+            </view>
+            <view class="select-info">
+              <text class="select-name">{{item.medicine_name}}</text>
+              <text class="select-dosage">{{item.dosage}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn cancel-btn" bindtap="hideEditGroupModal">取消</button>
+      <button class="modal-btn confirm-btn" bindtap="updateGroup">保存修改</button>
+    </view>
+  </view>
+</view>
+
 <!-- 服药记录弹窗 -->
 <view class="modal" wx:if="{{showRecordsModal}}">
   <view class="modal-mask" bindtap="hideRecordsModal"></view>
@@ -170,4 +358,3 @@
     </view>
   </view>
 </view>
-

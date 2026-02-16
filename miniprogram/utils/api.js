@@ -208,6 +208,31 @@ module.exports = {
   getMedicationRecords: (medicationId) =>
     request.get(config.api.medicationRecords(medicationId)),
 
+  // 药单组管理
+  getMedicationGroups: () =>
+    request.get(config.api.medicationGroups),
+
+  createMedicationGroup: (data) =>
+    request.post(config.api.medicationGroupCreate, data),
+
+  getMedicationGroupDetail: (groupId) =>
+    request.get(config.api.medicationGroupDetail(groupId)),
+
+  updateMedicationGroup: (groupId, data) =>
+    request.put(config.api.medicationGroupDetail(groupId), data),
+
+  deleteMedicationGroup: (groupId, action = 'delete_group') =>
+    request.delete(`${config.api.medicationGroupDetail(groupId)}?action=${action}`),
+
+  medicationGroupCheckin: (groupId, data) =>
+    request.post(config.api.medicationGroupCheckin(groupId), data),
+
+  autoClusterMedications: (data = {}) =>
+    request.post(config.api.medicationAutoCluster, data),
+
+  getMedicationsWithoutGroup: () =>
+    request.get(config.api.medicationsWithoutGroup),
+
   // ==================== 导出功能 ====================
   exportHealthTrendsPDF: () =>
     request.downloadFile(config.api.exportHealthTrendsPDF),
