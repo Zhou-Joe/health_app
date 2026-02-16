@@ -704,6 +704,7 @@ class HealthEvent(models.Model):
     def auto_cluster_user_records(cls, user, days_threshold=7):
         """
         自动聚类用户的健康记录为事件
+        将所有类型的记录（体检报告、药单组、药单、症状日志等）按时间统一聚类
 
         Args:
             user: 用户对象
@@ -716,144 +717,153 @@ class HealthEvent(models.Model):
 
         events_created = 0
 
-        # 1. 聚类体检报告（基于日期相近性）
-        checkups = HealthCheckup.objects.filter(user=user).order_by('checkup_date')
-        checkup_clusters = cls._cluster_by_time(checkups, 'checkup_date', days_threshold)
+        all_records = []
 
-        for cluster in checkup_clusters:
-            if len(cluster) == 0:
-                continue
+        for checkup in HealthCheckup.objects.filter(user=user):
+            all_records.append({
+                'type': 'healthcheckup',
+                'date': checkup.checkup_date,
+                'obj': checkup,
+                'name': f"体检报告 - {checkup.hospital}"
+            })
 
-            # 找到聚类的时间范围
-            dates = [c.checkup_date for c in cluster]
-            start = min(dates)
-            end = max(dates)
-
-            # 生成事件名称
-            if len(cluster) == 1:
-                event_name = f"{start} 体检"
-            else:
-                event_name = f"{start} 至 {end} 体检期间"
-
-            # 检查是否已存在类似事件
-            existing = cls.objects.filter(
-                user=user,
-                event_type='checkup',
-                is_auto_generated=True,
-                start_date=start
-            ).first()
-
-            if existing:
-                event = existing
-            else:
-                event = cls.objects.create(
-                    user=user,
-                    name=event_name,
-                    start_date=start,
-                    end_date=end if end != start else None,
-                    event_type='checkup',
-                    is_auto_generated=True,
-                    description=f"自动聚类 {len(cluster)} 份体检报告"
-                )
-                events_created += 1
-
-            # 添加体检报告到事件
-            for checkup in cluster:
-                EventItem.objects.get_or_create(
-                    event=event,
-                    content_type=ContentType.objects.get_for_model(checkup),
-                    object_id=checkup.id,
-                    defaults={'added_by': 'auto'}
-                )
-
-        # 2. 聚类药单组（优先处理，作为整体）
-        medication_groups = MedicationGroup.objects.filter(user=user).order_by('created_at')
-        for group in medication_groups:
+        for group in MedicationGroup.objects.filter(user=user):
             group_date = group.created_at.date() if hasattr(group.created_at, 'date') else group.created_at
+            all_records.append({
+                'type': 'medicationgroup',
+                'date': group_date,
+                'obj': group,
+                'name': f"药单组 - {group.name}"
+            })
 
-            event_name = f"{group_date} 用药: {group.name}"
+        for med in Medication.objects.filter(user=user, is_active=True, group__isnull=True):
+            all_records.append({
+                'type': 'medication',
+                'date': med.start_date,
+                'obj': med,
+                'name': f"药单 - {med.medicine_name}"
+            })
 
-            existing = cls.objects.filter(
-                user=user,
-                event_type='medication_course',
-                is_auto_generated=True,
-                start_date=group_date
-            ).first()
+        try:
+            from .models import SymptomEntry
+            for symptom in SymptomEntry.objects.filter(user=user):
+                all_records.append({
+                    'type': 'symptomentry',
+                    'date': symptom.entry_date,
+                    'obj': symptom,
+                    'name': f"症状 - {symptom.symptom[:20]}"
+                })
+        except Exception:
+            pass
 
-            if existing:
-                event = existing
+        try:
+            from .models import VitalEntry
+            for vital in VitalEntry.objects.filter(user=user):
+                all_records.append({
+                    'type': 'vitalentry',
+                    'date': vital.entry_date,
+                    'obj': vital,
+                    'name': f"体征 - {vital.get_vital_type_display()}"
+                })
+        except Exception:
+            pass
+
+        all_records.sort(key=lambda x: x['date'])
+
+        if not all_records:
+            return 0
+
+        clusters = []
+        current_cluster = []
+
+        for record in all_records:
+            if not current_cluster:
+                current_cluster.append(record)
             else:
-                event = cls.objects.create(
-                    user=user,
-                    name=event_name,
-                    start_date=group_date,
-                    event_type='medication_course',
-                    is_auto_generated=True,
-                    description=f"药单组: {group.name}，包含 {group.medication_count} 个药物"
-                )
-                events_created += 1
+                first_date = current_cluster[0]['date']
+                days_diff = abs((record['date'] - first_date).days)
 
-            EventItem.objects.get_or_create(
-                event=event,
-                content_type=ContentType.objects.get_for_model(group),
-                object_id=group.id,
-                defaults={'added_by': 'auto'}
-            )
+                if days_diff <= days_threshold:
+                    current_cluster.append(record)
+                else:
+                    clusters.append(current_cluster)
+                    current_cluster = [record]
 
-        # 3. 聚类未分组的药单（基于时间重叠或相近性）
-        medications = Medication.objects.filter(user=user, is_active=True, group__isnull=True).order_by('start_date')
-        medication_clusters = cls._cluster_medications(medications, days_threshold)
+        if current_cluster:
+            clusters.append(current_cluster)
 
-        for cluster in medication_clusters:
-            if len(cluster) == 0:
+        for cluster in clusters:
+            if not cluster:
                 continue
 
-            # 找到聚类的时间范围
-            starts = [m.start_date for m in cluster]
-            ends = [m.end_date for m in cluster]
-            cluster_start = min(starts)
-            cluster_end = max(ends)
+            dates = [r['date'] for r in cluster]
+            start_date = min(dates)
+            end_date = max(dates)
 
-            # 生成事件名称
-            med_names = ', '.join([m.medicine_name for m in cluster[:3]])
-            if len(cluster) > 3:
-                med_names += f' 等{len(cluster)}种药'
+            type_counts = {}
+            for r in cluster:
+                t = r['type']
+                type_counts[t] = type_counts.get(t, 0) + 1
 
-            event_name = f"{cluster_start} 用药: {med_names}"
+            type_names = {
+                'healthcheckup': '体检报告',
+                'medicationgroup': '药单组',
+                'medication': '药单',
+                'symptomentry': '症状日志',
+                'vitalentry': '体征记录',
+            }
 
-            # 检查是否已存在类似事件
+            type_desc_parts = []
+            for t, count in type_counts.items():
+                type_name = type_names.get(t, t)
+                type_desc_parts.append(f"{count}个{type_name}")
+            type_desc = '、'.join(type_desc_parts)
+
+            if end_date == start_date:
+                event_name = f"{start_date} 健康记录"
+            else:
+                event_name = f"{start_date} 至 {end_date} 健康事件"
+
             existing = cls.objects.filter(
                 user=user,
-                event_type='medication_course',
                 is_auto_generated=True,
-                start_date=cluster_start
+                start_date=start_date,
+                end_date=end_date if end_date != start_date else None
             ).first()
 
             if existing:
                 event = existing
             else:
+                event_type = 'other'
+                if len(type_counts) == 1:
+                    if 'healthcheckup' in type_counts:
+                        event_type = 'checkup'
+                    elif 'medicationgroup' in type_counts or 'medication' in type_counts:
+                        event_type = 'medication_course'
+                    elif 'symptomentry' in type_counts:
+                        event_type = 'illness'
+
                 event = cls.objects.create(
                     user=user,
                     name=event_name,
-                    start_date=cluster_start,
-                    end_date=cluster_end,
-                    event_type='medication_course',
+                    start_date=start_date,
+                    end_date=end_date if end_date != start_date else None,
+                    event_type=event_type,
                     is_auto_generated=True,
-                    description=f"自动聚类 {len(cluster)} 个药单"
+                    description=f"自动聚类: {type_desc}"
                 )
                 events_created += 1
 
-            # 添加药单到事件
-            for medication in cluster:
-                EventItem.objects.get_or_create(
-                    event=event,
-                    content_type=ContentType.objects.get_for_model(medication),
-                    object_id=medication.id,
-                    defaults={'added_by': 'auto'}
-                )
-
-        # 4. 检测疾病事件（通过异常指标和药单关联）
-        cls._detect_illness_events(user, days_threshold)
+            for record in cluster:
+                try:
+                    EventItem.objects.get_or_create(
+                        event=event,
+                        content_type=ContentType.objects.get_for_model(record['obj']),
+                        object_id=record['obj'].id,
+                        defaults={'added_by': 'auto'}
+                    )
+                except Exception as e:
+                    print(f"Error adding record to event: {e}")
 
         return events_created
 
