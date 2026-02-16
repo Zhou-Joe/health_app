@@ -1058,6 +1058,16 @@ async function handleUpload() {
     const submitBtn = document.getElementById('submitBtn');
     const uploadSection = document.getElementById('uploadSection');
     const progressSection = document.getElementById('progressSection');
+    const uploadLLMOutputCard = document.getElementById('uploadLLMOutputCard');
+    const uploadLLMOutput = document.getElementById('uploadLLMOutput');
+
+    // 重置进度和输出变量
+    currentProgress = 0;
+    accumulatedLLMOutput = '';
+    
+    // 重置UI
+    if (uploadLLMOutputCard) uploadLLMOutputCard.style.display = 'none';
+    if (uploadLLMOutput) uploadLLMOutput.textContent = '';
 
     if (submitBtn) submitBtn.disabled = true;
 
@@ -1132,17 +1142,37 @@ async function handleUpload() {
     }
 }
 
+let currentProgress = 0;
+let accumulatedLLMOutput = '';
+
 function handleStreamData(data) {
     const statusDetails = document.getElementById('statusDetails');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const uploadLogStatus = document.getElementById('uploadLogStatus');
+    const uploadLLMOutputCard = document.getElementById('uploadLLMOutputCard');
+    const uploadLLMOutput = document.getElementById('uploadLLMOutput');
 
     if (data.error) {
         showError(data.error);
         if (uploadLogStatus) {
             uploadLogStatus.textContent = '失败';
             uploadLogStatus.className = 'badge bg-danger small';
+        }
+        return;
+    }
+
+    if (data.status === 'llm_token') {
+        // 处理LLM流式token输出
+        if (data.token) {
+            accumulatedLLMOutput += data.token;
+            if (uploadLLMOutput) {
+                uploadLLMOutput.textContent = accumulatedLLMOutput;
+                uploadLLMOutput.scrollTop = uploadLLMOutput.scrollHeight;
+            }
+            if (uploadLLMOutputCard && uploadLLMOutputCard.style.display === 'none') {
+                uploadLLMOutputCard.style.display = 'block';
+            }
         }
         return;
     }
@@ -1178,19 +1208,29 @@ function handleStreamData(data) {
     }
 
     // 根据状态更新进度条
-    let progress = 0;
-    if (data.status === 'vlm_start') progress = 30;
-    else if (data.status === 'saving_start') progress = 80;
-    else if (data.status === 'ocr_start') progress = 20;
-    else if (data.status === 'ocr_complete') progress = 50;
+    let newProgress = null;
+    if (data.status === 'vlm_start') newProgress = 30;
+    else if (data.status === 'saving_start') newProgress = 80;
+    else if (data.status === 'ocr_start') newProgress = 20;
+    else if (data.status === 'ocr_complete') newProgress = 50;
     else if (data.status === 'ocr_processing') {
         // OCR处理中的心跳状态，不改变进度，只更新消息
-        progress = null;
+        newProgress = null;
     }
-    else if (data.status === 'ai_start') progress = 60;
+    else if (data.status === 'ai_start') {
+        newProgress = 60;
+        // 重置LLM输出积累
+        accumulatedLLMOutput = '';
+        if (uploadLLMOutput) uploadLLMOutput.textContent = '';
+    }
+    else if (data.status === 'ai_complete') newProgress = 75;
 
-    if (progress !== null && progressBar) progressBar.style.width = progress + '%';
-    if (progress !== null && progressText) progressText.textContent = progress + '%';
+    // 只有当新进度大于当前进度时才更新，防止进度回退
+    if (newProgress !== null && newProgress > currentProgress) {
+        currentProgress = newProgress;
+        if (progressBar) progressBar.style.width = currentProgress + '%';
+        if (progressText) progressText.textContent = currentProgress + '%';
+    }
 }
 
 function startProgressTracking() {
