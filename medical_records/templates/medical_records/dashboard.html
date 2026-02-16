@@ -1077,26 +1077,28 @@
     <div class="col-lg-4">
 
         <!-- AI健康建议 -->
-        <div class="card">
+        <div class="card mb-4">
             <div class="card-header">
                 <h6 class="mb-0">
                     <i class="bi bi-sparkles text-primary me-2"></i>
-                    AI健康建议
+                    AI健康咨询
                 </h6>
             </div>
             <div class="card-body">
-                {% if ai_advice %}
-                    <p class="mb-3">{{ ai_advice.summary }}</p>
-                    <ul class="list-unstyled mb-3">
-                        {% for tip in ai_advice.tips %}
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            {{ tip }}
-                        </li>
+                {% if ai_advice_list %}
+                    <div class="list-group">
+                        {% for advice in ai_advice_list %}
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ advice.question }}</h6>
+                                <small class="text-muted">{{ advice.created_at }}</small>
+                            </div>
+                            <p class="mb-1 text-muted small">{{ advice.summary }}</p>
+                        </a>
                         {% endfor %}
-                    </ul>
-                    <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-outline-primary w-100">
-                        查看详细建议
+                    </div>
+                    <a href="{% url 'medical_records:ai_health_advice' %}" class="btn btn-outline-primary w-100 mt-3">
+                        查看所有咨询
                     </a>
                 {% else %}
                     <div class="empty-state py-4">

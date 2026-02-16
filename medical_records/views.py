@@ -439,12 +439,23 @@ def dashboard(request):
 
     # 获取AI建议摘要
     ai_advice = None
+    ai_advice_list = []
     latest_advice = HealthAdvice.objects.filter(user=user).order_by('-created_at').first()
     if latest_advice:
         ai_advice = {
             'summary': latest_advice.answer[:200] + '...' if len(latest_advice.answer) > 200 else latest_advice.answer,
             'tips': latest_advice.answer.split('\n')[:3] if '\n' in latest_advice.answer else [latest_advice.answer[:100]]
         }
+    
+    # 获取最近的AI咨询记录列表
+    recent_advice = HealthAdvice.objects.filter(user=user).order_by('-created_at')[:5]
+    for advice in recent_advice:
+        ai_advice_list.append({
+            'id': advice.id,
+            'question': advice.question,
+            'summary': advice.answer[:100] + '...' if len(advice.answer) > 100 else advice.answer,
+            'created_at': advice.created_at.strftime('%Y-%m-%d %H:%M')
+        })
 
     context = {
         # 侧边栏数据
@@ -496,6 +507,7 @@ def dashboard(request):
 
         # AI建议
         'ai_advice': ai_advice,
+        'ai_advice_list': ai_advice_list,
     }
 
     return render(request, 'medical_records/dashboard.html', context)
