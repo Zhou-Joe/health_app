@@ -766,8 +766,42 @@ class HealthEvent(models.Model):
                     defaults={'added_by': 'auto'}
                 )
 
-        # 2. 聚类药单（基于时间重叠或相近性）
-        medications = Medication.objects.filter(user=user, is_active=True).order_by('start_date')
+        # 2. 聚类药单组（优先处理，作为整体）
+        medication_groups = MedicationGroup.objects.filter(user=user).order_by('created_at')
+        for group in medication_groups:
+            group_date = group.created_at.date() if hasattr(group.created_at, 'date') else group.created_at
+
+            event_name = f"{group_date} 用药: {group.name}"
+
+            existing = cls.objects.filter(
+                user=user,
+                event_type='medication_course',
+                is_auto_generated=True,
+                start_date=group_date
+            ).first()
+
+            if existing:
+                event = existing
+            else:
+                event = cls.objects.create(
+                    user=user,
+                    name=event_name,
+                    start_date=group_date,
+                    event_type='medication_course',
+                    is_auto_generated=True,
+                    description=f"药单组: {group.name}，包含 {group.medication_count} 个药物"
+                )
+                events_created += 1
+
+            EventItem.objects.get_or_create(
+                event=event,
+                content_type=ContentType.objects.get_for_model(group),
+                object_id=group.id,
+                defaults={'added_by': 'auto'}
+            )
+
+        # 3. 聚类未分组的药单（基于时间重叠或相近性）
+        medications = Medication.objects.filter(user=user, is_active=True, group__isnull=True).order_by('start_date')
         medication_clusters = cls._cluster_medications(medications, days_threshold)
 
         for cluster in medication_clusters:
@@ -818,7 +852,7 @@ class HealthEvent(models.Model):
                     defaults={'added_by': 'auto'}
                 )
 
-        # 3. 检测疾病事件（通过异常指标和药单关联）
+        # 4. 检测疾病事件（通过异常指标和药单关联）
         cls._detect_illness_events(user, days_threshold)
 
         return events_created
@@ -1023,6 +1057,11 @@ class EventItem(models.Model):
             return f"指标: {obj.indicator_name} = {obj.value} {obj.unit or ''}"
         elif model_name == 'medicationrecord':
             return f"服药记录: {obj.medication.medicine_name} - {obj.record_date}"
+        elif model_name == 'medicationgroup':
+            med_names = ', '.join([m.medicine_name for m in obj.medications.all()[:3]])
+            if obj.medication_count > 3:
+                med_names += f' 等{obj.medication_count}个'
+            return f"药单组: {obj.name} ({med_names})"
         elif model_name == 'symptomentry':
             return f"症状日志: {obj.entry_date} - {obj.symptom}"
         elif model_name == 'vitalentry':

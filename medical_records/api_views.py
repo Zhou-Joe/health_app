@@ -4418,9 +4418,24 @@ def api_event_available_items(request):
                     'date': checkup.checkup_date.strftime('%Y-%m-%d'),
                 })
 
-        # 获取药单
+        # 获取药单组
+        if content_type in ['all', 'medicationgroup']:
+            from .models import MedicationGroup
+            groups = MedicationGroup.objects.filter(user=request.user)[:limit]
+            for group in groups:
+                med_names = ', '.join([m.medicine_name for m in group.medications.all()[:3]])
+                if group.medication_count > 3:
+                    med_names += f' 等{group.medication_count}个'
+                items.append({
+                    'content_type': 'medicationgroup',
+                    'object_id': group.id,
+                    'summary': f"药单组: {group.name} ({med_names})",
+                    'date': group.created_at.strftime('%Y-%m-%d'),
+                })
+
+        # 获取药单（只获取未分组的）
         if content_type in ['all', 'medication']:
-            medications = Medication.objects.filter(user=request.user, is_active=True)[:limit]
+            medications = Medication.objects.filter(user=request.user, is_active=True, group__isnull=True)[:limit]
             for med in medications:
                 items.append({
                     'content_type': 'medication',
