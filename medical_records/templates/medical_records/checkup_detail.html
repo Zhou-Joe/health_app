@@ -604,6 +604,45 @@ strong {
         </div>
     </div>
 </div>
+
+<!-- 体检报告AI分析模态框 -->
+<div class="modal fade" id="checkupAiSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                        <i class="bi bi-stars text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0">体检报告智能解读</h5>
+                        <small class="text-muted">基于体检指标数据生成全面解读报告</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="checkupAiSummaryContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">AI正在分析...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="exportCheckupSummaryBtns" style="display: none;">
+                </div>
+                <button type="button" class="btn btn-outline-primary me-auto" id="regenerateCheckupSummaryBtn" onclick="regenerateCheckupAiSummary()" style="display: none;">
+                    <i class="bi bi-arrow-clockwise"></i> 重新解读
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -995,42 +1034,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
-
-<!-- 体检报告AI分析模态框 -->
-<div class="modal fade" id="checkupAiSummaryModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-light">
-                <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
-                        <i class="bi bi-stars text-primary fs-4"></i>
-                    </div>
-                    <div>
-                        <h5 class="modal-title mb-0">体检报告智能解读</h5>
-                        <small class="text-muted">基于体检指标数据生成全面解读报告</small>
-                    </div>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="checkupAiSummaryContent">
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary mb-3" role="status">
-                            <span class="visually-hidden">AI正在分析...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <div id="exportCheckupSummaryBtns" style="display: none;">
-                </div>
-                <button type="button" class="btn btn-outline-primary me-auto" id="regenerateCheckupSummaryBtn" onclick="regenerateCheckupAiSummary()" style="display: none;">
-                    <i class="bi bi-arrow-clockwise"></i> 重新解读
-                </button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> 关闭
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
