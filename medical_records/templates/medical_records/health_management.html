@@ -1343,9 +1343,9 @@ async function showEditGroupModal(groupId, groupName, groupNotes) {
         const availableData = await availableResp.json();
 
         const groupListDiv = document.getElementById('groupMedicationsList');
-        if (groupData.success && groupData.group && groupData.group.medications) {
-            if (groupData.group.medications.length > 0) {
-                groupListDiv.innerHTML = groupData.group.medications.map(med => `
+        if (groupData.success && groupData.medications) {
+            if (groupData.medications.length > 0) {
+                groupListDiv.innerHTML = groupData.medications.map(med => `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" value="${med.id}" id="group_med_${med.id}">
                         <label class="form-check-label" for="group_med_${med.id}">
@@ -1357,10 +1357,12 @@ async function showEditGroupModal(groupId, groupName, groupNotes) {
             } else {
                 groupListDiv.innerHTML = '<div class="text-muted text-center py-2">暂无药物</div>';
             }
+        } else {
+            groupListDiv.innerHTML = '<div class="text-muted text-center py-2">暂无药物</div>';
         }
 
         const availableListDiv = document.getElementById('availableMedicationsList');
-        if (availableData.success && availableData.medications.length > 0) {
+        if (availableData.success && availableData.medications && availableData.medications.length > 0) {
             availableListDiv.innerHTML = availableData.medications.map(med => `
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" value="${med.id}" id="avail_med_${med.id}">
