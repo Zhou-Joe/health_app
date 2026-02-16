@@ -514,7 +514,10 @@
                     <button class="btn btn-sm btn-outline-info" onclick="showEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}', '{{ group.ai_summary|default:''|escapejs }}')" title="编辑">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicationGroup({{ group.id }})">
+                    <button class="btn btn-sm btn-outline-warning" onclick="dissolveMedicationGroup({{ group.id }})" title="解散药单组（保留药物）">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicationGroup({{ group.id }})" title="删除药单组和药物">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -1158,6 +1161,29 @@ async function deleteMedicationGroup(groupId) {
         }
     } catch (error) {
         alert('删除失败：' + error);
+    }
+}
+
+async function dissolveMedicationGroup(groupId) {
+    if (!confirm('确定要解散这个药单组吗？\n\n解散后，组内的药物将变为独立药单，不会被删除。')) return;
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_medication_group_dissolve" 0 %}`.replace('0', groupId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('解散失败：' + (data.error || '未知错误'));
+        }
+    } catch (error) {
+        alert('解散失败：' + error);
     }
 }
 

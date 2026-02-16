@@ -5051,3 +5051,40 @@ def api_medication_group_update(request, group_id):
             'success': False,
             'error': f'更新药单组失败: {str(e)}'
         }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_medication_group_dissolve(request, group_id):
+    """解散药单组（保留药物，只删除分组）"""
+    from .models import MedicationGroup, Medication
+
+    try:
+        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+    except MedicationGroup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '药单组不存在或无权访问'
+        }, status=404)
+
+    try:
+        medication_count = Medication.objects.filter(group=group).count()
+
+        Medication.objects.filter(group=group).update(group=None)
+
+        group_name = group.name
+        group.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'已解散药单组"{group_name}"，{medication_count} 个药物已变为独立药单'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'解散药单组失败: {str(e)}'
+        }, status=500)

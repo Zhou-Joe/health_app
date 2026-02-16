@@ -86,6 +86,7 @@ urlpatterns = [
     path('api/medication-groups/create/', api_views.api_medication_group_create, name='api_medication_group_create'),
     path('api/medication-groups/<int:group_id>/checkin/', api_views.api_medication_group_checkin, name='api_medication_group_checkin'),
     path('api/medication-groups/<int:group_id>/update/', api_views.api_medication_group_update, name='api_medication_group_update'),
+    path('api/medication-groups/<int:group_id>/dissolve/', api_views.api_medication_group_dissolve, name='api_medication_group_dissolve'),
     path('api/medications/auto-cluster/', api_views.api_medication_auto_cluster, name='api_medication_auto_cluster'),
     path('api/medications/without-group/', api_views.api_medications_without_group, name='api_medications_without_group'),
 
