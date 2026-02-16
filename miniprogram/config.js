@@ -81,14 +81,6 @@ module.exports = {
     medicationCheckin: '/api/miniprogram/medications/checkin/',
     medicationRecords: (id) => `/api/miniprogram/medications/${id}/records/`,
 
-    // 药单组管理
-    medicationGroups: '/api/miniprogram/medication-groups/',
-    medicationGroupCreate: '/api/miniprogram/medication-groups/create/',
-    medicationGroupDetail: (id) => `/api/miniprogram/medication-groups/${id}/`,
-    medicationGroupCheckin: (id) => `/api/miniprogram/medication-groups/${id}/checkin/`,
-    medicationAutoCluster: '/api/miniprogram/medications/auto-cluster/',
-    medicationsWithoutGroup: '/api/miniprogram/medications/without-group/',
-
     // 导出功能（使用小程序专用接口）
     exportHealthTrendsPDF: '/dashboard/export/pdf/',
     exportHealthTrendsWord: '/dashboard/export/word/',

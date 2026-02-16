@@ -57,12 +57,4 @@ urlpatterns = [
     path('medications/<int:medication_id>/', miniprogram_api.miniprogram_medication_detail, name='medication_detail'),
     path('medications/checkin/', miniprogram_api.miniprogram_medication_checkin, name='medication_checkin'),
     path('medications/<int:medication_id>/records/', miniprogram_api.miniprogram_medication_records, name='medication_records'),
-
-    # 药单组管理
-    path('medication-groups/', miniprogram_api.miniprogram_medication_groups, name='medication_groups'),
-    path('medication-groups/create/', miniprogram_api.miniprogram_medication_group_create, name='medication_group_create'),
-    path('medication-groups/<int:group_id>/', miniprogram_api.miniprogram_medication_group_detail, name='medication_group_detail'),
-    path('medication-groups/<int:group_id>/checkin/', miniprogram_api.miniprogram_medication_group_checkin, name='medication_group_checkin'),
-    path('medications/auto-cluster/', miniprogram_api.miniprogram_medication_auto_cluster, name='medication_auto_cluster'),
-    path('medications/without-group/', miniprogram_api.miniprogram_medications_without_group, name='medications_without_group'),
 ]
