@@ -909,7 +909,7 @@
                 </div>
                 <div class="timeline-events-list">
                     {% for event in year_group.list %}
-                    <a href="{% url 'medical_records:event_detail' event.id %}" class="timeline-event-card text-decoration-none">
+                    <div class="timeline-event-card text-decoration-none" style="cursor: pointer;" onclick="showEventDetail({{ event.id }})">
                         <div class="event-status-indicator {{ event.type }}"></div>
                         <div class="event-date-block">
                             <span class="event-date-day">{{ event.date|date:"d" }}</span>
@@ -930,7 +930,7 @@
                                 {% if event.is_auto_generated %}
                                 <i class="bi bi-sparkles text-info small"></i>
                                 {% endif %}
-                                <button class="btn btn-sm btn-outline-info ms-auto" onclick="showEventAiSummary({{ event.id }}, event)" title="AI智能分析">
+                                <button class="btn btn-sm btn-outline-info ms-auto" onclick="event.stopPropagation(); showEventAiSummary({{ event.id }}, event)" title="AI智能分析">
                                     <i class="bi bi-stars"></i>
                                 </button>
                             </div>
@@ -938,7 +938,7 @@
                             <div class="event-description">{{ event.description|truncatechars:50 }}</div>
                             {% endif %}
                         </div>
-                    </a>
+                    </div>
                     {% endfor %}
                 </div>
             </div>
@@ -1643,7 +1643,170 @@ function getCsrfToken() {
     }
     return cookieValue;
 }
+
+let eventDetailModal;
+document.addEventListener('DOMContentLoaded', function() {
+    eventDetailModal = new bootstrap.Modal(document.getElementById('eventDetailModal'));
+});
+
+// 显示事件详情弹窗
+async function showEventDetail(eventId) {
+    try {
+        const response = await fetch(`/api/events/${eventId}/`);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderEventDetail(data.event, data.items);
+            eventDetailModal.show();
+        }
+    } catch (error) {
+        console.error('加载事件详情失败:', error);
+    }
+}
+
+// 渲染事件详情
+function renderEventDetail(event, items) {
+    const eventTypeLabels = {
+        'illness': '疾病事件',
+        'checkup': '体检事件',
+        'chronic_management': '慢病管理',
+        'emergency': '急诊事件',
+        'wellness': '健康管理',
+        'medication_course': '用药疗程',
+        'other': '其他'
+    };
+    
+    const eventStatusLabels = {
+        'pending': '待处理',
+        'observing': '观察中',
+        'recovered': '治愈'
+    };
+    
+    const eventStatusBadgeClasses = {
+        'pending': 'bg-warning text-dark',
+        'observing': 'bg-info',
+        'recovered': 'bg-success'
+    };
+    
+    const getItemIcon = (contentType) => {
+        const icons = {
+            'healthcheckup': 'bi-clipboard2-pulse',
+            'medication': 'bi-capsule',
+            'healthindicator': 'bi-graph-up',
+            'medicationrecord': 'bi-check2-circle'
+        };
+        return icons[contentType] || 'bi-file-text';
+    };
+    
+    const getEventTypeBadgeClass = (type) => {
+        const classes = {
+            'illness': 'text-danger',
+            'checkup': 'text-primary',
+            'chronic_management': 'text-purple',
+            'emergency': 'text-orange',
+            'wellness': 'text-success',
+            'medication_course': 'text-pink'
+        };
+        return classes[type] || '';
+    };
+    
+    const itemsHtml = items.map(item => `
+        <div class="card mb-2" style="border: 1px solid var(--border-color);">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <i class="bi ${getItemIcon(item.content_type)} me-3" style="font-size: 1.5rem; color: var(--primary);"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${item.item_summary}</div>
+                        <small class="text-muted">
+                            <i class="bi bi-clock me-1"></i>${formatDateTime(item.added_at)}
+                        </small>
+                    </div>
+                    <span class="badge ${item.added_by === 'auto' ? 'bg-secondary' : 'bg-primary'}">
+                        ${item.added_by === 'auto' ? '自动' : '手动'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    document.getElementById('eventDetailTitle').textContent = event.name;
+    document.getElementById('eventDetailType').textContent = eventTypeLabels[event.event_type] || event.event_type;
+    document.getElementById('eventDetailStatus').textContent = eventStatusLabels[event.status] || event.status;
+    document.getElementById('eventDetailStatus').className = `badge ${eventStatusBadgeClasses[event.status] || 'bg-secondary'}`;
+    document.getElementById('eventDetailStartDate').textContent = event.start_date;
+    document.getElementById('eventDetailEndDate').textContent = event.end_date || '-';
+    document.getElementById('eventDetailDuration').textContent = `${event.duration_days} 天`;
+    document.getElementById('eventDetailDescription').textContent = event.description || '暂无描述';
+    document.getElementById('eventDetailItemsCount').textContent = items.length;
+    document.getElementById('eventDetailItems').innerHTML = items.length > 0 ? itemsHtml : `
+        <div class="text-center text-muted py-4">
+            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+            <p class="mt-2">暂无关联记录</p>
+        </div>
+    `;
+}
 </script>
+
+<!-- 事件详情弹窗 -->
+<div class="modal fade" id="eventDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #FFF; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-calendar-event me-2"></i>
+                    <span id="eventDetailTitle"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <!-- 事件基本信息 -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight: 600;">事件类型</label>
+                        <div id="eventDetailType"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight: 600;">状态</label>
+                        <div>
+                            <span id="eventDetailStatus" class="badge"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight: 600;">开始日期</label>
+                        <div id="eventDetailStartDate"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight: 600;">结束日期</label>
+                        <div id="eventDetailEndDate"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight: 600;">持续天数</label>
+                        <div id="eventDetailDuration"></div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight: 600;">关联记录</label>
+                        <div id="eventDetailItemsCount"></div>
+                    </div>
+                </div>
+                
+                <!-- 事件描述 -->
+                <div class="mb-4">
+                    <label class="form-label" style="font-weight: 600;">事件描述</label>
+                    <div id="eventDetailDescription" style="white-space: pre-wrap;"></div>
+                </div>
+                
+                <!-- 关联记录 -->
+                <div>
+                    <label class="form-label" style="font-weight: 600;">关联记录</label>
+                    <div id="eventDetailItems" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- 健康事件AI分析模态框 -->
 <div class="modal fade" id="eventAiSummaryModal" tabindex="-1">
