@@ -649,8 +649,23 @@ small {
                         {% endif %}
                     </div>
 
-                    <!-- 报告选择 -->
+                    <!-- 事件选择 -->
                     <div class="mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-calendar-event"></i> 健康事件（可选）
+                        </label>
+                        <input type="hidden" name="event_mode" id="eventMode" value="no_event">
+                        <button type="button" class="btn btn-outline-success w-100" onclick="openEventModal()">
+                            <i class="bi bi-calendar-check"></i> <span id="eventButtonText">选择健康事件</span>
+                        </button>
+                        <!-- 事件状态显示 -->
+                        <div id="selectedEventDisplay" class="mt-2">
+                            <small class="text-muted"><i class="bi bi-info-circle"></i> 选择健康事件可自动包含关联的报告和药单</small>
+                        </div>
+                    </div>
+
+                    <!-- 报告选择 -->
+                    <div class="mb-3" id="reportSelectionSection">
                         <label class="form-label">
                             <i class="bi bi-clipboard-check"></i> 体检报告
                         </label>
@@ -664,7 +679,7 @@ small {
                     </div>
 
                     <!-- 药单选择 -->
-                    <div class="mb-4">
+                    <div class="mb-4" id="medicationSelectionSection">
                         <label class="form-label">
                             <i class="bi bi-capsule"></i> 药单（可选）
                         </label>
@@ -755,6 +770,84 @@ small {
         </div>
 
       </div>
+</div>
+
+<!-- 事件选择弹窗 -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-calendar-event"></i> 选择健康事件
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {% if events %}
+                    <!-- 不使用事件选项 -->
+                    <div class="form-check mb-3 p-3 border rounded bg-light">
+                        <input type="checkbox" class="form-check-input" id="noEventCheckbox" onchange="handleNoEventChange()" checked>
+                        <label class="form-check-label w-100" for="noEventCheckbox">
+                            <strong class="text-secondary">
+                                <i class="bi bi-chat-text"></i> 不使用健康事件
+                            </strong>
+                            <div class="text-muted small">
+                                单独选择报告和药单
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- 事件列表 -->
+                    <div style="max-height: 400px; overflow-y: auto;">
+                    {% for event in events %}
+                        <div class="form-check mb-2 p-3 border rounded" style="background-color: white;">
+                            <input type="radio" name="selected_event" value="{{ event.id }}"
+                                   class="form-check-input event-radio" id="event_{{ event.id }}" onchange="handleEventRadioChange()">
+                            <label class="form-check-label w-100" for="event_{{ event.id }}">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ event.name }}</strong>
+                                        <span class="badge bg-secondary ms-2">
+                                            {{ event.get_event_type_display }}
+                                        </span>
+                                        <span class="badge ms-2 {% if event.status == 'recovered' %}bg-success{% elif event.status == 'pending' %}bg-warning{% else %}bg-info{% endif %}">
+                                            {{ event.get_status_display }}
+                                        </span>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-calendar"></i> {{ event.start_date|date:"Y年m月d日" }}{% if event.end_date %} - {{ event.end_date|date:"Y年m月d日" }}{% endif %}
+                                            <span class="ms-2">
+                                                <i class="bi bi-paperclip"></i> {{ event.get_item_count }} 条记录
+                                            </span>
+                                        </div>
+                                        {% if event.description %}
+                                            <div class="text-muted small mt-1">
+                                                <i class="bi bi-card-text"></i> {{ event.description }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                        <p class="mt-2">暂无健康事件</p>
+                        <small class="text-muted">
+                            请先创建健康事件，再选择进行咨询
+                        </small>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" onclick="confirmEventSelection()">
+                    <i class="bi bi-check-circle"></i> 确认选择
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- 报告选择弹窗 -->
@@ -1257,6 +1350,111 @@ function loadConversationResources(conversationId) {
     .catch(error => {
         console.error('加载对话资源失败:', error);
     });
+}
+
+// ==================== 事件选择相关 ====================
+
+// 保存事件选择状态
+let eventSelectionState = {
+    noEvent: true,
+    selectedEventId: null,
+    selectedEventName: null
+};
+
+function openEventModal() {
+    const noEventCheckbox = document.getElementById('noEventCheckbox');
+    if (noEventCheckbox) {
+        noEventCheckbox.checked = eventSelectionState.noEvent;
+        if (eventSelectionState.selectedEventId) {
+            const selectedRadio = document.getElementById(`event_${eventSelectionState.selectedEventId}`);
+            if (selectedRadio) {
+                selectedRadio.checked = true;
+            }
+        }
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('eventModal'));
+    modal.show();
+}
+
+function handleNoEventChange() {
+    const noEventCheckbox = document.getElementById('noEventCheckbox');
+
+    if (!noEventCheckbox) return;
+
+    if (noEventCheckbox.checked) {
+        // 不使用事件：清空所有事件选择
+        document.querySelectorAll('.event-radio').forEach(rb => rb.checked = false);
+    }
+}
+
+function handleEventRadioChange() {
+    const noEventCheckbox = document.getElementById('noEventCheckbox');
+
+    // 当勾选任何事件时，自动取消"不使用事件"
+    const checkedEvent = document.querySelector('.event-radio:checked');
+    if (checkedEvent && noEventCheckbox) {
+        noEventCheckbox.checked = false;
+    }
+}
+
+function confirmEventSelection() {
+    const noEventCheckbox = document.getElementById('noEventCheckbox');
+    const eventModeInput = document.getElementById('eventMode');
+    const eventButtonText = document.getElementById('eventButtonText');
+    const selectedEventDisplay = document.getElementById('selectedEventDisplay');
+    const reportSelectionSection = document.getElementById('reportSelectionSection');
+    const medicationSelectionSection = document.getElementById('medicationSelectionSection');
+
+    const checkedEvent = document.querySelector('.event-radio:checked');
+
+    console.log('确认事件选择:');
+    console.log('- 不使用事件:', noEventCheckbox.checked);
+    console.log('- 选中的事件ID:', checkedEvent ? checkedEvent.value : '无');
+
+    eventSelectionState.noEvent = noEventCheckbox.checked;
+    eventSelectionState.selectedEventId = checkedEvent ? checkedEvent.value : null;
+
+    if (noEventCheckbox.checked || !checkedEvent) {
+        // 不使用事件
+        eventModeInput.value = 'no_event';
+        eventSelectionState.selectedEventName = null;
+        eventButtonText.textContent = '选择健康事件';
+        selectedEventDisplay.innerHTML = '<small class="text-muted"><i class="bi bi-info-circle"></i> 选择健康事件可自动包含关联的报告和药单</small>';
+        
+        // 显示报告和药单选择区域
+        if (reportSelectionSection) reportSelectionSection.style.display = 'block';
+        if (medicationSelectionSection) medicationSelectionSection.style.display = 'block';
+    } else {
+        // 使用事件
+        eventModeInput.value = 'select_event';
+        // 获取选中事件的名称
+        const label = checkedEvent.nextElementSibling;
+        const strongElement = label.querySelector('strong');
+        eventSelectionState.selectedEventName = strongElement ? strongElement.textContent : '健康事件';
+        eventButtonText.textContent = eventSelectionState.selectedEventName;
+        
+        // 获取事件的记录数量
+        const itemCountSpan = label.querySelector('.text-muted span:last-child');
+        let itemCountText = '';
+        if (itemCountSpan) {
+            itemCountText = itemCountSpan.textContent.trim();
+        }
+        
+        selectedEventDisplay.innerHTML = `
+            <div class="alert alert-success py-2 mb-0">
+                <i class="bi bi-check-circle"></i> <strong>已选择：</strong> ${eventSelectionState.selectedEventName}
+                ${itemCountText ? ` (${itemCountText})` : ''}
+            </div>
+        `;
+        
+        // 隐藏报告和药单选择区域
+        if (reportSelectionSection) reportSelectionSection.style.display = 'none';
+        if (medicationSelectionSection) medicationSelectionSection.style.display = 'none';
+    }
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('eventModal'));
+    if (modal) modal.hide();
 }
 
 // ==================== 报告选择相关 ====================
@@ -2018,6 +2216,8 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
     let selectedReportIds = reportSelectionState.selectedIds;
     let medicationMode = medicationSelectionState.noMedications ? 'no_medications' : 'select_medications';
     let selectedMedicationIds = medicationSelectionState.selectedIds;
+    let eventMode = eventSelectionState.noEvent ? 'no_event' : 'select_event';
+    let selectedEventId = eventSelectionState.selectedEventId;
 
     // 继续对话且用户未主动修改选择时：不发送“no_reports/no_medications”，让后端复用上次选择
     if (isContinueConversation) {
@@ -2035,7 +2235,9 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
         question: question,
         conversation_mode: conversationMode ? conversationMode.value : 'new_conversation',
         selected_report_ids: selectedReportIds,
-        selected_medication_ids: selectedMedicationIds
+        selected_medication_ids: selectedMedicationIds,
+        event_mode: eventMode,
+        selected_event: selectedEventId
     };
 
     if (reportMode) {
@@ -2144,7 +2346,8 @@ document.getElementById('adviceForm').addEventListener('submit', async function(
                     savedPrompt = data.prompt;
                 } else if (data.content) {
                     fullAnswer += data.content;
-                    document.getElementById('aiAnswer').textContent = fullAnswer;
+                    const aiAnswerHtml = marked.parse(fullAnswer);
+                    document.getElementById('aiAnswer').innerHTML = aiAnswerHtml;
                     const aiAnswerDiv = document.getElementById('aiAnswer');
                     aiAnswerDiv.scrollTop = aiAnswerDiv.scrollHeight;
                 } else if (data.done) {

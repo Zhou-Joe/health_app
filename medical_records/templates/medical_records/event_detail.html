@@ -185,6 +185,9 @@
                 </p>
             </div>
             <div class="d-flex gap-2">
+                <button class="btn btn-info" onclick="showEventAiSummary({{ event.id }})" title="AI智能分析">
+                    <i class="bi bi-stars me-2"></i> AI解读
+                </button>
                 <button class="btn btn-primary" onclick="editEvent()">
                     <i class="bi bi-pencil me-2"></i> 编辑
                 </button>
@@ -394,18 +397,54 @@
         </div>
     </div>
 </div>
+
+<!-- AI解读弹窗 -->
+<div class="modal fade" id="eventAiSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #FFF; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-robot me-2"></i>
+                    AI智能解读
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem;">
+                <div id="eventAiSummaryContent">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-warning" id="regenerateEventSummaryBtn" onclick="generateEventAiSummary(currentEventAiSummaryConversationId)" style="display: none;">
+                    <i class="bi bi-arrow-clockwise me-1"></i> 重新生成
+                </button>
+                <div id="eventExportButtons" style="display: none;">
+                    <a class="btn btn-outline-success" id="exportEventSummaryPdfBtn" href="#" target="_blank">
+                        <i class="bi bi-file-pdf me-1"></i> 导出PDF
+                    </a>
+                    <a class="btn btn-outline-primary" id="exportEventSummaryWordBtn" href="#" target="_blank">
+                        <i class="bi bi-file-word me-1"></i> 导出Word
+                    </a>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-let editEventModal, addItemModal, itemDetailModal;
+let editEventModal, addItemModal, itemDetailModal, eventAiSummaryModal;
 const eventId = {{ event.id }};
 
 document.addEventListener('DOMContentLoaded', function() {
     editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
     addItemModal = new bootstrap.Modal(document.getElementById('addItemModal'));
     itemDetailModal = new bootstrap.Modal(document.getElementById('itemDetailModal'));
+    eventAiSummaryModal = new bootstrap.Modal(document.getElementById('eventAiSummaryModal'));
     loadEventItems();
+    loadAvailableItems();
 });
 
 // 显示记录详情弹窗
@@ -864,6 +903,146 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+let currentEventAiSummaryConversationId = null;
+
+async function showEventAiSummary(eventId) {
+    currentEventAiSummaryConversationId = eventId;
+    const summaryContent = document.getElementById('eventAiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateEventSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在分析事件...</span>
+            </div>
+            <p class="text-muted">AI正在分析健康事件，请稍候...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    
+    eventAiSummaryModal.show();
+    
+    try {
+        const response = await fetch(`/api/events/${eventId}/summary/`);
+        const data = await response.json();
+        
+        if (data.success && data.has_summary) {
+            summaryContent.innerHTML = `
+                <div class="mb-3 text-muted small">
+                    <i class="bi bi-clock"></i> 分析时间：${data.ai_summary_created_at}
+                </div>
+                <div class="ai-content-modal">${marked.parse(data.ai_summary)}</div>
+            `;
+            regenerateBtn.style.display = 'inline-block';
+            showEventExportButtons(eventId);
+        } else {
+            await generateEventAiSummary(eventId);
+        }
+    } catch (error) {
+        console.error('获取AI分析失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 获取分析失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+async function generateEventAiSummary(eventId) {
+    const summaryContent = document.getElementById('eventAiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateEventSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在生成分析...</span>
+            </div>
+            <p class="text-muted">AI正在分析健康事件，请稍候...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/stream-event-ai-summary/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ event_id: eventId })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '请求失败');
+        }
+        
+        if (!response.body) {
+            throw new Error('响应体为空');
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            let buffer = '';
+            
+            for (const char of chunk) {
+                buffer += char;
+                if (char === '\n') {
+                    const line = buffer.trim();
+                    buffer = '';
+                    
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.substring(6);
+                        try {
+                            const data = JSON.parse(dataStr);
+                            
+                            if (data.status === 'generating' || data.status === 'completed') {
+                                if (data.content) {
+                                    fullContent += data.content;
+                                    summaryContent.innerHTML = `
+                                        <div class="ai-content-modal">${marked.parse(fullContent)}</div>
+                                    `;
+                                }
+                            } else if (data.status === 'error') {
+                                throw new Error(data.message || '生成失败');
+                            }
+                        } catch (e) {
+                            console.error('解析数据失败:', e);
+                        }
+                    }
+                }
+            }
+        }
+        
+        regenerateBtn.style.display = 'inline-block';
+        showEventExportButtons(eventId);
+    } catch (error) {
+        console.error('生成AI分析失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 生成分析失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+function showEventExportButtons(eventId) {
+    const exportButtons = document.getElementById('eventExportButtons');
+    const pdfBtn = document.getElementById('exportEventSummaryPdfBtn');
+    const wordBtn = document.getElementById('exportEventSummaryWordBtn');
+    
+    pdfBtn.href = `/events/${eventId}/export-summary/pdf/`;
+    wordBtn.href = `/events/${eventId}/export-summary/word/`;
+    exportButtons.style.display = 'inline-flex';
 }
 </script>
 {% endblock %}

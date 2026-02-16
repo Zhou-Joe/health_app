@@ -2180,6 +2180,8 @@ def stream_ai_advice(request):
         conversation_mode = data.get('conversation_mode', 'new_conversation')
         report_mode = data.get('report_mode')
         medication_mode = data.get('medication_mode')
+        event_mode = data.get('event_mode', 'no_event')
+        selected_event_id = data.get('selected_event')
         conversation = None
 
         # 只在非新对话模式下才加载历史对话
@@ -2189,26 +2191,105 @@ def stream_ai_advice(request):
             except Conversation.DoesNotExist:
                 pass
 
-        # 获取选择的报告ID
-        selected_report_ids = data.get('selected_report_ids', [])
+        # 获取选择的事件（优先处理）
         selected_reports = None
-        if selected_report_ids:
-            from .models import HealthCheckup
-            selected_reports = HealthCheckup.objects.filter(
-                id__in=selected_report_ids,
-                user=request.user
-            )
-
-        # 获取选择的药单ID
-        selected_medication_ids = data.get('selected_medication_ids', [])
         selected_medications = None
-        if selected_medication_ids:
-            from .models import Medication
-            selected_medications = Medication.objects.filter(
-                id__in=selected_medication_ids,
-                user=request.user,
-                is_active=True
-            )
+        selected_event_id_for_save = None
+        
+        # 继续对话时，如果用户没有显式修改事件选择，则复用上次的选择
+        if conversation_mode != 'new_conversation' and conversation:
+            from .models import HealthAdvice
+            latest_advice = HealthAdvice.objects.filter(
+                conversation=conversation,
+                user=request.user
+            ).order_by('-created_at').first()
+
+            if latest_advice:
+                # 如果用户没有显式修改事件模式，并且上次有选择事件，则复用
+                if event_mode == 'no_event' and latest_advice.selected_event:
+                    try:
+                        selected_event_id = latest_advice.selected_event
+                        selected_event_id_for_save = latest_advice.selected_event
+                        event_mode = 'select_event'
+                        print(f"[Web流式AI] 复用上次选择的事件ID: {selected_event_id}")
+                    except Exception as e:
+                        print(f"[Web流式AI] 复用上事件失败: {e}")
+        
+        if event_mode == 'select_event' and selected_event_id:
+            selected_event_id_for_save = selected_event_id
+            try:
+                from .models import HealthEvent, EventItem
+                selected_event = HealthEvent.objects.get(id=selected_event_id, user=request.user)
+                print(f"[Web流式AI] 选择了事件: {selected_event.name} (ID: {selected_event.id})")
+                
+                # 从事件中提取报告和药单
+                event_items = selected_event.get_all_items()
+                selected_reports_list = []
+                selected_medications_list = []
+                
+                for item in event_items:
+                    model_name = item.content_type.model
+                    
+                    if model_name == 'healthcheckup':
+                        try:
+                            from .models import HealthCheckup
+                            checkup = HealthCheckup.objects.get(id=item.object_id, user=request.user)
+                            selected_reports_list.append(checkup)
+                        except HealthCheckup.DoesNotExist:
+                            continue
+                    elif model_name == 'medication':
+                        try:
+                            from .models import Medication
+                            medication = Medication.objects.get(id=item.object_id, user=request.user, is_active=True)
+                            selected_medications_list.append(medication)
+                        except Medication.DoesNotExist:
+                            continue
+                    elif model_name == 'medicationgroup':
+                        try:
+                            from .models import MedicationGroup, Medication
+                            group = MedicationGroup.objects.get(id=item.object_id, user=request.user)
+                            group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
+                            selected_medications_list.extend(group_medications)
+                        except MedicationGroup.DoesNotExist:
+                            continue
+                
+                # 去重
+                selected_reports_list = list(set(selected_reports_list))
+                selected_medications_list = list(set(selected_medications_list))
+                
+                print(f"[Web流式AI] 从事件中获取了 {len(selected_reports_list)} 份报告，{len(selected_medications_list)} 个药单")
+                
+                if selected_reports_list:
+                    from .models import HealthCheckup
+                    selected_reports = HealthCheckup.objects.filter(id__in=[r.id for r in selected_reports_list])
+                
+                if selected_medications_list:
+                    from .models import Medication
+                    selected_medications = Medication.objects.filter(id__in=[m.id for m in selected_medications_list])
+                
+            except HealthEvent.DoesNotExist:
+                pass
+        
+        if event_mode != 'select_event' or not selected_event_id:
+            # 没有选择事件，单独处理报告和药单
+            # 获取选择的报告ID
+            selected_report_ids = data.get('selected_report_ids', [])
+            if selected_report_ids:
+                from .models import HealthCheckup
+                selected_reports = HealthCheckup.objects.filter(
+                    id__in=selected_report_ids,
+                    user=request.user
+                )
+
+            # 获取选择的药单ID
+            selected_medication_ids = data.get('selected_medication_ids', [])
+            if selected_medication_ids:
+                from .models import Medication
+                selected_medications = Medication.objects.filter(
+                    id__in=selected_medication_ids,
+                    user=request.user,
+                    is_active=True
+                )
 
         # 获取AI医生设置
         provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
@@ -2576,7 +2657,8 @@ def stream_ai_advice(request):
                         prompt_sent=prompt,
                         conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
                         selected_reports=json.dumps(selected_report_ids, ensure_ascii=False) if selected_report_ids else None,
-                        selected_medications=json.dumps(selected_medication_ids, ensure_ascii=False) if selected_medication_ids else None
+                        selected_medications=json.dumps(selected_medication_ids, ensure_ascii=False) if selected_medication_ids else None,
+                        selected_event=selected_event_id_for_save if selected_event_id_for_save else None
                     )
 
                     # 发送保存成功的消息

@@ -717,57 +717,137 @@ def ai_health_advice(request):
 
                 advice.conversation = conversation
 
-                # 获取报告模式
-                report_mode = request.POST.get('report_mode', 'select_reports')
-
-                # 获取用户选择的体检报告
-                selected_reports = form.cleaned_data.get('selected_reports')
-
-                # 如果选择"不使用任何报告"，则将selected_reports设为None
-                if report_mode == 'no_reports':
-                    selected_reports = None
-                else:
-                    # 如果选择"选择特定报告"，验证用户必须选择至少一个报告
-                    if not selected_reports or len(selected_reports) == 0:
-                        error_msg = "请选择至少一份体检报告，或选择'不使用任何报告'选项"
-                        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                            return JsonResponse({
-                                'success': False,
-                                'error': error_msg,
-                                'question': advice.question
-                            })
-                        messages.error(request, error_msg)
-                        return redirect('medical_records:ai_health_advice')
-
-                # 获取药单模式
-                medication_mode = request.POST.get('medication_mode', 'no_medications')
-
-                # 获取用户选择的药单和药单组
+                # 获取事件模式（优先处理事件选择）
+                event_mode = request.POST.get('event_mode', 'no_event')
+                
+                selected_event = None
+                selected_event_id_for_save = None
+                selected_reports = []
                 selected_medications = []
-                if medication_mode == 'select_medications':
-                    medication_ids = request.POST.getlist('selected_medications')
-                    if medication_ids:
-                        from .models import Medication, MedicationGroup
-                        for med_id in medication_ids:
-                            if med_id.startswith('group_'):
-                                # 处理药单组
-                                group_id = med_id.replace('group_', '')
-                                try:
-                                    group = MedicationGroup.objects.get(id=group_id, user=request.user)
-                                    # 添加药单组中的所有药物
-                                    group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
-                                    selected_medications.extend(group_medications)
-                                except MedicationGroup.DoesNotExist:
-                                    pass
-                            else:
-                                # 处理单个药单
-                                try:
-                                    medication = Medication.objects.get(id=med_id, user=request.user, is_active=True)
-                                    selected_medications.append(medication)
-                                except Medication.DoesNotExist:
-                                    pass
+                
+                # 继续对话时，如果用户没有显式修改事件选择，则复用上次的选择
+                if conversation_for_context and conversation:
+                    from .models import HealthAdvice
+                    latest_advice = HealthAdvice.objects.filter(
+                        conversation=conversation,
+                        user=request.user
+                    ).order_by('-created_at').first()
+
+                    if latest_advice:
+                        # 如果用户没有显式修改事件模式，并且上次有选择事件，则复用
+                        if event_mode == 'no_event' and latest_advice.selected_event:
+                            try:
+                                selected_event = HealthEvent.objects.get(id=latest_advice.selected_event, user=request.user)
+                                selected_event_id_for_save = latest_advice.selected_event
+                                print(f"[Web AI] 复用上次选择的事件: {selected_event.name}")
+                            except HealthEvent.DoesNotExist:
+                                pass
+                
+                if not selected_event and event_mode == 'select_event':
+                    event_id = request.POST.get('selected_event')
+                    if event_id:
+                        try:
+                            selected_event = HealthEvent.objects.get(id=event_id, user=request.user)
+                            selected_event_id_for_save = event_id
+                        except HealthEvent.DoesNotExist:
+                            pass
+                
+                # 如果选择了事件，从事件中获取报告和药单
+                if selected_event:
+                    print(f"[Web AI] 选择了事件: {selected_event.name} (ID: {selected_event.id})")
+                    
+                    # 修改 get_event_health_data 函数，让它返回 selected_reports 列表
+                    event_items = selected_event.get_all_items()
+                    selected_reports = []
+                    selected_medications = []
+                    
+                    for item in event_items:
+                        model_name = item.content_type.model
+                        
+                        if model_name == 'healthcheckup':
+                            try:
+                                checkup = HealthCheckup.objects.get(id=item.object_id, user=request.user)
+                                selected_reports.append(checkup)
+                            except HealthCheckup.DoesNotExist:
+                                continue
+                        elif model_name == 'medication':
+                            try:
+                                medication = Medication.objects.get(id=item.object_id, user=request.user, is_active=True)
+                                selected_medications.append(medication)
+                            except Medication.DoesNotExist:
+                                continue
+                        elif model_name == 'medicationgroup':
+                            try:
+                                group = MedicationGroup.objects.get(id=item.object_id, user=request.user)
+                                group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
+                                selected_medications.extend(group_medications)
+                            except MedicationGroup.DoesNotExist:
+                                continue
+                    
                     # 去重
+                    selected_reports = list(set(selected_reports))
                     selected_medications = list(set(selected_medications))
+                    
+                    print(f"[Web AI] 从事件中获取了 {len(selected_reports)} 份报告，{len(selected_medications)} 个药单")
+                    
+                    # 保存选中的报告ID
+                    if selected_reports:
+                        checkup_ids = [str(checkup.id) for checkup in selected_reports]
+                        advice.selected_reports = json.dumps(checkup_ids, ensure_ascii=False)
+                else:
+                    # 没有选择事件，单独处理报告和药单
+                    
+                    # 获取报告模式
+                    report_mode = request.POST.get('report_mode', 'select_reports')
+
+                    # 获取用户选择的体检报告
+                    selected_reports = form.cleaned_data.get('selected_reports')
+
+                    # 如果选择"不使用任何报告"，则将selected_reports设为None
+                    if report_mode == 'no_reports':
+                        selected_reports = None
+                    else:
+                        # 如果选择"选择特定报告"，验证用户必须选择至少一个报告
+                        if not selected_reports or len(selected_reports) == 0:
+                            error_msg = "请选择至少一份体检报告，或选择'不使用任何报告'选项"
+                            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                                return JsonResponse({
+                                    'success': False,
+                                    'error': error_msg,
+                                    'question': advice.question
+                                })
+                            messages.error(request, error_msg)
+                            return redirect('medical_records:ai_health_advice')
+                    
+                    # 获取药单模式
+                    medication_mode = request.POST.get('medication_mode', 'no_medications')
+
+                    # 获取用户选择的药单和药单组
+                    selected_medications = []
+                    if medication_mode == 'select_medications':
+                        medication_ids = request.POST.getlist('selected_medications')
+                        if medication_ids:
+                            from .models import Medication, MedicationGroup
+                            for med_id in medication_ids:
+                                if med_id.startswith('group_'):
+                                    # 处理药单组
+                                    group_id = med_id.replace('group_', '')
+                                    try:
+                                        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                                        # 添加药单组中的所有药物
+                                        group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
+                                        selected_medications.extend(group_medications)
+                                    except MedicationGroup.DoesNotExist:
+                                        pass
+                                else:
+                                    # 处理单个药单
+                                    try:
+                                        medication = Medication.objects.get(id=med_id, user=request.user, is_active=True)
+                                        selected_medications.append(medication)
+                                    except Medication.DoesNotExist:
+                                        pass
+                        # 去重
+                        selected_medications = list(set(selected_medications))
 
                 # 生成AI响应，传入选择的报告、药单和对话上下文
                 # 注意：conversation 用于关联消息到对话，conversation_for_context 用于决定是否包含历史上下文
@@ -794,6 +874,9 @@ def ai_health_advice(request):
                 advice.answer = answer
                 advice.prompt_sent = prompt_sent
                 advice.conversation_context = json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None
+
+                # 保存选中的事件ID
+                advice.selected_event = selected_event_id_for_save if selected_event_id_for_save else None
 
                 # 保存选中的报告ID列表
                 if selected_reports:
@@ -917,6 +1000,9 @@ def ai_health_advice(request):
     from .models import Medication, MedicationGroup
     medications = Medication.objects.filter(user=request.user, is_active=True, group__isnull=True).order_by('-created_at')
     medication_groups = MedicationGroup.objects.filter(user=request.user).order_by('-created_at')
+    
+    # 获取用户的健康事件
+    events = HealthEvent.objects.filter(user=request.user).order_by('-start_date')
 
     context = {
         'form': form,
@@ -924,6 +1010,7 @@ def ai_health_advice(request):
         'reports_with_info': reports_with_info,
         'medications': medications,
         'medication_groups': medication_groups,
+        'events': events,
     }
 
     return render(request, 'medical_records/ai_advice.html', context)
@@ -1044,6 +1131,52 @@ def get_user_health_data(user):
                     health_data['trends'][indicator_name]['trend'] = 'decreasing'
 
     return health_data
+
+
+def get_event_health_data(user, event):
+    """获取事件关联的所有健康数据（体检报告、药单等）"""
+    if not event:
+        return None, []
+    
+    selected_reports = []
+    selected_medications = []
+    
+    # 获取事件关联的所有项目
+    event_items = event.get_all_items()
+    
+    for item in event_items:
+        model_name = item.content_type.model
+        
+        if model_name == 'healthcheckup':
+            try:
+                checkup = HealthCheckup.objects.get(id=item.object_id, user=user)
+                selected_reports.append(checkup)
+            except HealthCheckup.DoesNotExist:
+                continue
+        elif model_name == 'medication':
+            try:
+                medication = Medication.objects.get(id=item.object_id, user=user, is_active=True)
+                selected_medications.append(medication)
+            except Medication.DoesNotExist:
+                continue
+        elif model_name == 'medicationgroup':
+            try:
+                group = MedicationGroup.objects.get(id=item.object_id, user=user)
+                group_medications = Medication.objects.filter(group=group, user=user, is_active=True)
+                selected_medications.extend(group_medications)
+            except MedicationGroup.DoesNotExist:
+                continue
+    
+    # 去重
+    selected_reports = list(set(selected_reports))
+    selected_medications = list(set(selected_medications))
+    
+    # 获取体检报告数据
+    health_data = None
+    if selected_reports:
+        health_data = get_selected_reports_health_data(user, selected_reports)
+    
+    return health_data, selected_medications
 
 
 def get_selected_reports_health_data(user, selected_reports):
