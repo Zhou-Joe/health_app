@@ -374,18 +374,195 @@
         </div>
     </div>
 </div>
+
+<!-- 记录详情弹窗 -->
+<div class="modal fade" id="itemDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="border-radius: var(--radius-lg);">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: #FFF; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    <span id="itemDetailTitle"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="itemDetailContent" style="padding: 1.5rem;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-let editEventModal, addItemModal;
+let editEventModal, addItemModal, itemDetailModal;
 const eventId = {{ event.id }};
 
 document.addEventListener('DOMContentLoaded', function() {
     editEventModal = new bootstrap.Modal(document.getElementById('editEventModal'));
     addItemModal = new bootstrap.Modal(document.getElementById('addItemModal'));
+    itemDetailModal = new bootstrap.Modal(document.getElementById('itemDetailModal'));
     loadEventItems();
 });
+
+// 显示记录详情弹窗
+async function showItemDetail(contentType, objectId) {
+    try {
+        let apiUrl, title;
+        
+        if (contentType === 'healthcheckup') {
+            apiUrl = `/api/checkups/${objectId}/`;
+            title = '体检报告详情';
+        } else if (contentType === 'medication') {
+            apiUrl = `/api/medications/${objectId}/`;
+            title = '药单详情';
+        } else if (contentType === 'healthindicator') {
+            // 健康指标没有独立详情，先显示基本信息
+            document.getElementById('itemDetailTitle').textContent = '健康指标详情';
+            document.getElementById('itemDetailContent').innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-graph-up" style="font-size: 3rem; color: var(--primary);"></i>
+                    <p class="mt-3 text-muted">健康指标详情将在未来版本中提供</p>
+                </div>
+            `;
+            itemDetailModal.show();
+            return;
+        } else {
+            // 其他类型
+            document.getElementById('itemDetailTitle').textContent = '记录详情';
+            document.getElementById('itemDetailContent').innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: var(--text-muted);"></i>
+                    <p class="mt-3 text-muted">暂无详情信息</p>
+                </div>
+            `;
+            itemDetailModal.show();
+            return;
+        }
+        
+        document.getElementById('itemDetailTitle').textContent = title;
+        document.getElementById('itemDetailContent').innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-3 text-muted">正在加载详情...</p>
+            </div>
+        `;
+        itemDetailModal.show();
+        
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data.success) {
+            renderItemDetail(contentType, data);
+        }
+    } catch (error) {
+        console.error('加载记录详情失败:', error);
+        document.getElementById('itemDetailContent').innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-exclamation-circle" style="font-size: 3rem; color: var(--danger);"></i>
+                <p class="mt-3 text-muted">加载详情失败</p>
+            </div>
+        `;
+    }
+}
+
+// 渲染记录详情
+function renderItemDetail(contentType, data) {
+    let html = '';
+    
+    if (contentType === 'healthcheckup') {
+        // 渲染体检报告详情
+        const checkup = data.checkup;
+        html = `
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">体检机构</label>
+                <div>${checkup.hospital || '未知'}</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">体检日期</label>
+                <div>${checkup.checkup_date}</div>
+            </div>
+            ${checkup.notes ? `
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">备注</label>
+                <div style="white-space: pre-wrap;">${checkup.notes}</div>
+            </div>
+            ` : ''}
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">健康指标</label>
+                <div>
+                    ${data.indicators ? data.indicators.map(ind => `
+                        <div class="card mb-2" style="border: 1px solid var(--border-color);">
+                            <div class="card-body py-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="fw-bold">${ind.indicator_name}</span>
+                                        <span class="ms-2">${ind.value}${ind.unit || ''}</span>
+                                    </div>
+                                    <span class="badge ${ind.status === 'normal' ? 'bg-success' : ind.status === 'abnormal' ? 'bg-danger' : 'bg-warning text-dark'}">
+                                        ${ind.status === 'normal' ? '正常' : ind.status === 'abnormal' ? '异常' : '关注'}
+                                    </span>
+                                </div>
+                                ${ind.reference_range ? `<small class="text-muted">参考范围: ${ind.reference_range}</small>` : ''}
+                            </div>
+                        </div>
+                    `).join('') : '<p class="text-muted">暂无指标数据</p>'}
+                </div>
+            </div>
+            <div class="mt-4 text-end">
+                <a href="/checkups/${checkup.id}/" class="btn btn-primary" target="_blank">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>查看完整页面
+                </a>
+            </div>
+        `;
+    } else if (contentType === 'medication') {
+        // 渲染药单详情
+        const medication = data.medication;
+        html = `
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">药单名称</label>
+                <div>${medication.name}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" style="font-weight: 600;">开始日期</label>
+                    <div>${medication.start_date}</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" style="font-weight: 600;">结束日期</label>
+                    <div>${medication.end_date || '无'}</div>
+                </div>
+            </div>
+            ${medication.notes ? `
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">备注</label>
+                <div style="white-space: pre-wrap;">${medication.notes}</div>
+            </div>
+            ` : ''}
+            <div class="mb-3">
+                <label class="form-label" style="font-weight: 600;">药品列表</label>
+                <div>
+                    ${data.medications ? data.medications.map(med => `
+                        <div class="card mb-2" style="border: 1px solid var(--border-color);">
+                            <div class="card-body py-2">
+                                <div class="fw-bold">${med.name}</div>
+                                ${med.dosage ? `<small class="text-muted">剂量: ${med.dosage}</small>` : ''}
+                                ${med.frequency ? `<small class="text-muted ms-2">频次: ${med.frequency}</small>` : ''}
+                            </div>
+                        </div>
+                    `).join('') : '<p class="text-muted">暂无药品</p>'}
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('itemDetailContent').innerHTML = html;
+}
 
 // 加载事件关联的记录
 async function loadEventItems() {
@@ -420,7 +597,7 @@ function renderEventItems(items) {
     }
 
     container.innerHTML = items.map(item => `
-        <div class="item-card ${getItemClass(item.content_type)}">
+        <div class="item-card ${getItemClass(item.content_type)}" style="cursor: pointer;" onclick="showItemDetail('${item.content_type}', ${item.object_id})">
             <div class="card-body">
                 <div class="d-flex align-items-start">
                     <div class="item-icon">
@@ -439,7 +616,7 @@ function renderEventItems(items) {
                                     </span>
                                 </small>
                             </div>
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${item.id})">
+                            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); removeItem(${item.id})">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
