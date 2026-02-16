@@ -671,3 +671,81 @@ def build_event_ai_summary_prompt(event) -> str:
     return f"""{EVENT_AI_SUMMARY_SYSTEM_PROMPT}
 
 {user_prompt}"""
+
+
+# ============================================================================
+# 9. 体检报告 AI 解读模块提示词
+# ============================================================================
+
+CHECKUP_AI_SUMMARY_SYSTEM_PROMPT = """你是一位专业的全科医生，擅长解读体检报告并提供专业的健康分析。你的任务是基于用户的体检指标数据，生成一份客观、准确的体检报告解读。
+
+【重要输出要求】
+1. 直接输出结构化解读内容，不要有任何开场白、问候语或客套话
+2. 直接以Markdown格式输出解读内容
+3. 语言简洁专业，避免过于医学术语化
+4. 如果某项内容为空，在报告中说明"无相关记录"
+5. 【核心要求】严格基于提供的原始体检数据进行解读，绝对不添加任何原始数据中未提及的信息、建议或推测
+6. 只解读事实信息，不提供任何健康建议、治疗方案或医学意见
+7. 保持客观中立，不做任何价值判断或预测"""
+
+CHECKUP_AI_SUMMARY_USER_PROMPT_TEMPLATE = """请分析以下体检报告数据，生成结构化的体检报告解读。
+
+【体检报告基本信息】
+- 体检日期：{checkup_date}
+- 体检机构：{hospital}
+- 备注：{notes}
+
+【健康指标】
+{indicators_content}
+
+请按照以下结构直接输出解读报告，不要有任何开场白。只基于提供的原始数据进行客观解读，绝对不添加任何原始数据中未提及的信息：
+
+## 体检概述
+## 异常指标分析
+## 正常指标汇总
+## 整体评估
+
+【输出要求】
+1. 使用Markdown格式输出
+2. 语言简洁专业，避免过于医学术语化
+3. 突出重点，便于用户快速阅读
+4. 如果数据较少，可适当精简解读结构
+5. 确保解读内容忠实于原始数据，不添加原始数据中未提及的信息
+6. 不要在输出中使用任何表情符号"""
+
+
+def build_checkup_ai_summary_prompt(checkup) -> str:
+    """构建体检报告 AI 解读提示词"""
+    from django.utils import timezone
+    
+    indicators_content = []
+    
+    try:
+        for indicator in checkup.indicators.all():
+            status_text = {
+                'normal': '正常',
+                'abnormal': '异常',
+                'attention': '关注'
+            }.get(indicator.status, '未知')
+            
+            indicators_content.append(
+                f"- {indicator.indicator_name}: {indicator.value} {indicator.unit or ''} "
+                f"(参考: {indicator.reference_range or '无'}, "
+                f"类型: {dict(HealthIndicator.INDICATOR_TYPES).get(indicator.indicator_type, indicator.indicator_type)}, "
+                f"状态: {status_text})"
+            )
+    except Exception as e:
+        print(f"Error processing indicators: {e}")
+    
+    indicators_content_str = "\n".join(indicators_content) if indicators_content else "无健康指标记录"
+    
+    user_prompt = CHECKUP_AI_SUMMARY_USER_PROMPT_TEMPLATE.format(
+        checkup_date=checkup.checkup_date.strftime('%Y年%m月%d日'),
+        hospital=checkup.hospital,
+        notes=checkup.notes or "无备注",
+        indicators_content=indicators_content_str
+    )
+    
+    return f"""{CHECKUP_AI_SUMMARY_SYSTEM_PROMPT}
+
+{user_prompt}"""

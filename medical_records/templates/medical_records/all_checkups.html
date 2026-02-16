@@ -247,6 +247,9 @@
                             </span>
                         </td>
                         <td class="text-end pe-4">
+                            <button class="btn btn-outline-info me-2" onclick="showCheckupAiSummary({{ checkup.id }})" title="AI快速解读">
+                                <i class="bi bi-stars"></i> AI解读
+                            </button>
                             <a href="{% url 'medical_records:checkup_detail' checkup.id %}"
                                class="btn btn-view">
                                 <i class="bi bi-eye me-1"></i>查看详情
@@ -336,6 +339,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 function deleteCheckup(checkupId, deleteUrl) {
     if (!confirm('确定要删除这份体检报告吗？删除后无法恢复。')) {
@@ -375,5 +379,209 @@ function deleteCheckup(checkupId, deleteUrl) {
         alert('删除失败：' + error.message);
     });
 }
+
+let currentCheckupAiSummaryId = null;
+
+async function showCheckupAiSummary(checkupId) {
+    currentCheckupAiSummaryId = checkupId;
+    const modal = new bootstrap.Modal(document.getElementById('checkupAiSummaryModal'));
+    const summaryContent = document.getElementById('checkupAiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateCheckupSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在分析体检报告...</span>
+            </div>
+            <p class="text-muted">AI正在分析体检报告，请稍候...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    
+    modal.show();
+    
+    try {
+        const response = await fetch(`/api/checkups/${checkupId}/summary/`);
+        const data = await response.json();
+        
+        if (data.success && data.has_summary) {
+            summaryContent.innerHTML = `
+                <div class="mb-3 text-muted small">
+                    <i class="bi bi-clock"></i> 分析时间：${data.ai_summary_created_at}
+                </div>
+                <div class="ai-content-modal">${marked.parse(data.ai_summary)}</div>
+            `;
+            regenerateBtn.style.display = 'inline-block';
+        } else {
+            await generateCheckupAiSummary(checkupId);
+        }
+    } catch (error) {
+        console.error('获取AI分析失败:', error);
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 获取分析失败：${error.message}
+            </div>
+        `;
+    }
+}
+
+async function generateCheckupAiSummary(checkupId) {
+    const summaryContent = document.getElementById('checkupAiSummaryContent');
+    const regenerateBtn = document.getElementById('regenerateCheckupSummaryBtn');
+    
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在生成分析...</span>
+            </div>
+            <p class="text-muted">AI正在分析体检报告，请稍候...</p>
+        </div>
+    `;
+    regenerateBtn.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/stream-checkup-ai-summary/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({ checkup_id: checkupId })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '请求失败');
+        }
+        
+        if (!response.body) {
+            throw new Error('响应体为空');
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            let buffer = '';
+            
+            for (const char of chunk) {
+                buffer += char;
+                if (char === '\n') {
+                    const line = buffer.trim();
+                    buffer = '';
+                    
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            
+                            if (data.content) {
+                                fullContent += data.content;
+                                summaryContent.innerHTML = `
+                                    <div class="ai-content-modal">${marked.parse(fullContent)}</div>
+                                `;
+                            } else if (data.done) {
+                                regenerateBtn.style.display = 'inline-block';
+                            } else if (data.error) {
+                                throw new Error(data.error);
+                            } else if (data.save_error) {
+                                console.warn('保存失败:', data.save_error);
+                                if (data.trace) console.warn('详细 trace:', data.trace);
+                            }
+                        } catch (e) {
+                            console.warn('解析响应行失败，跳过:', e.message);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('生成AI分析失败:', error);
+        let errorMsg = error.message || '未知错误';
+        if (error.name === 'TypeError' && error.message === 'Load failed') {
+            errorMsg = '网络请求失败，请检查网络连接或刷新页面重试';
+        }
+        summaryContent.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 生成分析失败：${errorMsg}
+            </div>
+        `;
+    }
+}
+
+async function regenerateCheckupAiSummary() {
+    if (!currentCheckupAiSummaryId) return;
+    
+    const summaryContent = document.getElementById('checkupAiSummaryContent');
+    summaryContent.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">AI正在重新分析...</span>
+            </div>
+            <p class="text-muted">AI正在重新分析体检报告，请稍候...</p>
+        </div>
+    `;
+    
+    await generateCheckupAiSummary(currentCheckupAiSummaryId);
+}
+
+function getCsrfToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 </script>
 {% endblock %}
+
+<!-- 体检报告AI分析模态框 -->
+<div class="modal fade" id="checkupAiSummaryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle me-3">
+                        <i class="bi bi-stars text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title mb-0">体检报告智能解读</h5>
+                        <small class="text-muted">基于体检指标数据生成全面解读报告</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="checkupAiSummaryContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">AI正在分析...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="exportCheckupSummaryBtns" style="display: none;">
+                </div>
+                <button type="button" class="btn btn-outline-primary me-auto" id="regenerateCheckupSummaryBtn" onclick="regenerateCheckupAiSummary()" style="display: none;">
+                    <i class="bi bi-arrow-clockwise"></i> 重新解读
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

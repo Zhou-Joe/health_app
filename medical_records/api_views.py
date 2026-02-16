@@ -730,6 +730,225 @@ def get_event_ai_summary(request, event_id):
         }, status=500)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_checkup_ai_summary(request, checkup_id):
+    """获取体检报告的AI总结"""
+    from .models import HealthCheckup
+    
+    try:
+        checkup = HealthCheckup.objects.get(id=checkup_id, user=request.user)
+        
+        return JsonResponse({
+            'success': True,
+            'ai_summary': checkup.ai_summary,
+            'ai_summary_created_at': checkup.ai_summary_created_at.strftime('%Y-%m-%d %H:%M:%S') if checkup.ai_summary_created_at else None,
+            'has_summary': bool(checkup.ai_summary)
+        })
+    
+    except HealthCheckup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '体检报告不存在或无权访问'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'获取总结失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def stream_checkup_ai_summary(request):
+    """流式输出体检报告AI总结（使用LangChain）"""
+    import json
+    from django.http import StreamingHttpResponse
+    from .models import SystemSettings, HealthCheckup
+    from .llm_prompts import build_checkup_ai_summary_prompt, CHECKUP_AI_SUMMARY_SYSTEM_PROMPT
+
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': '只支持POST请求'
+        }, status=405)
+
+    try:
+        data = _safe_get_request_json(request)
+        if not isinstance(data, dict):
+            data = {}
+        checkup_id = data.get('checkup_id')
+
+        if not checkup_id:
+            return JsonResponse({
+                'success': False,
+                'error': '体检报告ID不能为空'
+            }, status=400)
+
+        try:
+            checkup = HealthCheckup.objects.get(id=checkup_id, user=request.user)
+        except HealthCheckup.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': '体检报告不存在或无权访问'
+            }, status=404)
+
+        prompt = build_checkup_ai_summary_prompt(checkup)
+
+        provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
+        api_url = None
+        api_key = None
+        model_name = None
+
+        if provider == 'gemini':
+            gemini_config = SystemSettings.get_gemini_config()
+            api_key = gemini_config['api_key']
+            model_name = gemini_config['model_name']
+        else:
+            api_url = SystemSettings.get_setting('ai_doctor_api_url')
+            api_key = SystemSettings.get_setting('ai_doctor_api_key')
+            model_name = SystemSettings.get_setting('ai_doctor_model_name')
+
+        timeout = int(SystemSettings.get_setting('ai_model_timeout', '300'))
+        max_tokens = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
+
+        if provider == 'gemini':
+            if not api_key:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Gemini API密钥未配置'
+                }, status=500)
+        else:
+            if not api_url or not model_name:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'AI医生API未配置'
+                }, status=500)
+
+        is_baichuan = (
+            provider == 'baichuan' or
+            (api_url and 'baichuan' in api_url.lower()) or
+            (model_name and 'Baichuan' in model_name)
+        )
+
+        def generate():
+            nonlocal checkup
+            full_response = ""
+            error_msg = None
+
+            try:
+                print(f"[stream_checkup_ai_summary] Starting LLM call for checkup_id: {checkup.id}")
+                yield f"data: {json.dumps({'prompt': prompt}, ensure_ascii=False)}\n\n"
+
+                if provider == 'gemini':
+                    from langchain_google_genai import ChatGoogleGenerativeAI
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    llm = ChatGoogleGenerativeAI(
+                        model=model_name,
+                        google_api_key=api_key,
+                        temperature=0.7,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages_list = [HumanMessage(content=prompt)]
+
+                    for chunk in llm.stream(messages_list):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            chunk_content = chunk.content
+                            if isinstance(chunk_content, list):
+                                content_text = ""
+                                for item in chunk_content:
+                                    if isinstance(item, str):
+                                        content_text += item
+                                    elif hasattr(item, 'text'):
+                                        content_text += item.text
+                                    elif isinstance(item, dict) and 'text' in item:
+                                        content_text += item['text']
+                                content = content_text
+                            else:
+                                content = str(chunk_content)
+
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+
+                else:
+                    from langchain_openai import ChatOpenAI
+                    from langchain_core.messages import HumanMessage, AIMessage
+
+                    base_url = api_url
+                    if '/chat/completions' in base_url:
+                        base_url = base_url.split('/chat/completions')[0].rstrip('/')
+                    elif base_url.endswith('/'):
+                        base_url = base_url.rstrip('/')
+
+                    llm = ChatOpenAI(
+                        model=model_name,
+                        api_key=api_key or 'not-needed',
+                        base_url=base_url,
+                        temperature=0.3,
+                        max_tokens=max_tokens,
+                        timeout=timeout,
+                        streaming=True
+                    )
+
+                    messages_list = []
+                    if is_baichuan:
+                        messages_list.append(AIMessage(content=CHECKUP_AI_SUMMARY_SYSTEM_PROMPT))
+                        messages_list.append(HumanMessage(content=prompt.replace(CHECKUP_AI_SUMMARY_SYSTEM_PROMPT + '\n\n', '')))
+                    else:
+                        messages_list.append(HumanMessage(content=prompt))
+
+                    for chunk in llm.stream(messages_list):
+                        if hasattr(chunk, 'content') and chunk.content:
+                            content = chunk.content
+                            full_response += content
+                            yield f"data: {json.dumps({'content': content, 'done': False}, ensure_ascii=False)}\n\n"
+
+                    yield f"data: {json.dumps({'done': True}, ensure_ascii=False)}\n\n"
+                    print(f"[stream_checkup_ai_summary] LLM streaming completed, full_response length: {len(full_response)}")
+
+            except Exception as e:
+                error_msg = str(e)
+                import traceback
+                print(f"[stream_checkup_ai_summary] LLM Error: {error_msg}")
+                print(f"[stream_checkup_ai_summary] Trace: {traceback.format_exc()}")
+                yield f"data: {json.dumps({'error': error_msg, 'done': True}, ensure_ascii=False)}\n\n"
+
+            try:
+                if full_response and not error_msg:
+                    from django.utils import timezone
+                    checkup_id = checkup.id
+                    checkup = HealthCheckup.objects.get(id=checkup_id)
+                    checkup.ai_summary = full_response
+                    checkup.ai_summary_created_at = timezone.now()
+                    checkup.save(update_fields=['ai_summary', 'ai_summary_created_at'])
+
+                    yield f"data: {json.dumps({'saved': True, 'checkup_id': checkup.id}, ensure_ascii=False)}\n\n"
+
+            except Exception as save_error:
+                import traceback
+                yield f"data: {json.dumps({'save_error': str(save_error), 'trace': traceback.format_exc()}, ensure_ascii=False)}\n\n"
+
+        response = StreamingHttpResponse(generate(), content_type='text/event-stream; charset=utf-8')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        response['Connection'] = 'keep-alive'
+        return response
+
+    except Exception as e:
+        import traceback
+        return JsonResponse({
+            'success': False,
+            'error': f'生成AI总结失败: {str(e)}',
+            'trace': traceback.format_exc()[:500]
+        }, status=500)
+
+
 def process_document_background(processing_id, file_path):
     """后台处理文档"""
     import threading

@@ -14,6 +14,8 @@ class HealthCheckup(models.Model):
     hospital = models.CharField(max_length=200, verbose_name='体检机构')
     report_file = models.FileField(upload_to='reports/%Y/%m/', blank=True, null=True, verbose_name='报告文件')
     notes = models.TextField(blank=True, null=True, verbose_name='备注')
+    ai_summary = models.TextField(blank=True, null=True, verbose_name='AI解读总结')
+    ai_summary_created_at = models.DateTimeField(blank=True, null=True, verbose_name='AI总结生成时间')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     class Meta:
