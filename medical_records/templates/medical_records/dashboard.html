@@ -873,7 +873,6 @@
 </div>
 
 <!-- 健康事件时间轴 -->
-{% if health_events %}
 <div class="mb-4">
     <div class="events-timeline">
         <div class="events-header">
@@ -901,57 +900,58 @@
 
         <!-- 事件时间轴 - 垂直列表布局 -->
         <div class="events-timeline-wrapper">
-            {% regroup health_events by date|date:"Y" as year_groups %}
-            {% for year_group in year_groups %}
-            <div class="timeline-year-group">
-                <div class="timeline-year-header">
-                    <span class="timeline-year-label">{{ year_group.grouper }}年</span>
-                </div>
-                <div class="timeline-events-list">
-                    {% for event in year_group.list %}
-                    <a href="{% url 'medical_records:event_detail' event.id %}" class="timeline-event-card text-decoration-none">
-                        <div class="event-status-indicator {{ event.type }}"></div>
-                        <div class="event-date-block">
-                            <span class="event-date-day">{{ event.date|date:"d" }}</span>
-                            <span class="event-date-month">{{ event.date|date:"m" }}月</span>
-                        </div>
-                        <div class="event-content-block">
-                            <div class="event-title-row">
-                                <span class="event-title">{{ event.title }}</span>
-                                <span class="event-type-badge {{ event.type }}">
-                                    {% if event.type == 'illness' %}疾病
-                                    {% elif event.type == 'checkup' %}体检
-                                    {% elif event.type == 'chronic_management' %}慢病
-                                    {% elif event.type == 'emergency' %}急诊
-                                    {% elif event.type == 'wellness' %}健康
-                                    {% elif event.type == 'medication_course' %}用药
-                                    {% else %}其他{% endif %}
-                                </span>
-                                {% if event.is_auto_generated %}
-                                <i class="bi bi-sparkles text-info small"></i>
-                                {% endif %}
-                                <button class="btn btn-sm btn-outline-info ms-auto" onclick="showEventAiSummary({{ event.id }}, event)" title="AI智能分析">
-                                    <i class="bi bi-stars"></i>
-                                </button>
+            {% if health_events %}
+                {% regroup health_events by date|date:"Y" as year_groups %}
+                {% for year_group in year_groups %}
+                <div class="timeline-year-group">
+                    <div class="timeline-year-header">
+                        <span class="timeline-year-label">{{ year_group.grouper }}年</span>
+                    </div>
+                    <div class="timeline-events-list">
+                        {% for event in year_group.list %}
+                        <a href="{% url 'medical_records:event_detail' event.id %}" class="timeline-event-card text-decoration-none">
+                            <div class="event-status-indicator {{ event.type }}"></div>
+                            <div class="event-date-block">
+                                <span class="event-date-day">{{ event.date|date:"d" }}</span>
+                                <span class="event-date-month">{{ event.date|date:"m" }}月</span>
                             </div>
-                            {% if event.description %}
-                            <div class="event-description">{{ event.description|truncatechars:50 }}</div>
-                            {% endif %}
-                        </div>
-                    </a>
-                    {% endfor %}
+                            <div class="event-content-block">
+                                <div class="event-title-row">
+                                    <span class="event-title">{{ event.title }}</span>
+                                    <span class="event-type-badge {{ event.type }}">
+                                        {% if event.type == 'illness' %}疾病
+                                        {% elif event.type == 'checkup' %}体检
+                                        {% elif event.type == 'chronic_management' %}慢病
+                                        {% elif event.type == 'emergency' %}急诊
+                                        {% elif event.type == 'wellness' %}健康
+                                        {% elif event.type == 'medication_course' %}用药
+                                        {% else %}其他{% endif %}
+                                    </span>
+                                    {% if event.is_auto_generated %}
+                                    <i class="bi bi-sparkles text-info small"></i>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-outline-info ms-auto" onclick="showEventAiSummary({{ event.id }}, event)" title="AI智能分析">
+                                        <i class="bi bi-stars"></i>
+                                    </button>
+                                </div>
+                                {% if event.description %}
+                                <div class="event-description">{{ event.description|truncatechars:50 }}</div>
+                                {% endif %}
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
                 </div>
-            </div>
-            {% empty %}
+                {% endfor %}
+            {% else %}
             <div class="text-center text-muted py-4">
                 <i class="bi bi-inbox fs-4 d-block mb-2"></i>
                 暂无健康事件，点击"自动聚类"生成事件
             </div>
-            {% endfor %}
+            {% endif %}
         </div>
     </div>
 </div>
-{% endif %}
 
 <div class="row g-4">
     <!-- 左侧：健康指标趋势表格 -->
