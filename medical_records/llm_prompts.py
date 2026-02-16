@@ -604,6 +604,17 @@ def build_event_ai_summary_prompt(event) -> str:
                 except Exception:
                     pass
                     
+            elif content_type.model == 'medicationgroup':
+                medications_content.append(f"\n【药单组 - {obj.name}】")
+                medications_content.append(f"包含药物数量: {obj.medication_count}")
+                if obj.ai_summary:
+                    medications_content.append(f"备注: {obj.ai_summary}")
+                for med in obj.medications.all():
+                    medications_content.append(f"  - {med.medicine_name}: {med.dosage or '未指定剂量'}")
+                    medications_content.append(f"    用药时间: {med.start_date} 至 {med.end_date or '进行中'}")
+                    if med.notes:
+                        medications_content.append(f"    备注: {med.notes}")
+                
             elif content_type.model == 'medication':
                 medications_content.append(f"\n【药单 - {obj.medicine_name}】")
                 medications_content.append(f"用药时间: {obj.start_date} 至 {obj.end_date or '进行中'}")
