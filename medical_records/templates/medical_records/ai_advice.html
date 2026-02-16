@@ -449,10 +449,20 @@ small {
     transition: background-color 0.2s ease;
     padding: 0.75rem;
     border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
 }
 
 .report-selection-list .form-check:hover {
     background-color: var(--bg-soft);
+}
+
+.report-selection-list .form-check-input {
+    margin-top: 0.25rem;
+}
+
+.report-selection-list .form-check-label {
+    margin-left: 1.5rem;
+    width: calc(100% - 1.5rem);
 }
 
 .report-selection-list .form-check-input:checked ~ .form-check-label {
@@ -875,30 +885,65 @@ small {
 
                     <!-- 药单列表 -->
                     <div style="max-height: 400px; overflow-y: auto;">
-                        <div class="list-group">
-                        {% for med in medications %}
-                            <div class="list-group-item">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input medication-checkbox"
-                                           name="selected_medications" value="{{ med.id }}"
-                                           id="med_{{ med.id }}" onchange="handleMedicationCheckboxChange()">
-                                    <label class="form-check-label w-100" for="med_{{ med.id }}">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <strong class="text-primary">{{ med.medicine_name }}</strong>
-                                                <div class="text-muted small">
-                                                    {{ med.dosage }}
+                        {% if medication_groups %}
+                            <h6 class="mb-2 text-primary">
+                                <i class="bi bi-box-seam"></i> 药单组
+                            </h6>
+                            <div class="list-group mb-3">
+                                {% for group in medication_groups %}
+                                    <div class="list-group-item">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input medication-checkbox" 
+                                                   name="selected_medications" value="group_{{ group.id }}"
+                                                   id="med_group_{{ group.id }}" onchange="handleMedicationCheckboxChange()">
+                                            <label class="form-check-label w-100" for="med_group_{{ group.id }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <strong class="text-primary">{{ group.name }}</strong>
+                                                        <div class="text-muted small">
+                                                            包含 {{ group.medication_count }} 个药物
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            创建时间：{{ group.created_at|date:"Y-m-d" }}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div class="text-muted small">
-                                                    {{ med.start_date }} 至 {{ med.end_date }}
-                                                </div>
-                                            </div>
+                                            </label>
                                         </div>
-                                    </label>
-                                </div>
+                                    </div>
+                                {% endfor %}
                             </div>
-                        {% endfor %}
-                        </div>
+                        {% endif %}
+                        
+                        {% if medications %}
+                            <h6 class="mb-2 text-secondary">
+                                <i class="bi bi-capsule"></i> 单个药单
+                            </h6>
+                            <div class="list-group">
+                                {% for med in medications %}
+                                    <div class="list-group-item">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input medication-checkbox" 
+                                                   name="selected_medications" value="{{ med.id }}"
+                                                   id="med_{{ med.id }}" onchange="handleMedicationCheckboxChange()">
+                                            <label class="form-check-label w-100" for="med_{{ med.id }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <strong class="text-secondary">{{ med.medicine_name }}</strong>
+                                                        <div class="text-muted small">
+                                                            {{ med.dosage }}
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            {{ med.start_date }} 至 {{ med.end_date|default:"进行中" }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
 
                     <!-- 选中的统计 -->

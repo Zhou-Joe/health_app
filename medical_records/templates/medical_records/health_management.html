@@ -686,6 +686,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="alert alert-info py-2 mb-3" style="font-size: 0.9rem;">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>操作提示：</strong>勾选左侧组内药物的复选框表示要从组中<strong>移除</strong>，勾选右侧可添加药物的复选框表示要<strong>加入</strong>到组中
+                    </div>
                     <form id="editGroupForm">
                         <input type="hidden" id="editGroupId">
                         <div class="mb-3">
@@ -698,17 +702,35 @@
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">组内药物</label>
-                                <div id="groupMedicationsList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label mb-0">
+                                        <i class="bi bi-box-seam me-1"></i> 组内药物
+                                    </label>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="selectAllGroupMedications()">
+                                        <i class="bi bi-check2-square me-1"></i> 全选移除
+                                    </button>
+                                </div>
+                                <div id="groupMedicationsList" class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                                     <div class="text-muted text-center py-3">加载中...</div>
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">可添加的药物（未分组）</label>
-                                <div id="availableMedicationsList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label mb-0">
+                                        <i class="bi bi-plus-circle me-1"></i> 可添加的药物（未分组）
+                                    </label>
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="selectAllAvailableMedications()">
+                                        <i class="bi bi-check2-square me-1"></i> 全选添加
+                                    </button>
+                                </div>
+                                <div id="availableMedicationsList" class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                                     <div class="text-muted text-center py-3">加载中...</div>
                                 </div>
                             </div>
+                        </div>
+                        <div id="editSelectionSummary" class="alert alert-secondary py-2 mt-3" style="font-size: 0.85rem;">
+                            <i class="bi bi-info-circle me-1"></i>
+                            当前：<span class="text-danger">移除 0 个</span>，<span class="text-success">添加 0 个</span>
                         </div>
                     </form>
                 </div>
@@ -1347,7 +1369,7 @@ async function showEditGroupModal(groupId, groupName, groupNotes) {
             if (groupData.medications.length > 0) {
                 groupListDiv.innerHTML = groupData.medications.map(med => `
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="${med.id}" id="group_med_${med.id}">
+                        <input class="form-check-input" type="checkbox" value="${med.id}" id="group_med_${med.id}" onchange="updateEditSelectionSummary()">
                         <label class="form-check-label" for="group_med_${med.id}">
                             <strong>${med.medicine_name}</strong>
                             <small class="text-muted d-block">${med.dosage}</small>
@@ -1365,7 +1387,7 @@ async function showEditGroupModal(groupId, groupName, groupNotes) {
         if (availableData.success && availableData.medications && availableData.medications.length > 0) {
             availableListDiv.innerHTML = availableData.medications.map(med => `
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" value="${med.id}" id="avail_med_${med.id}">
+                    <input class="form-check-input" type="checkbox" value="${med.id}" id="avail_med_${med.id}" onchange="updateEditSelectionSummary()">
                     <label class="form-check-label" for="avail_med_${med.id}">
                         <strong>${med.medicine_name}</strong>
                         <small class="text-muted d-block">${med.dosage}</small>
@@ -1379,7 +1401,39 @@ async function showEditGroupModal(groupId, groupName, groupNotes) {
         console.error('加载失败:', error);
     }
 
+    updateEditSelectionSummary();
     editGroupModal.show();
+}
+
+function selectAllGroupMedications() {
+    const checkboxes = document.querySelectorAll('#groupMedicationsList input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+    updateEditSelectionSummary();
+}
+
+function selectAllAvailableMedications() {
+    const checkboxes = document.querySelectorAll('#availableMedicationsList input[type="checkbox"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+    });
+    updateEditSelectionSummary();
+}
+
+function updateEditSelectionSummary() {
+    const removeCheckboxes = document.querySelectorAll('#groupMedicationsList input[type="checkbox"]:checked');
+    const addCheckboxes = document.querySelectorAll('#availableMedicationsList input[type="checkbox"]:checked');
+    
+    const summaryDiv = document.getElementById('editSelectionSummary');
+    if (summaryDiv) {
+        summaryDiv.innerHTML = `
+            <i class="bi bi-info-circle me-1"></i>
+            当前：<span class="text-danger">移除 ${removeCheckboxes.length} 个</span>，<span class="text-success">添加 ${addCheckboxes.length} 个</span>
+        `;
+    }
 }
 
 async function updateMedicationGroup() {
@@ -1410,9 +1464,15 @@ async function updateMedicationGroup() {
 
         const data = await response.json();
         if (data.success) {
-            alert(data.message);
-            editGroupModal.hide();
-            window.location.reload();
+            if (data.group_deleted) {
+                alert(data.message);
+                editGroupModal.hide();
+                window.location.reload();
+            } else {
+                alert(data.message);
+                editGroupModal.hide();
+                window.location.reload();
+            }
         } else {
             alert('更新失败：' + (data.error || '未知错误'));
         }

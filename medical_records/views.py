@@ -727,17 +727,32 @@ def ai_health_advice(request):
                 # 获取药单模式
                 medication_mode = request.POST.get('medication_mode', 'no_medications')
 
-                # 获取用户选择的药单
-                selected_medications = None
+                # 获取用户选择的药单和药单组
+                selected_medications = []
                 if medication_mode == 'select_medications':
                     medication_ids = request.POST.getlist('selected_medications')
                     if medication_ids:
-                        from .models import Medication
-                        selected_medications = Medication.objects.filter(
-                            id__in=medication_ids,
-                            user=request.user,
-                            is_active=True
-                        )
+                        from .models import Medication, MedicationGroup
+                        for med_id in medication_ids:
+                            if med_id.startswith('group_'):
+                                # 处理药单组
+                                group_id = med_id.replace('group_', '')
+                                try:
+                                    group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                                    # 添加药单组中的所有药物
+                                    group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
+                                    selected_medications.extend(group_medications)
+                                except MedicationGroup.DoesNotExist:
+                                    pass
+                            else:
+                                # 处理单个药单
+                                try:
+                                    medication = Medication.objects.get(id=med_id, user=request.user, is_active=True)
+                                    selected_medications.append(medication)
+                                except Medication.DoesNotExist:
+                                    pass
+                    # 去重
+                    selected_medications = list(set(selected_medications))
 
                 # 生成AI响应，传入选择的报告、药单和对话上下文
                 # 注意：conversation 用于关联消息到对话，conversation_for_context 用于决定是否包含历史上下文
@@ -774,6 +789,8 @@ def ai_health_advice(request):
                 if selected_medications:
                     medication_ids = [str(m.id) for m in selected_medications]
                     advice.selected_medications = json.dumps(medication_ids, ensure_ascii=False)
+                else:
+                    advice.selected_medications = None
 
                 print(f"[Web AI] 准备保存HealthAdvice到数据库...")
                 print(f"[Web AI] advice.id: {advice.id if advice.id else 'None (尚未保存)'}")
@@ -881,15 +898,17 @@ def ai_health_advice(request):
             'has_attention': HealthIndicator.objects.filter(checkup=report, status='attention').exists(),
         })
 
-    # 获取用户的药单
-    from .models import Medication
-    medications = Medication.objects.filter(user=request.user, is_active=True).order_by('-created_at')
+    # 获取用户的药单和药单组
+    from .models import Medication, MedicationGroup
+    medications = Medication.objects.filter(user=request.user, is_active=True, group__isnull=True).order_by('-created_at')
+    medication_groups = MedicationGroup.objects.filter(user=request.user).order_by('-created_at')
 
     context = {
         'form': form,
         'user_advices': user_advices,
         'reports_with_info': reports_with_info,
         'medications': medications,
+        'medication_groups': medication_groups,
     }
 
     return render(request, 'medical_records/ai_advice.html', context)

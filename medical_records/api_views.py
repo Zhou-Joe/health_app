@@ -5053,10 +5053,21 @@ def api_medication_group_update(request, group_id):
                 group=group
             ).update(group=None)
 
+        current_medication_count = Medication.objects.filter(group=group).count()
+        if current_medication_count == 0:
+            group_name = group.name
+            group.delete()
+            return JsonResponse({
+                'success': True,
+                'message': f'药单组"{group_name}"已自动删除（空集合）',
+                'medication_count': 0,
+                'group_deleted': True
+            })
+
         return JsonResponse({
             'success': True,
             'message': '药单组已更新',
-            'medication_count': Medication.objects.filter(group=group).count()
+            'medication_count': current_medication_count
         })
 
     except Exception as e:
