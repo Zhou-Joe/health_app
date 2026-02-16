@@ -3006,24 +3006,23 @@ def stream_upload_and_process(request):
             )
 
             # 创建或更新文档处理记录
-            document_processing, created = DocumentProcessing.objects.get_or_create(
+            try:
+                # 先尝试删除已存在的记录（因为是OneToOneField，避免冲突）
+                DocumentProcessing.objects.filter(
+                    user=request.user,
+                    health_checkup=health_checkup
+                ).delete()
+            except:
+                pass
+            
+            # 创建新的文档处理记录
+            document_processing = DocumentProcessing.objects.create(
                 user=request.user,
                 health_checkup=health_checkup,
-                defaults={
-                    'workflow_type': workflow_type,
-                    'status': 'pending',
-                    'progress': 0
-                }
+                workflow_type=workflow_type,
+                status='pending',
+                progress=0
             )
-
-            # 如果记录已存在且不是pending状态，重置为pending
-            if not created:
-                document_processing.workflow_type = workflow_type
-                document_processing.status = 'pending'
-                document_processing.progress = 0
-                document_processing.ocr_result = None
-                document_processing.ai_result = None
-                document_processing.save()
 
             # 保存文件到临时位置
             import os
