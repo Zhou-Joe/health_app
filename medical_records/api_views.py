@@ -4764,3 +4764,290 @@ def api_medication_group_detail(request, group_id):
         })
 
     return JsonResponse({'success': False, 'error': '不支持的请求方法'}, status=405)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_medication_group_create(request):
+    """创建药单组（手动选择药物组成）"""
+    from .models import MedicationGroup, Medication
+
+    try:
+        data = json.loads(request.body)
+
+        name = data.get('name', '').strip()
+        medication_ids = data.get('medication_ids', [])
+        notes = data.get('notes', '')
+
+        if not medication_ids:
+            return JsonResponse({
+                'success': False,
+                'error': '请选择要加入药单组的药物'
+            }, status=400)
+
+        if not name:
+            today_str = datetime.now().strftime('%Y-%m-%d')
+            name = f'药单组 {today_str}'
+
+        group = MedicationGroup.objects.create(
+            user=request.user,
+            name=name,
+            ai_summary=notes
+        )
+
+        updated_count = Medication.objects.filter(
+            id__in=medication_ids,
+            user=request.user,
+            group__isnull=True
+        ).update(group=group)
+
+        return JsonResponse({
+            'success': True,
+            'message': f'成功创建药单组，包含 {updated_count} 个药物',
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'ai_summary': group.ai_summary,
+                'medication_count': updated_count,
+            }
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'创建药单组失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_medication_group_checkin(request, group_id):
+    """药单组批量签到"""
+    from .models import MedicationGroup, Medication, MedicationRecord
+
+    try:
+        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+    except MedicationGroup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '药单组不存在或无权访问'
+        }, status=404)
+
+    try:
+        data = json.loads(request.body)
+        record_date = data.get('record_date')
+        frequency = data.get('frequency', 'daily')
+        notes = data.get('notes', '')
+
+        if not record_date:
+            record_date = datetime.now().strftime('%Y-%m-%d')
+
+        record_date_obj = datetime.strptime(record_date, '%Y-%m-%d').date()
+
+        medications = Medication.objects.filter(group=group, is_active=True)
+
+        success_count = 0
+        skipped_count = 0
+
+        for med in medications:
+            existing = MedicationRecord.objects.filter(
+                medication=med,
+                record_date=record_date_obj
+            ).first()
+
+            if existing:
+                skipped_count += 1
+            else:
+                MedicationRecord.objects.create(
+                    medication=med,
+                    record_date=record_date_obj,
+                    frequency=frequency,
+                    notes=notes
+                )
+                success_count += 1
+
+        return JsonResponse({
+            'success': True,
+            'message': f'批量签到完成：成功 {success_count} 个，跳过 {skipped_count} 个',
+            'success_count': success_count,
+            'skipped_count': skipped_count
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'批量签到失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def api_medication_auto_cluster(request):
+    """按时间自动聚类药单"""
+    from .models import MedicationGroup, Medication
+    from collections import defaultdict
+
+    try:
+        data = json.loads(request.body)
+        days_threshold = data.get('days_threshold', 3)
+
+        ungrouped_medications = Medication.objects.filter(
+            user=request.user,
+            group__isnull=True
+        ).order_by('start_date')
+
+        if not ungrouped_medications.exists():
+            return JsonResponse({
+                'success': True,
+                'message': '没有需要聚类的药单',
+                'groups_created': 0
+            })
+
+        clusters = defaultdict(list)
+        current_cluster_start = None
+        current_cluster_meds = []
+
+        for med in ungrouped_medications:
+            if current_cluster_start is None:
+                current_cluster_start = med.start_date
+                current_cluster_meds = [med]
+            else:
+                days_diff = (med.start_date - current_cluster_start).days
+                if days_diff <= days_threshold:
+                    current_cluster_meds.append(med)
+                else:
+                    if len(current_cluster_meds) > 0:
+                        cluster_key = current_cluster_start.strftime('%Y-%m-%d')
+                        clusters[cluster_key] = current_cluster_meds
+                    current_cluster_start = med.start_date
+                    current_cluster_meds = [med]
+
+        if current_cluster_meds:
+            cluster_key = current_cluster_start.strftime('%Y-%m-%d')
+            clusters[cluster_key] = current_cluster_meds
+
+        groups_created = 0
+
+        for cluster_date, meds in clusters.items():
+            if len(meds) < 2:
+                continue
+
+            group_name = f'药单组 {cluster_date}'
+            group = MedicationGroup.objects.create(
+                user=request.user,
+                name=group_name,
+                ai_summary=f'自动聚类：包含 {len(meds)} 个药物，起始日期接近'
+            )
+
+            for med in meds:
+                med.group = group
+                med.save()
+
+            groups_created += 1
+
+        return JsonResponse({
+            'success': True,
+            'message': f'自动聚类完成，创建了 {groups_created} 个药单组',
+            'groups_created': groups_created
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'自动聚类失败: {str(e)}'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+@login_required
+def api_medications_without_group(request):
+    """获取未分组的药单列表"""
+    from .models import Medication
+
+    medications = Medication.objects.filter(
+        user=request.user,
+        group__isnull=True
+    ).order_by('-created_at')
+
+    medication_list = []
+    for med in medications:
+        medication_list.append({
+            'id': med.id,
+            'medicine_name': med.medicine_name,
+            'dosage': med.dosage,
+            'start_date': med.start_date.strftime('%Y-%m-%d'),
+            'end_date': med.end_date.strftime('%Y-%m-%d'),
+            'notes': med.notes,
+            'is_active': med.is_active,
+            'total_days': med.total_days,
+            'days_taken': med.days_taken,
+            'progress_percentage': med.progress_percentage,
+        })
+
+    return JsonResponse({
+        'success': True,
+        'medications': medication_list,
+        'count': len(medication_list)
+    })
+
+
+@csrf_exempt
+@require_http_methods(["PUT"])
+@login_required
+def api_medication_group_update(request, group_id):
+    """更新药单组（添加/移除药物）"""
+    from .models import MedicationGroup, Medication
+
+    try:
+        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+    except MedicationGroup.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '药单组不存在或无权访问'
+        }, status=404)
+
+    try:
+        data = json.loads(request.body)
+
+        if data.get('name'):
+            group.name = data['name'].strip()
+        if data.get('notes') is not None:
+            group.ai_summary = data['notes']
+        group.save()
+
+        if data.get('add_medication_ids'):
+            Medication.objects.filter(
+                id__in=data['add_medication_ids'],
+                user=request.user
+            ).update(group=group)
+
+        if data.get('remove_medication_ids'):
+            Medication.objects.filter(
+                id__in=data['remove_medication_ids'],
+                user=request.user,
+                group=group
+            ).update(group=None)
+
+        return JsonResponse({
+            'success': True,
+            'message': '药单组已更新',
+            'medication_count': Medication.objects.filter(group=group).count()
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': f'更新药单组失败: {str(e)}'
+        }, status=500)

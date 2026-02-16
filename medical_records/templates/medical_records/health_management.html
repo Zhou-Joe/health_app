@@ -479,6 +479,12 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0 fw-bold" style="color: var(--text-primary);">我的药单</h5>
         <div class="d-flex gap-2">
+            <button class="btn btn-success" onclick="showCreateGroupModal()">
+                <i class="bi bi-collection me-1"></i> 创建药单组
+            </button>
+            <button class="btn btn-outline-success" onclick="autoClusterMedications()">
+                <i class="bi bi-magic me-1"></i> 自动聚类
+            </button>
             <button class="btn btn-info" onclick="showRecognizeImageModal()">
                 <i class="bi bi-camera me-1"></i> 拍照识别
             </button>
@@ -490,7 +496,7 @@
 
     {% if medication_groups %}
     <div class="mb-4">
-        <h6 class="mb-3 fw-bold" style="color: var(--text-secondary);">药单组（图片识别）</h6>
+        <h6 class="mb-3 fw-bold" style="color: var(--text-secondary);">药单组</h6>
         {% for group in medication_groups %}
         <div class="card section-card mb-3">
             <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); color: #0369a1;">
@@ -499,8 +505,14 @@
                     <span class="badge ms-2" style="background: #0369a1;">{{ group.medication_count }} 个药物</span>
                 </div>
                 <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-success" onclick="groupCheckin({{ group.id }})" title="批量签到">
+                        <i class="bi bi-check2-all"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-primary" onclick="toggleGroupMedications({{ group.id }})">
                         <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="showEditGroupModal({{ group.id }}, '{{ group.name|escapejs }}', '{{ group.ai_summary|default:''|escapejs }}')" title="编辑">
+                        <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteMedicationGroup({{ group.id }})">
                         <i class="bi bi-trash"></i>
@@ -625,6 +637,81 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
                     <button type="button" class="btn btn-primary" onclick="location.reload()">查看药单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createGroupModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-collection me-2"></i>创建药单组</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createGroupForm">
+                        <div class="mb-3">
+                            <label for="groupName" class="form-label">药单组名称</label>
+                            <input type="text" class="form-control" id="groupName" placeholder="留空将自动生成">
+                        </div>
+                        <div class="mb-3">
+                            <label for="groupNotes" class="form-label">备注</label>
+                            <textarea class="form-control" id="groupNotes" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">选择要加入的药物</label>
+                            <div id="ungroupedMedicationsList" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-muted text-center py-3">加载中...</div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-success" onclick="createMedicationGroup()">创建药单组</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editGroupModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil me-2"></i>编辑药单组</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editGroupForm">
+                        <input type="hidden" id="editGroupId">
+                        <div class="mb-3">
+                            <label for="editGroupName" class="form-label">药单组名称</label>
+                            <input type="text" class="form-control" id="editGroupName">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editGroupNotes" class="form-label">备注</label>
+                            <textarea class="form-control" id="editGroupNotes" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">组内药物</label>
+                                <div id="groupMedicationsList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="text-muted text-center py-3">加载中...</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">可添加的药物（未分组）</label>
+                                <div id="availableMedicationsList" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+                                    <div class="text-muted text-center py-3">加载中...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="updateMedicationGroup()">保存更改</button>
                 </div>
             </div>
         </div>
@@ -1080,6 +1167,229 @@ function toggleGroupMedications(groupId) {
         container.style.display = 'flex';
     } else {
         container.style.display = 'none';
+    }
+}
+
+let createGroupModal;
+let editGroupModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('createGroupModal')) {
+        createGroupModal = new bootstrap.Modal(document.getElementById('createGroupModal'));
+    }
+    if (document.getElementById('editGroupModal')) {
+        editGroupModal = new bootstrap.Modal(document.getElementById('editGroupModal'));
+    }
+});
+
+async function showCreateGroupModal() {
+    document.getElementById('groupName').value = '';
+    document.getElementById('groupNotes').value = '';
+
+    try {
+        const response = await fetch('{% url "medical_records:api_medications_without_group" %}');
+        const data = await response.json();
+
+        const listDiv = document.getElementById('ungroupedMedicationsList');
+        if (data.success && data.medications.length > 0) {
+            listDiv.innerHTML = data.medications.map(med => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${med.id}" id="med_${med.id}">
+                    <label class="form-check-label" for="med_${med.id}">
+                        <strong>${med.medicine_name}</strong>
+                        <small class="text-muted d-block">${med.dosage} | ${med.start_date} ~ ${med.end_date}</small>
+                    </label>
+                </div>
+            `).join('');
+        } else {
+            listDiv.innerHTML = '<div class="text-muted text-center py-3">没有可选择的药物（所有药物都已分组）</div>';
+        }
+    } catch (error) {
+        document.getElementById('ungroupedMedicationsList').innerHTML = '<div class="text-danger text-center py-3">加载失败</div>';
+    }
+
+    createGroupModal.show();
+}
+
+async function createMedicationGroup() {
+    const name = document.getElementById('groupName').value.trim();
+    const notes = document.getElementById('groupNotes').value.trim();
+    const checkboxes = document.querySelectorAll('#ungroupedMedicationsList input[type="checkbox"]:checked');
+    const medicationIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    if (medicationIds.length === 0) {
+        alert('请选择至少一个药物');
+        return;
+    }
+
+    try {
+        const response = await fetch('{% url "medical_records:api_medication_group_create" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: name,
+                notes: notes,
+                medication_ids: medicationIds
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            createGroupModal.hide();
+            window.location.reload();
+        } else {
+            alert('创建失败：' + (data.error || '未知错误'));
+        }
+    } catch (error) {
+        alert('创建失败：' + error);
+    }
+}
+
+async function autoClusterMedications() {
+    if (!confirm('将根据开始日期相近的药单自动创建药单组，确定继续吗？')) return;
+
+    try {
+        const response = await fetch('{% url "medical_records:api_medication_auto_cluster" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ days_threshold: 3 })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('聚类失败：' + (data.error || '未知错误'));
+        }
+    } catch (error) {
+        alert('聚类失败：' + error);
+    }
+}
+
+async function groupCheckin(groupId) {
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_medication_group_checkin" 0 %}`.replace('0', groupId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                record_date: today,
+                frequency: 'daily'
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            window.location.reload();
+        } else {
+            alert('签到失败：' + (data.error || '未知错误'));
+        }
+    } catch (error) {
+        alert('签到失败：' + error);
+    }
+}
+
+async function showEditGroupModal(groupId, groupName, groupNotes) {
+    document.getElementById('editGroupId').value = groupId;
+    document.getElementById('editGroupName').value = groupName;
+    document.getElementById('editGroupNotes').value = groupNotes || '';
+
+    try {
+        const [groupResp, availableResp] = await Promise.all([
+            fetch(`{% url "medical_records:api_medication_groups" %}${groupId}/`),
+            fetch('{% url "medical_records:api_medications_without_group" %}')
+        ]);
+
+        const groupData = await groupResp.json();
+        const availableData = await availableResp.json();
+
+        const groupListDiv = document.getElementById('groupMedicationsList');
+        if (groupData.success && groupData.group && groupData.group.medications) {
+            if (groupData.group.medications.length > 0) {
+                groupListDiv.innerHTML = groupData.group.medications.map(med => `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="${med.id}" id="group_med_${med.id}">
+                        <label class="form-check-label" for="group_med_${med.id}">
+                            <strong>${med.medicine_name}</strong>
+                            <small class="text-muted d-block">${med.dosage}</small>
+                        </label>
+                    </div>
+                `).join('');
+            } else {
+                groupListDiv.innerHTML = '<div class="text-muted text-center py-2">暂无药物</div>';
+            }
+        }
+
+        const availableListDiv = document.getElementById('availableMedicationsList');
+        if (availableData.success && availableData.medications.length > 0) {
+            availableListDiv.innerHTML = availableData.medications.map(med => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${med.id}" id="avail_med_${med.id}">
+                    <label class="form-check-label" for="avail_med_${med.id}">
+                        <strong>${med.medicine_name}</strong>
+                        <small class="text-muted d-block">${med.dosage}</small>
+                    </label>
+                </div>
+            `).join('');
+        } else {
+            availableListDiv.innerHTML = '<div class="text-muted text-center py-2">没有可添加的药物</div>';
+        }
+    } catch (error) {
+        console.error('加载失败:', error);
+    }
+
+    editGroupModal.show();
+}
+
+async function updateMedicationGroup() {
+    const groupId = document.getElementById('editGroupId').value;
+    const name = document.getElementById('editGroupName').value.trim();
+    const notes = document.getElementById('editGroupNotes').value.trim();
+
+    const removeCheckboxes = document.querySelectorAll('#groupMedicationsList input[type="checkbox"]:checked');
+    const removeIds = Array.from(removeCheckboxes).map(cb => parseInt(cb.value));
+
+    const addCheckboxes = document.querySelectorAll('#availableMedicationsList input[type="checkbox"]:checked');
+    const addIds = Array.from(addCheckboxes).map(cb => parseInt(cb.value));
+
+    try {
+        const response = await fetch(`{% url "medical_records:api_medication_group_update" 0 %}`.replace('0', groupId), {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: name,
+                notes: notes,
+                add_medication_ids: addIds,
+                remove_medication_ids: removeIds
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(data.message);
+            editGroupModal.hide();
+            window.location.reload();
+        } else {
+            alert('更新失败：' + (data.error || '未知错误'));
+        }
+    } catch (error) {
+        alert('更新失败：' + error);
     }
 }
 {% endif %}
