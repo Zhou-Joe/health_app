@@ -621,51 +621,55 @@
                     <div class="tab-pane fade" id="workflow-panel" role="tabpanel">
                         <div class="section-card">
                             <div class="section-title">
-                                <i class="bi bi-diagram-3"></i> 默认处理工作流
+                                <i class="bi bi-diagram-3"></i> 文件处理工作流
                             </div>
                             <div class="info-box">
                                 <i class="bi bi-info-circle"></i>
-                                选择系统默认使用的文档处理工作流。不同的工作流适用于不同的场景。
+                                系统会根据文件类型自动选择工作流：PDF文件使用OCR工作流，图片文件使用多模态大模型。
                             </div>
                             <div class="mb-4">
-                                <label for="{{ form.default_workflow.id_for_label }}" class="form-label fw-bold">
-                                    {{ form.default_workflow.label }}
+                                <label for="{{ form.pdf_ocr_workflow.id_for_label }}" class="form-label fw-bold">
+                                    {{ form.pdf_ocr_workflow.label }}
                                 </label>
-                                {{ form.default_workflow }}
+                                {{ form.pdf_ocr_workflow }}
+                                <div class="form-text mt-2 text-muted">
+                                    PDF文件会自动使用此OCR工作流进行处理
+                                </div>
                             </div>
 
                             <h6 class="fw-bold mb-3">工作流说明</h6>
                             <div class="row">
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
                                         <div class="card-body">
                                             <h6 class="card-title" style="color: var(--primary);">
-                                                <i class="bi bi-gear-fill"></i> MinerU Pipeline
+                                                <i class="bi bi-gear-fill"></i> MinerU Pipeline (OCR + LLM)
                                             </h6>
-                                            <p class="card-text small text-muted">使用MinerU Pipeline进行OCR文字识别，然后使用LLM提取结构化数据。成熟稳定的传统工作流。</p>
+                                            <p class="card-text small text-muted">
+                                                <strong>适用文件：</strong>PDF文件<br>
+                                                <strong>特点：</strong>成熟稳定的传统工作流，OCR识别准确度高，支持复杂格式表格
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
+                                <div class="col-md-6 mb-3">
                                     <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
                                         <div class="card-body">
                                             <h6 class="card-title" style="color: var(--info);">
-                                                <i class="bi bi-gear-fill"></i> MinerU VLM
+                                                <i class="bi bi-gear-fill"></i> MinerU VLM (OCR + LLM)
                                             </h6>
-                                            <p class="card-text small text-muted">使用MinerU VLM进行OCR文字识别，然后使用LLM提取结构化数据。增强版的OCR工作流。</p>
+                                            <p class="card-text small text-muted">
+                                                <strong>适用文件：</strong>PDF文件<br>
+                                                <strong>特点：</strong>增强版OCR工作流，VLM视觉理解能力，手写文字识别更强
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card h-100" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
-                                        <div class="card-body">
-                                            <h6 class="card-title" style="color: var(--success);">
-                                                <i class="bi bi-eye-fill"></i> 多模态大模型
-                                            </h6>
-                                            <p class="card-text small text-muted">直接使用多模态大模型理解文档内容并提取数据。处理复杂布局、表格和手写文字可能表现更好。</p>
-                                        </div>
-                                    </div>
-                                </div>
+                            </div>
+
+                            <div class="alert alert-success mt-3">
+                                <i class="bi bi-lightbulb"></i>
+                                <strong>图片文件自动使用多模态大模型</strong>：JPG、PNG等图片格式会自动使用多模态大模型直接识别，无需OCR步骤，处理速度更快。
                             </div>
                         </div>
                     </div>

@@ -414,77 +414,8 @@
                                 </div>
                             </div>
 
-                            <!-- 工作流模式选择 -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <label for="workflow_type" class="form-label">
-                                        <i class="bi bi-gear"></i> 处理模式 <span class="text-danger">*</span>
-                                    </label>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="card workflow-option" data-workflow="ocr_llm">
-                                                <div class="card-body">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="workflow_type"
-                                                               id="workflow_ocr_llm" value="ocr_llm" checked>
-                                                        <label class="form-check-label" for="workflow_ocr_llm">
-                                                            <strong>OCR + LLM 模式</strong>
-                                                        </label>
-                                                    </div>
-                                                    <div class="small text-muted mt-2">
-                                                        <i class="bi bi-check-circle text-success"></i> 成熟稳定的传统工作流<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 适合处理PDF文件<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 支持复杂格式表格<br>
-                                                        <i class="bi bi-check-circle text-success"></i> OCR识别准确度高
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card workflow-option" data-workflow="vlm_transformers">
-                                                <div class="card-body">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="workflow_type"
-                                                               id="workflow_vlm_transformers" value="vlm_transformers">
-                                                        <label class="form-check-label" for="workflow_vlm_transformers">
-                                                            <strong>VLM Transformers 模式</strong>
-                                                        </label>
-                                                    </div>
-                                                    <div class="small text-muted mt-2">
-                                                        <i class="bi bi-check-circle text-success"></i> 增强版OCR工作流<br>
-                                                        <i class="bi bi-check-circle text-success"></i> VLM视觉理解能力<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 手写文字识别更强<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 适合复杂布局文档
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <div class="card workflow-option" data-workflow="vl_model">
-                                                <div class="card-body">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio" name="workflow_type"
-                                                               id="workflow_vl_model" value="vl_model">
-                                                        <label class="form-check-label" for="workflow_vl_model">
-                                                            <strong>多模态大模型模式</strong>
-                                                        </label>
-                                                    </div>
-                                                    <div class="small text-muted mt-2">
-                                                        <i class="bi bi-check-circle text-success"></i> 直接理解文档内容<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 图片文件处理最快<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 支持症状照片分析<br>
-                                                        <i class="bi bi-check-circle text-success"></i> 无需中间转换步骤
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="form-text">
-                                        <i class="bi bi-info-circle text-info"></i> 
-                                        <strong>建议：</strong>PDF文件推荐使用OCR + LLM模式，图片文件推荐使用多模态大模型模式
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- 工作流自动选择（隐藏字段） -->
+                            <input type="hidden" name="workflow_type" id="workflow_type" value="">
 
                             <!-- 文件上传区域 -->
                             <div class="row mb-4">
@@ -778,14 +709,32 @@
 <script>
 let currentProcessingId = null;
 let progressInterval = null;
+let pdfOcrWorkflow = 'ocr_llm';
 
 // 页面加载时的初始化
 document.addEventListener('DOMContentLoaded', function() {
     loadHospitalDropdown();
-    setupWorkflowSelection();
-    // 自动检查服务状态
+    loadPdfOcrWorkflow();
     checkServiceStatus();
 });
+
+// 加载PDF OCR工作流设置
+async function loadPdfOcrWorkflow() {
+    try {
+        const response = await fetch('{% url "medical_records:api_check_services" %}', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            pdfOcrWorkflow = result.pdf_ocr_workflow || 'ocr_llm';
+        }
+    } catch (error) {
+        console.error('加载工作流设置失败:', error);
+    }
+}
 
 // 检查服务状态
 async function checkServiceStatus() {
@@ -901,15 +850,28 @@ function handleFileSelect(file) {
     const uploadContent = document.querySelector('.upload-content');
     const fileInfo = document.querySelector('.file-info');
     const submitBtn = document.getElementById('submitBtn');
+    const workflowInput = document.getElementById('workflow_type');
     
     if (fileName) fileName.textContent = file.name;
     if (fileSize) fileSize.textContent = formatFileSize(file.size);
     
+    const isPdf = file.name.toLowerCase().endsWith('.pdf');
+    
     if (fileIcon) {
-        if (file.name.toLowerCase().endsWith('.pdf')) {
+        if (isPdf) {
             fileIcon.className = 'bi bi-file-earmark-pdf text-danger me-3';
         } else {
             fileIcon.className = 'bi bi-file-earmark-image text-primary me-3';
+        }
+    }
+    
+    if (workflowInput) {
+        if (isPdf) {
+            workflowInput.value = pdfOcrWorkflow;
+            console.log('[自动选择] PDF文件，使用OCR工作流:', pdfOcrWorkflow);
+        } else {
+            workflowInput.value = 'vl_model';
+            console.log('[自动选择] 图片文件，使用多模态大模型');
         }
     }
     
@@ -936,69 +898,6 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// 设置工作流选择
-function setupWorkflowSelection() {
-    const workflowOptions = document.querySelectorAll('.workflow-option');
-    
-    workflowOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const radio = this.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-                updateWorkflowSelection();
-            }
-        });
-    });
-    
-    updateWorkflowSelection();
-}
-
-function updateWorkflowSelection() {
-    const options = document.querySelectorAll('.workflow-option');
-    const selectedRadio = document.querySelector('input[name="workflow_type"]:checked');
-    
-    options.forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    if (selectedRadio) {
-        const selectedOption = selectedRadio.closest('.workflow-option');
-        if (selectedOption) {
-            selectedOption.classList.add('selected');
-        }
-        
-        // 更新工作流信息
-        const workflowInfo = {
-            'ocr_llm': {
-                title: 'OCR + LLM 模式 (传统工作流)',
-                description: '使用传统OCR进行文字识别，然后使用LLM提取结构化数据。这是成熟稳定的传统工作流。',
-                badge: '稳定'
-            },
-            'vlm_transformers': {
-                title: 'VLM Transformers 模式 (增强OCR)',
-                description: '使用VLM Transformers进行OCR文字识别，增强版OCR工作流，适合复杂布局文档。',
-                badge: '增强'
-            },
-            'vl_model': {
-                title: '多模态大模型模式 (直接理解)',
-                description: '直接使用多模态大模型理解文档内容并提取数据，处理图片文件最快。',
-                badge: '快速'
-            }
-        };
-        
-        const info = workflowInfo[selectedRadio.value];
-        if (info) {
-            const titleEl = document.getElementById('workflowTitle');
-            const descEl = document.getElementById('workflowDescription');
-            const badgeEl = document.getElementById('workflowStatusBadge');
-            
-            if (titleEl) titleEl.textContent = info.title;
-            if (descEl) descEl.textContent = info.description;
-            if (badgeEl) badgeEl.textContent = info.badge;
-        }
-    }
 }
 
 // 加载医院下拉菜单
@@ -1058,16 +957,6 @@ async function handleUpload() {
     const submitBtn = document.getElementById('submitBtn');
     const uploadSection = document.getElementById('uploadSection');
     const progressSection = document.getElementById('progressSection');
-    const uploadLLMOutputCard = document.getElementById('uploadLLMOutputCard');
-    const uploadLLMOutput = document.getElementById('uploadLLMOutput');
-
-    // 重置进度和输出变量
-    currentProgress = 0;
-    accumulatedLLMOutput = '';
-    
-    // 重置UI
-    if (uploadLLMOutputCard) uploadLLMOutputCard.style.display = 'none';
-    if (uploadLLMOutput) uploadLLMOutput.textContent = '';
 
     if (submitBtn) submitBtn.disabled = true;
 
@@ -1142,37 +1031,17 @@ async function handleUpload() {
     }
 }
 
-let currentProgress = 0;
-let accumulatedLLMOutput = '';
-
 function handleStreamData(data) {
     const statusDetails = document.getElementById('statusDetails');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
     const uploadLogStatus = document.getElementById('uploadLogStatus');
-    const uploadLLMOutputCard = document.getElementById('uploadLLMOutputCard');
-    const uploadLLMOutput = document.getElementById('uploadLLMOutput');
 
     if (data.error) {
         showError(data.error);
         if (uploadLogStatus) {
             uploadLogStatus.textContent = '失败';
             uploadLogStatus.className = 'badge bg-danger small';
-        }
-        return;
-    }
-
-    if (data.status === 'llm_token') {
-        // 处理LLM流式token输出
-        if (data.token) {
-            accumulatedLLMOutput += data.token;
-            if (uploadLLMOutput) {
-                uploadLLMOutput.textContent = accumulatedLLMOutput;
-                uploadLLMOutput.scrollTop = uploadLLMOutput.scrollHeight;
-            }
-            if (uploadLLMOutputCard && uploadLLMOutputCard.style.display === 'none') {
-                uploadLLMOutputCard.style.display = 'block';
-            }
         }
         return;
     }
@@ -1208,29 +1077,19 @@ function handleStreamData(data) {
     }
 
     // 根据状态更新进度条
-    let newProgress = null;
-    if (data.status === 'vlm_start') newProgress = 30;
-    else if (data.status === 'saving_start') newProgress = 80;
-    else if (data.status === 'ocr_start') newProgress = 20;
-    else if (data.status === 'ocr_complete') newProgress = 50;
+    let progress = 0;
+    if (data.status === 'vlm_start') progress = 30;
+    else if (data.status === 'saving_start') progress = 80;
+    else if (data.status === 'ocr_start') progress = 20;
+    else if (data.status === 'ocr_complete') progress = 50;
     else if (data.status === 'ocr_processing') {
         // OCR处理中的心跳状态，不改变进度，只更新消息
-        newProgress = null;
+        progress = null;
     }
-    else if (data.status === 'ai_start') {
-        newProgress = 60;
-        // 重置LLM输出积累
-        accumulatedLLMOutput = '';
-        if (uploadLLMOutput) uploadLLMOutput.textContent = '';
-    }
-    else if (data.status === 'ai_complete') newProgress = 75;
+    else if (data.status === 'ai_start') progress = 60;
 
-    // 只有当新进度大于当前进度时才更新，防止进度回退
-    if (newProgress !== null && newProgress > currentProgress) {
-        currentProgress = newProgress;
-        if (progressBar) progressBar.style.width = currentProgress + '%';
-        if (progressText) progressText.textContent = currentProgress + '%';
-    }
+    if (progress !== null && progressBar) progressBar.style.width = progress + '%';
+    if (progress !== null && progressText) progressText.textContent = progress + '%';
 }
 
 function startProgressTracking() {

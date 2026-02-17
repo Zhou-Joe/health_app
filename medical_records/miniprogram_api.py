@@ -206,7 +206,15 @@ def miniprogram_upload_report(request):
         checkup_date = request.POST.get('checkup_date', datetime.now().strftime('%Y-%m-%d'))
         hospital = request.POST.get('hospital', '')
         notes = request.POST.get('notes', '')
-        workflow_type = request.POST.get('workflow_type', 'vl_model')  # 图片默认使用多模态模型
+        
+        # 根据文件类型自动选择工作流
+        workflow_type = request.POST.get('workflow_type', '')
+        if not workflow_type:
+            file_ext = file.name.lower().split('.')[-1] if '.' in file.name else ''
+            if file_ext == 'pdf':
+                workflow_type = SystemSettings.get_pdf_ocr_workflow()
+            else:
+                workflow_type = 'vl_model'
 
         # 保存文件
         file_name = f"miniprogram_{uuid.uuid4().hex[:8]}_{file.name}"
@@ -702,7 +710,7 @@ def miniprogram_services_status(request):
         return Response({
             'success': True,
             'services': services_status,
-            'default_workflow': SystemSettings.get_default_workflow()
+            'pdf_ocr_workflow': SystemSettings.get_pdf_ocr_workflow()
         })
 
     except Exception as e:
@@ -723,7 +731,7 @@ def miniprogram_system_settings(request):
             'llm_model_name': SystemSettings.get_setting('llm_model_name', 'qwen3-4b-instruct'),
             'vl_model_api_url': SystemSettings.get_setting('vl_model_api_url', ''),
             'vl_model_name': SystemSettings.get_setting('vl_model_name', 'gpt-4-vision-preview'),
-            'default_workflow': SystemSettings.get_default_workflow(),
+            'pdf_ocr_workflow': SystemSettings.get_pdf_ocr_workflow(),
             'ocr_timeout': SystemSettings.get_setting('ocr_timeout', '300'),
             'llm_timeout': SystemSettings.get_setting('llm_timeout', '600'),
             'vl_model_timeout': SystemSettings.get_setting('vl_model_timeout', '300'),
@@ -1492,6 +1500,107 @@ def miniprogram_indicator_types(request):
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_indicator_trends(request):
+    """获取用户的健康指标趋势数据（按类型分组）"""
+    try:
+        import re
+        from collections import defaultdict
+        from django.db.models import Count, Q
+
+        user = request.user
+
+        def extract_numeric_value(value_str):
+            if not value_str:
+                return None
+            match = re.search(r'-?\d+\.?\d*', str(value_str))
+            if match:
+                try:
+                    return float(match.group())
+                except ValueError:
+                    return None
+            return None
+
+        indicator_type = request.query_params.get('type', None)
+
+        indicators_query = HealthIndicator.objects.filter(
+            checkup__user=user
+        ).select_related('checkup').order_by('-checkup__checkup_date')
+
+        if indicator_type:
+            indicators_query = indicators_query.filter(indicator_type=indicator_type)
+
+        indicators_by_name = defaultdict(list)
+        for indicator in indicators_query:
+            indicators_by_name[indicator.indicator_name].append({
+                'date': indicator.checkup.checkup_date.strftime('%Y-%m-%d'),
+                'value': str(indicator.value) if indicator.value else '',
+                'unit': indicator.unit or '',
+                'reference_range': indicator.reference_range or '',
+                'status': indicator.status,
+                'checkup_id': indicator.checkup.id,
+                'hospital': indicator.checkup.hospital,
+            })
+
+        type_names = dict(HealthIndicator.INDICATOR_TYPES)
+
+        trends_by_type = defaultdict(list)
+        for name, records in indicators_by_name.items():
+            if records:
+                indicator_type_key = HealthIndicator.objects.filter(
+                    indicator_name=name
+                ).first()
+                type_key = indicator_type_key.indicator_type if indicator_type_key else 'other'
+                
+                numeric_values = [extract_numeric_value(r['value']) for r in records]
+                numeric_values = [v for v in numeric_values if v is not None]
+                
+                trend = 'stable'
+                if len(numeric_values) >= 2:
+                    if numeric_values[0] > numeric_values[1]:
+                        trend = 'up'
+                    elif numeric_values[0] < numeric_values[1]:
+                        trend = 'down'
+
+                indicator_data = {
+                    'name': name,
+                    'type': type_key,
+                    'type_name': type_names.get(type_key, type_key),
+                    'records': records,
+                    'latest_value': records[0]['value'] if records else '',
+                    'latest_unit': records[0]['unit'] if records else '',
+                    'latest_status': records[0]['status'] if records else '',
+                    'latest_reference': records[0]['reference_range'] if records else '',
+                    'trend': trend,
+                    'record_count': len(records),
+                }
+                trends_by_type[type_key].append(indicator_data)
+
+        result = []
+        for type_key, indicators in trends_by_type.items():
+            result.append({
+                'type': type_key,
+                'type_name': type_names.get(type_key, type_key),
+                'indicators': sorted(indicators, key=lambda x: x['record_count'], reverse=True),
+                'count': len(indicators),
+            })
+
+        result.sort(key=lambda x: x['count'], reverse=True)
+
+        return Response({
+            'success': True,
+            'data': result,
+            'total': len(result)
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'获取指标趋势失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 # ==================== 检测和合并重复报告 ====================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -1985,16 +2094,47 @@ def miniprogram_complete_profile(request):
 @permission_classes([IsAuthenticated])
 def miniprogram_medications(request):
     """获取或创建药单"""
-    from .models import Medication, MedicationRecord
+    from .models import Medication, MedicationRecord, MedicationGroup
 
     if request.method == 'GET':
-        # 获取用户的所有药单
-        medications = Medication.objects.filter(user=request.user).order_by('-created_at')
-
-        medication_list = []
-        for med in medications:
-            medication_list.append({
+        from .models import MedicationGroup
+        
+        groups = MedicationGroup.objects.filter(user=request.user).order_by('-created_at')
+        group_list = []
+        for group in groups:
+            medications_in_group = group.medications.all()
+            med_list = []
+            for med in medications_in_group:
+                med_list.append({
+                    'id': med.id,
+                    'group': group.id,
+                    'medicine_name': med.medicine_name,
+                    'dosage': med.dosage,
+                    'start_date': med.start_date.strftime('%Y-%m-%d'),
+                    'end_date': med.end_date.strftime('%Y-%m-%d'),
+                    'notes': med.notes,
+                    'is_active': med.is_active,
+                    'total_days': med.total_days,
+                    'days_taken': med.days_taken,
+                    'progress_percentage': med.progress_percentage,
+                    'created_at': med.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                })
+            group_list.append({
+                'id': group.id,
+                'name': group.name,
+                'source_image': group.source_image.url if group.source_image else None,
+                'ai_summary': group.ai_summary,
+                'created_at': group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'medication_count': group.medication_count,
+                'medications': med_list,
+            })
+        
+        standalone_medications = Medication.objects.filter(user=request.user, group__isnull=True).order_by('-created_at')
+        standalone_list = []
+        for med in standalone_medications:
+            standalone_list.append({
                 'id': med.id,
+                'group': None,
                 'medicine_name': med.medicine_name,
                 'dosage': med.dosage,
                 'start_date': med.start_date.strftime('%Y-%m-%d'),
@@ -2009,7 +2149,8 @@ def miniprogram_medications(request):
 
         return Response({
             'success': True,
-            'medications': medication_list
+            'groups': group_list,
+            'standalone_medications': standalone_list,
         })
 
     elif request.method == 'POST':

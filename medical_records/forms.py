@@ -516,16 +516,14 @@ class SystemSettingsForm(forms.Form):
         help_text='如果MinerU服务运行在Mac系统上，请勾选此项。VLM模式将使用vlm-mlx-engine后端'
     )
 
-    # 工作流配置
-    default_workflow = forms.ChoiceField(
-        label='默认处理工作流',
+    pdf_ocr_workflow = forms.ChoiceField(
+        label='PDF文件OCR工作流',
         choices=[
-            ('mineru_pipeline', 'MinerU Pipeline 模式 (OCR + LLM)'),
-            ('mineru_vlm', 'MinerU VLM 模式 (OCR + LLM)'),
-            ('vl_model', '多模态大模型模式 (直接识别)'),
+            ('ocr_llm', 'MinerU Pipeline 模式 (OCR + LLM)'),
+            ('vlm_transformers', 'MinerU VLM 模式 (OCR + LLM)'),
         ],
-        initial='mineru_pipeline',
-        help_text='系统默认使用的文档处理工作流'
+        initial='ocr_llm',
+        help_text='PDF文件自动使用的OCR工作流'
     )
 
     def __init__(self, *args, **kwargs):
@@ -561,7 +559,7 @@ class SystemSettingsForm(forms.Form):
         self.fields['is_mac_system'].initial = SystemSettings.get_setting('is_mac_system', 'false').lower() == 'true'
 
         # 加载工作流设置
-        self.fields['default_workflow'].initial = SystemSettings.get_setting('default_workflow', 'ocr_llm')
+        self.fields['pdf_ocr_workflow'].initial = SystemSettings.get_setting('pdf_ocr_workflow', 'ocr_llm')
 
     def save(self):
         """保存设置到数据库"""
@@ -595,7 +593,7 @@ class SystemSettingsForm(forms.Form):
         SystemSettings.set_setting('is_mac_system', 'true' if self.cleaned_data['is_mac_system'] else 'false', 'Mac系统')
 
         # 保存工作流设置
-        SystemSettings.set_setting('default_workflow', self.cleaned_data['default_workflow'], '默认处理工作流')
+        SystemSettings.set_setting('pdf_ocr_workflow', self.cleaned_data['pdf_ocr_workflow'], 'PDF文件OCR工作流')
 
 
 class UserProfileForm(forms.ModelForm):

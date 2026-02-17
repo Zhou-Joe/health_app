@@ -1945,7 +1945,7 @@ def system_settings(request):
         'vl_model_name': SystemSettings.get_setting('vl_model_name', 'zai-org/GLM-4.6V'),
         'vl_model_timeout': SystemSettings.get_setting('vl_model_timeout', '300'),
         'vl_model_max_tokens': SystemSettings.get_setting('vl_model_max_tokens', '4000'),
-        'default_workflow': SystemSettings.get_setting('default_workflow', 'ocr_llm'),
+        'pdf_ocr_workflow': SystemSettings.get_setting('pdf_ocr_workflow', 'ocr_llm'),
         # 健康检查配置
         'ocr_healthcheck_timeout': SystemSettings.get_setting('ocr_healthcheck_timeout', '10'),
         'ocr_healthcheck_endpoints': SystemSettings.get_setting('ocr_healthcheck_endpoints', '/health,/api/health,/docs,/'),

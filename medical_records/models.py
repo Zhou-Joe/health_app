@@ -134,7 +134,6 @@ class HealthAdvice(models.Model):
     conversation_context = models.TextField(blank=True, null=True, verbose_name='对话上下文')
     selected_reports = models.TextField(blank=True, null=True, verbose_name='选中的报告ID列表（JSON格式）')
     selected_medications = models.TextField(blank=True, null=True, verbose_name='选中的药单ID列表（JSON格式）')
-    selected_event = models.IntegerField(blank=True, null=True, verbose_name='选中的健康事件ID')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     class Meta:
@@ -249,15 +248,13 @@ class SystemSettings(models.Model):
 
     @classmethod
     def get_default_workflow(cls):
-        """获取默认工作流"""
-        workflow = cls.get_setting('default_workflow', 'ocr_llm')
-        # 映射前端名称到后端名称
-        workflow_mapping = {
-            'multimodal': 'vl_model',
-            'mineru_vlm': 'vlm_transformers',
-            'mineru_pipeline': 'ocr_llm'
-        }
-        return workflow_mapping.get(workflow, workflow)
+        """获取默认工作流（已废弃，保留兼容性）"""
+        return cls.get_setting('default_workflow', 'ocr_llm')
+
+    @classmethod
+    def get_pdf_ocr_workflow(cls):
+        """获取PDF文件OCR工作流"""
+        return cls.get_setting('pdf_ocr_workflow', 'ocr_llm')
 
     @classmethod
     def get_vl_model_config(cls):

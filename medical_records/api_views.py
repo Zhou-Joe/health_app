@@ -133,10 +133,16 @@ def upload_and_process(request):
         checkup_date = request.POST.get('checkup_date')
         hospital = request.POST.get('hospital', '未知机构')
 
-        # 从系统设置获取默认工作流
+        # 根据文件类型自动选择工作流
         from .models import SystemSettings
-        default_workflow = SystemSettings.get_default_workflow()
-        workflow_type = request.POST.get('workflow_type', default_workflow)
+        workflow_type = request.POST.get('workflow_type', '')
+        
+        if not workflow_type:
+            file_ext = file.name.lower().split('.')[-1] if '.' in file.name else ''
+            if file_ext == 'pdf':
+                workflow_type = SystemSettings.get_pdf_ocr_workflow()
+            else:
+                workflow_type = 'vl_model'
 
         if not checkup_date:
             return JsonResponse({
@@ -1456,15 +1462,15 @@ def check_services_status(request):
         llm_status = get_llm_api_status()
         vl_status = get_vision_model_api_status()
 
-        # 获取默认工作流
+        # 获取PDF OCR工作流设置
         from .models import SystemSettings
-        default_workflow = SystemSettings.get_default_workflow()
+        pdf_ocr_workflow = SystemSettings.get_pdf_ocr_workflow()
 
         response_data = {
             'ocr_status': 'online' if ocr_status else 'offline',
             'llm_status': 'online' if llm_status else 'offline',
             'vlm_status': 'online' if vl_status else 'offline',
-            'default_workflow': default_workflow,
+            'pdf_ocr_workflow': pdf_ocr_workflow,
             'supported_workflows': ['ocr_llm', 'vlm_transformers', 'vl_model']
         }
 
@@ -3089,10 +3095,16 @@ def stream_upload_and_process(request):
             checkup_date = request.POST.get('checkup_date')
             hospital = request.POST.get('hospital', '未知机构')
 
-            # 获取工作流类型
+            # 根据文件类型自动选择工作流
             from .models import SystemSettings
-            default_workflow = SystemSettings.get_default_workflow()
-            workflow_type = request.POST.get('workflow_type', default_workflow)
+            workflow_type = request.POST.get('workflow_type', '')
+            
+            if not workflow_type:
+                file_ext = file.name.lower().split('.')[-1] if '.' in file.name else ''
+                if file_ext == 'pdf':
+                    workflow_type = SystemSettings.get_pdf_ocr_workflow()
+                else:
+                    workflow_type = 'vl_model'
 
             if not checkup_date:
                 yield f"data: {json.dumps({'error': '请提供体检日期'}, ensure_ascii=False)}\n\n"
