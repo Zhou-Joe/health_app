@@ -80,4 +80,13 @@ urlpatterns = [
     path('vital-logs/', miniprogram_api.mp_vital_logs, name='vital_logs'),
     path('vital-logs/<int:log_id>/', miniprogram_api.mp_vital_log_detail, name='vital_log_detail'),
     path('vital-types/', miniprogram_api.mp_vital_types, name='vital_types'),
+
+    # 健康事件管理
+    path('events/', miniprogram_api.mp_events, name='events'),
+    path('events/<int:event_id>/', miniprogram_api.mp_event_detail, name='event_detail'),
+    path('events/<int:event_id>/add-item/', miniprogram_api.mp_event_add_item, name='event_add_item'),
+    path('events/<int:event_id>/remove-item/<int:item_id>/', miniprogram_api.mp_event_remove_item, name='event_remove_item'),
+    path('events/auto-cluster/', miniprogram_api.mp_event_auto_cluster, name='event_auto_cluster'),
+    path('events/recluster/', miniprogram_api.mp_event_recluster, name='event_recluster'),
+    path('events/available-items/', miniprogram_api.mp_event_available_items, name='event_available_items'),
 ]

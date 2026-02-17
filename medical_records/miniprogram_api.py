@@ -3759,3 +3759,505 @@ def mp_indicator_batch_create(request):
             'success': False,
             'message': f'批量创建指标失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# 健康事件管理 API
+# ============================================================================
+
+def _serialize_mp_event(event):
+    """序列化健康事件（小程序版本）"""
+    return {
+        'id': event.id,
+        'name': event.name,
+        'description': event.description or '',
+        'event_type': event.event_type,
+        'event_type_display': event.get_event_type_display(),
+        'status': event.status,
+        'status_display': event.get_status_display(),
+        'start_date': event.start_date.strftime('%Y-%m-%d') if event.start_date else None,
+        'end_date': event.end_date.strftime('%Y-%m-%d') if event.end_date else None,
+        'duration_days': event.duration_days,
+        'item_count': event.get_item_count(),
+        'is_auto_generated': event.is_auto_generated,
+        'created_at': event.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        'updated_at': event.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+    }
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mp_events(request):
+    """
+    小程序健康事件API
+
+    GET: 获取用户的健康事件列表
+    POST: 创建新的健康事件
+    """
+    from .models import HealthEvent
+
+    if request.method == 'GET':
+        # 获取查询参数
+        event_type = request.query_params.get('event_type')
+        status_param = request.query_params.get('status')
+        is_auto = request.query_params.get('is_auto_generated')
+        limit = int(request.query_params.get('limit', 50))
+
+        # 构建查询
+        events = HealthEvent.objects.filter(user=request.user)
+
+        if event_type:
+            events = events.filter(event_type=event_type)
+        if status_param:
+            events = events.filter(status=status_param)
+        if is_auto is not None:
+            is_auto_bool = is_auto.lower() == 'true'
+            events = events.filter(is_auto_generated=is_auto_bool)
+
+        events = events[:limit]
+
+        # 序列化数据
+        events_data = []
+        for event in events:
+            events_data.append(_serialize_mp_event(event))
+
+        return Response({
+            'success': True,
+            'events': events_data,
+            'count': len(events_data)
+        })
+
+    elif request.method == 'POST':
+        # 创建新事件
+        try:
+            data = _get_request_data(request)
+            name = data.get('name')
+            description = data.get('description', '')
+            start_date = data.get('start_date')
+            end_date = data.get('end_date')
+            event_type = data.get('event_type', 'other')
+            status = data.get('status', 'observing')
+
+            if not name:
+                return Response({
+                    'success': False,
+                    'message': '事件名称不能为空'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not start_date:
+                return Response({
+                    'success': False,
+                    'message': '开始日期不能为空'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # 验证状态值
+            valid_statuses = ['observing', 'treating', 'recovered', 'chronic', 'other']
+            if status not in valid_statuses:
+                return Response({
+                    'success': False,
+                    'message': f'无效状态: {status}，支持的状态: {", ".join(valid_statuses)}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            if end_date:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+            event = HealthEvent.objects.create(
+                user=request.user,
+                name=name,
+                description=description,
+                start_date=start_date,
+                end_date=end_date,
+                event_type=event_type,
+                status=status,
+                is_auto_generated=False
+            )
+
+            return Response({
+                'success': True,
+                'event': _serialize_mp_event(event)
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'message': f'创建事件失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def mp_event_detail(request, event_id):
+    """
+    小程序健康事件详情API
+
+    GET: 获取事件详情（包含关联的记录）
+    PUT: 更新事件
+    DELETE: 删除事件
+    """
+    from .models import HealthEvent, EventItem
+    from django.shortcuts import get_object_or_404
+
+    try:
+        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+        if request.method == 'GET':
+            # 获取事件关联的所有项目
+            items = event.event_items.all()
+            items_data = []
+
+            for item in items:
+                items_data.append({
+                    'id': item.id,
+                    'item_summary': item.item_summary,
+                    'content_type': item.content_type.model,
+                    'object_id': item.object_id,
+                    'notes': item.notes or '',
+                    'added_by': item.added_by,
+                    'added_at': item.added_at.strftime('%Y-%m-%d %H:%M:%S'),
+                })
+
+            return Response({
+                'success': True,
+                'event': _serialize_mp_event(event),
+                'items': items_data
+            })
+
+        elif request.method == 'PUT':
+            # 更新事件
+            try:
+                data = _get_request_data(request)
+
+                if 'name' in data:
+                    event.name = data['name']
+                if 'description' in data:
+                    event.description = data['description']
+                if 'event_type' in data:
+                    event.event_type = data['event_type']
+                if 'status' in data:
+                    new_status = data['status']
+                    valid_statuses = ['observing', 'treating', 'recovered', 'chronic', 'other']
+                    if new_status not in valid_statuses:
+                        return Response({
+                            'success': False,
+                            'message': f'无效状态: {new_status}，支持的状态: {", ".join(valid_statuses)}'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    event.status = new_status
+                if 'start_date' in data:
+                    event.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+                if 'end_date' in data:
+                    if data['end_date']:
+                        event.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+                    else:
+                        event.end_date = None
+
+                event.save()
+
+                return Response({
+                    'success': True,
+                    'event': _serialize_mp_event(event)
+                })
+
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return Response({
+                    'success': False,
+                    'message': f'更新事件失败: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        elif request.method == 'DELETE':
+            # 删除事件
+            event.delete()
+            return Response({
+                'success': True,
+                'message': '事件已删除'
+            })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'操作失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_event_add_item(request, event_id):
+    """
+    小程序API - 向事件添加健康记录
+    """
+    from .models import HealthEvent, EventItem
+    from django.shortcuts import get_object_or_404
+    from django.contrib.contenttypes.models import ContentType
+
+    try:
+        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+
+        data = _get_request_data(request)
+        content_type_str = data.get('content_type')  # 'healthcheckup', 'medication', etc.
+        object_id = data.get('object_id')
+        notes = data.get('notes', '')
+
+        if not content_type_str or not object_id:
+            return Response({
+                'success': False,
+                'message': 'content_type 和 object_id 参数必填'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 获取 ContentType
+        try:
+            content_type = ContentType.objects.get(model=content_type_str)
+        except ContentType.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': f'无效的内容类型: {content_type_str}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 检查对象是否存在且属于当前用户
+        obj = content_type.get_object_for_this_type(id=object_id)
+        if hasattr(obj, 'user') and obj.user != request.user:
+            return Response({
+                'success': False,
+                'message': '无权添加该记录'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        # 检查是否已经添加
+        if EventItem.objects.filter(
+            event=event,
+            content_type=content_type,
+            object_id=object_id
+        ).exists():
+            return Response({
+                'success': False,
+                'message': '该记录已添加到此事件'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 创建 EventItem
+        item = EventItem.objects.create(
+            event=event,
+            content_type=content_type,
+            object_id=object_id,
+            notes=notes,
+            added_by='manual'
+        )
+
+        return Response({
+            'success': True,
+            'item': {
+                'id': item.id,
+                'item_summary': item.item_summary,
+                'content_type': content_type_str,
+                'object_id': object_id,
+            },
+            'event_item_count': event.get_item_count()
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'添加记录失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def mp_event_remove_item(request, event_id, item_id):
+    """
+    小程序API - 从事件中移除健康记录
+    """
+    from .models import HealthEvent, EventItem
+    from django.shortcuts import get_object_or_404
+
+    try:
+        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
+        item = get_object_or_404(EventItem, id=item_id, event=event)
+
+        item.delete()
+
+        return Response({
+            'success': True,
+            'message': '记录已移除',
+            'event_item_count': event.get_item_count()
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'移除记录失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_event_auto_cluster(request):
+    """
+    小程序API - 为当前用户触发自动聚类
+    """
+    from .models import HealthEvent
+
+    try:
+        data = _get_request_data(request)
+        days_threshold = int(data.get('days_threshold', 7))
+
+        # 执行自动聚类
+        events_created = HealthEvent.auto_cluster_user_records(request.user, days_threshold)
+
+        return Response({
+            'success': True,
+            'events_created': events_created,
+            'message': f'已自动创建 {events_created} 个事件'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'自动聚类失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_event_recluster(request):
+    """
+    小程序API - 重新聚类：删除所有事件并根据新的时间阈值重新聚类
+    """
+    from .models import HealthEvent
+
+    try:
+        data = _get_request_data(request)
+        days_threshold = int(data.get('days_threshold', 7))
+
+        # 删除当前用户的所有事件（会级联删除EventItem）
+        deleted_count = HealthEvent.objects.filter(user=request.user).delete()[0]
+
+        # 执行自动聚类
+        events_created = HealthEvent.auto_cluster_user_records(request.user, days_threshold)
+
+        return Response({
+            'success': True,
+            'events_deleted': deleted_count,
+            'events_created': events_created,
+            'message': f'已删除 {deleted_count} 个事件，重新创建了 {events_created} 个事件'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'重新聚类失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mp_event_available_items(request):
+    """
+    小程序API - 获取可以添加到事件的记录列表
+    """
+    from .models import Medication
+
+    try:
+        content_type = request.query_params.get('content_type', 'all')
+        limit = int(request.query_params.get('limit', 50))
+
+        items = []
+
+        # 获取体检报告
+        if content_type in ['all', 'healthcheckup']:
+            checkups = HealthCheckup.objects.filter(user=request.user)[:limit]
+            for checkup in checkups:
+                items.append({
+                    'content_type': 'healthcheckup',
+                    'object_id': checkup.id,
+                    'summary': f"体检报告: {checkup.checkup_date} - {checkup.hospital}",
+                    'date': checkup.checkup_date.strftime('%Y-%m-%d'),
+                })
+
+        # 获取药单组
+        if content_type in ['all', 'medicationgroup']:
+            from .models import MedicationGroup
+            groups = MedicationGroup.objects.filter(user=request.user)[:limit]
+            for group in groups:
+                med_names = ', '.join([m.medicine_name for m in group.medications.all()[:3]])
+                if group.medication_count > 3:
+                    med_names += f' 等{group.medication_count}个'
+                items.append({
+                    'content_type': 'medicationgroup',
+                    'object_id': group.id,
+                    'summary': f"药单组: {group.name} ({med_names})",
+                    'date': group.created_at.strftime('%Y-%m-%d'),
+                })
+
+        # 获取药单（只获取未分组的）
+        if content_type in ['all', 'medication']:
+            medications = Medication.objects.filter(user=request.user, is_active=True, group__isnull=True)[:limit]
+            for med in medications:
+                items.append({
+                    'content_type': 'medication',
+                    'object_id': med.id,
+                    'summary': f"药单: {med.medicine_name} ({med.start_date} 至 {med.end_date})",
+                    'date': med.start_date.strftime('%Y-%m-%d'),
+                })
+
+        # 获取健康指标
+        if content_type in ['all', 'healthindicator']:
+            indicators = HealthIndicator.objects.filter(
+                checkup__user=request.user
+            ).select_related('checkup')[:limit]
+            for indicator in indicators:
+                items.append({
+                    'content_type': 'healthindicator',
+                    'object_id': indicator.id,
+                    'summary': f"指标: {indicator.indicator_name} = {indicator.value} {indicator.unit or ''}",
+                    'date': indicator.checkup.checkup_date.strftime('%Y-%m-%d'),
+                })
+
+        # 获取症状日志
+        if content_type in ['all', 'symptomentry']:
+            from .models import SymptomEntry
+            symptoms = SymptomEntry.objects.filter(user=request.user)[:limit]
+            for symptom in symptoms:
+                items.append({
+                    'content_type': 'symptomentry',
+                    'object_id': symptom.id,
+                    'summary': f"症状: {symptom.symptom} ({symptom.get_severity_display()})",
+                    'date': symptom.entry_date.strftime('%Y-%m-%d'),
+                })
+
+        # 获取体征日志
+        if content_type in ['all', 'vitalentry']:
+            from .models import VitalEntry
+            vitals = VitalEntry.objects.filter(user=request.user)[:limit]
+            for vital in vitals:
+                items.append({
+                    'content_type': 'vitalentry',
+                    'object_id': vital.id,
+                    'summary': f"体征: {vital.get_vital_type_display()} = {vital.value} {vital.unit or ''}",
+                    'date': vital.entry_date.strftime('%Y-%m-%d'),
+                })
+
+        return Response({
+            'success': True,
+            'items': items,
+            'count': len(items)
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'获取记录列表失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
