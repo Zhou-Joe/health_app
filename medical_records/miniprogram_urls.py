@@ -6,6 +6,7 @@ app_name = 'miniprogram'
 urlpatterns = [
     # 用户认证
     path('login/', miniprogram_api.miniprogram_login, name='login'),
+    path('register/', miniprogram_api.miniprogram_register, name='register'),
     path('user-info/', miniprogram_api.miniprogram_user_info, name='user_info'),
     path('complete-profile/', miniprogram_api.miniprogram_complete_profile, name='complete_profile'),
     path('change-password/', miniprogram_api.miniprogram_change_password, name='change_password'),
@@ -64,4 +65,11 @@ urlpatterns = [
     path('medications/checkin/', miniprogram_api.miniprogram_medication_checkin, name='medication_checkin'),
     path('medications/<int:medication_id>/records/', miniprogram_api.miniprogram_medication_records, name='medication_records'),
     path('medications/recognize-image/', miniprogram_api.miniprogram_recognize_medication_image, name='recognize_medication_image'),
+
+    # 健康日志（症状日志 & 体征日志）
+    path('symptom-logs/', miniprogram_api.mp_symptom_logs, name='symptom_logs'),
+    path('symptom-logs/<int:log_id>/', miniprogram_api.mp_symptom_log_detail, name='symptom_log_detail'),
+    path('vital-logs/', miniprogram_api.mp_vital_logs, name='vital_logs'),
+    path('vital-logs/<int:log_id>/', miniprogram_api.mp_vital_log_detail, name='vital_log_detail'),
+    path('vital-types/', miniprogram_api.mp_vital_types, name='vital_types'),
 ]

@@ -181,6 +181,88 @@ def get_or_create_token(user):
     token, created = Token.objects.get_or_create(user=user)
     return token.key
 
+
+@api_view(['POST'])
+@permission_classes([])  # 注册不需要登录
+def miniprogram_register(request):
+    """
+    跨端应用注册API
+
+    请求参数：
+    - username: 用户名（必填）
+    - password: 密码（必填，最少6位）
+    - nickname: 昵称（可选，不填则使用用户名）
+    """
+    try:
+        data = _get_request_data(request)
+
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        nickname = data.get('nickname', '').strip()
+
+        # 验证必填字段
+        if not username:
+            return Response({
+                'success': False,
+                'message': '用户名不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not password:
+            return Response({
+                'success': False,
+                'message': '密码不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(password) < 6:
+            return Response({
+                'success': False,
+                'message': '密码长度不能少于6位'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 检查用户名是否已存在
+        if User.objects.filter(username=username).exists():
+            return Response({
+                'success': False,
+                'message': '该用户名已被注册，请使用其他用户名'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 创建用户
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            first_name=nickname or username,
+            is_active=True
+        )
+
+        print(f"[跨端注册] 新用户注册成功: {username}")
+
+        # 创建UserProfile
+        from .models import UserProfile
+        UserProfile.objects.get_or_create(user=user)
+
+        # 生成Token
+        token = get_or_create_token(user)
+
+        return Response({
+            'success': True,
+            'message': '注册成功',
+            'token': token,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'nickname': user.first_name,
+                'is_new_user': True
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'注册失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def miniprogram_user_info(request):
@@ -2738,3 +2820,341 @@ def miniprogram_recognize_medication_image(request):
             'success': False,
             'error': f'识别失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# 小程序健康日志API (症状日志 & 体征日志)
+# ============================================================================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mp_symptom_logs(request):
+    """
+    小程序症状日志API
+
+    GET: 获取症状日志列表
+    POST: 创建新的症状日志
+    """
+    from .models import SymptomEntry
+
+    if request.method == 'GET':
+        queryset = SymptomEntry.objects.filter(user=request.user)
+
+        # 支持日期范围筛选
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(entry_date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(entry_date__lte=end_date)
+
+        queryset = queryset.order_by('-entry_date', '-created_at')
+
+        logs = []
+        for log in queryset:
+            logs.append({
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'symptom': log.symptom,
+                'severity': log.severity,
+                'severity_display': log.get_severity_display(),
+                'notes': log.notes or '',
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return Response({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+
+    elif request.method == 'POST':
+        data = _get_request_data(request)
+
+        symptom = data.get('symptom', '').strip()
+        if not symptom:
+            return Response({
+                'success': False,
+                'error': '症状名称不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        entry_date = data.get('entry_date')
+        if entry_date:
+            entry_date = datetime.strptime(entry_date, '%Y-%m-%d').date()
+
+        log = SymptomEntry.objects.create(
+            user=request.user,
+            entry_date=entry_date,
+            symptom=symptom,
+            severity=data.get('severity', 3),
+            notes=data.get('notes', '').strip(),
+        )
+
+        return Response({
+            'success': True,
+            'message': '症状日志已创建',
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'symptom': log.symptom,
+                'severity': log.severity,
+                'severity_display': log.get_severity_display(),
+                'notes': log.notes or '',
+            }
+        }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def mp_symptom_log_detail(request, log_id):
+    """
+    小程序症状日志详情API
+
+    GET: 获取单条症状日志详情
+    PUT: 更新症状日志
+    DELETE: 删除症状日志
+    """
+    from .models import SymptomEntry
+
+    try:
+        log = SymptomEntry.objects.get(id=log_id, user=request.user)
+    except SymptomEntry.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': '症状日志不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        return Response({
+            'success': True,
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'symptom': log.symptom,
+                'severity': log.severity,
+                'severity_display': log.get_severity_display(),
+                'notes': log.notes or '',
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+
+    elif request.method == 'PUT':
+        data = _get_request_data(request)
+
+        if data.get('symptom'):
+            log.symptom = data['symptom'].strip()
+        if data.get('entry_date'):
+            log.entry_date = datetime.strptime(data['entry_date'], '%Y-%m-%d').date()
+        if data.get('severity') is not None:
+            log.severity = data['severity']
+        if data.get('notes') is not None:
+            log.notes = data['notes'].strip()
+
+        log.save()
+
+        return Response({
+            'success': True,
+            'message': '症状日志已更新',
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'symptom': log.symptom,
+                'severity': log.severity,
+                'severity_display': log.get_severity_display(),
+                'notes': log.notes or '',
+            }
+        })
+
+    elif request.method == 'DELETE':
+        log.delete()
+        return Response({
+            'success': True,
+            'message': '症状日志已删除'
+        })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mp_vital_logs(request):
+    """
+    小程序体征日志API
+
+    GET: 获取体征日志列表
+    POST: 创建新的体征日志
+    """
+    from .models import VitalEntry
+
+    if request.method == 'GET':
+        queryset = VitalEntry.objects.filter(user=request.user)
+
+        # 支持日期范围筛选
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(entry_date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(entry_date__lte=end_date)
+
+        # 支持体征类型筛选
+        vital_type = request.query_params.get('vital_type')
+        if vital_type:
+            queryset = queryset.filter(vital_type=vital_type)
+
+        queryset = queryset.order_by('-entry_date', '-created_at')
+
+        logs = []
+        for log in queryset:
+            logs.append({
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'vital_type': log.vital_type,
+                'vital_type_display': log.get_vital_type_display(),
+                'value': log.value,
+                'unit': log.unit or '',
+                'notes': log.notes or '',
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return Response({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+
+    elif request.method == 'POST':
+        data = _get_request_data(request)
+
+        vital_type = data.get('vital_type', '').strip()
+        if not vital_type:
+            return Response({
+                'success': False,
+                'error': '体征类型不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        value = data.get('value', '').strip()
+        if not value:
+            return Response({
+                'success': False,
+                'error': '数值不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        entry_date = data.get('entry_date')
+        if entry_date:
+            entry_date = datetime.strptime(entry_date, '%Y-%m-%d').date()
+
+        log = VitalEntry.objects.create(
+            user=request.user,
+            entry_date=entry_date,
+            vital_type=vital_type,
+            value=value,
+            unit=data.get('unit', '').strip(),
+            notes=data.get('notes', '').strip(),
+        )
+
+        return Response({
+            'success': True,
+            'message': '体征日志已创建',
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'vital_type': log.vital_type,
+                'vital_type_display': log.get_vital_type_display(),
+                'value': log.value,
+                'unit': log.unit or '',
+                'notes': log.notes or '',
+            }
+        }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def mp_vital_log_detail(request, log_id):
+    """
+    小程序体征日志详情API
+
+    GET: 获取单条体征日志详情
+    PUT: 更新体征日志
+    DELETE: 删除体征日志
+    """
+    from .models import VitalEntry
+
+    try:
+        log = VitalEntry.objects.get(id=log_id, user=request.user)
+    except VitalEntry.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': '体征日志不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        return Response({
+            'success': True,
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'vital_type': log.vital_type,
+                'vital_type_display': log.get_vital_type_display(),
+                'value': log.value,
+                'unit': log.unit or '',
+                'notes': log.notes or '',
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+
+    elif request.method == 'PUT':
+        data = _get_request_data(request)
+
+        if data.get('entry_date'):
+            log.entry_date = datetime.strptime(data['entry_date'], '%Y-%m-%d').date()
+        if data.get('vital_type'):
+            log.vital_type = data['vital_type']
+        if data.get('value'):
+            log.value = data['value']
+        if data.get('unit') is not None:
+            log.unit = data['unit'].strip()
+        if data.get('notes') is not None:
+            log.notes = data['notes'].strip()
+
+        log.save()
+
+        return Response({
+            'success': True,
+            'message': '体征日志已更新',
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'vital_type': log.vital_type,
+                'vital_type_display': log.get_vital_type_display(),
+                'value': log.value,
+                'unit': log.unit or '',
+                'notes': log.notes or '',
+            }
+        })
+
+    elif request.method == 'DELETE':
+        log.delete()
+        return Response({
+            'success': True,
+            'message': '体征日志已删除'
+        })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mp_vital_types(request):
+    """
+    获取所有体征类型选项（用于前端下拉框）
+    """
+    from .models import VitalEntry
+
+    vital_types = []
+    for value, label in VitalEntry.VITAL_TYPE_CHOICES:
+        vital_types.append({
+            'value': value,
+            'label': label
+        })
+
+    return Response({
+        'success': True,
+        'vital_types': vital_types
+    })

@@ -107,6 +107,13 @@ urlpatterns = [
     path('api/care-goals/<int:goal_id>/suggest-actions/', api_views.api_care_goal_suggest_actions, name='api_care_goal_suggest_actions'),
     path('api/care-goals/<int:goal_id>/actions/bulk/', api_views.api_care_goal_add_actions, name='api_care_goal_add_actions'),
 
+    # 健康日志API（症状日志 & 体征日志）
+    path('api/symptom-logs/', api_views.api_symptom_logs, name='api_symptom_logs'),
+    path('api/symptom-logs/<int:log_id>/', api_views.api_symptom_log_detail, name='api_symptom_log_detail'),
+    path('api/vital-logs/', api_views.api_vital_logs, name='api_vital_logs'),
+    path('api/vital-logs/<int:log_id>/', api_views.api_vital_log_detail, name='api_vital_log_detail'),
+    path('api/vital-types/', api_views.api_vital_types, name='api_vital_types'),
+
     # TODO: Advanced features - to be implemented later
     # # 批量操作
     # path('api/events/<int:event_id>/bulk-add-items/', api_views.api_event_bulk_add_items, name='api_event_bulk_add_items'),

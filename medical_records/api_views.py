@@ -5465,3 +5465,432 @@ def api_medication_group_dissolve(request, group_id):
             'success': False,
             'error': f'解散药单组失败: {str(e)}'
         }, status=500)
+
+
+# ============================================================================
+# 健康日志API (症状日志 & 体征日志)
+# ============================================================================
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+@login_required
+def api_symptom_logs(request):
+    """
+    症状日志API
+
+    GET: 获取症状日志列表
+    - 支持查询参数: start_date, end_date, symptom, severity
+
+    POST: 创建新的症状日志
+    """
+    from .models import SymptomEntry
+
+    if request.method == 'GET':
+        # 获取症状日志列表
+        queryset = SymptomEntry.objects.filter(user=request.user)
+
+        # 支持日期范围筛选
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        if start_date:
+            queryset = queryset.filter(entry_date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(entry_date__lte=end_date)
+
+        # 支持症状名称搜索
+        symptom = request.GET.get('symptom')
+        if symptom:
+            queryset = queryset.filter(symptom__icontains=symptom)
+
+        # 支持严重程度筛选
+        severity = request.GET.get('severity')
+        if severity:
+            queryset = queryset.filter(severity=severity)
+
+        queryset = queryset.order_by('-entry_date', '-created_at')
+
+        logs = []
+        for log in queryset:
+            logs.append({
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'symptom': log.symptom,
+                'severity': log.severity,
+                'severity_display': log.get_severity_display(),
+                'notes': log.notes or '',
+                'related_checkup_id': log.related_checkup_id,
+                'related_medication_id': log.related_medication_id,
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': log.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return JsonResponse({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+
+    elif request.method == 'POST':
+        # 创建新的症状日志
+        try:
+            data = json.loads(request.body)
+
+            symptom = data.get('symptom', '').strip()
+            if not symptom:
+                return JsonResponse({
+                    'success': False,
+                    'error': '症状名称不能为空'
+                }, status=400)
+
+            from datetime import datetime
+            entry_date = data.get('entry_date')
+            if entry_date:
+                entry_date = datetime.strptime(entry_date, '%Y-%m-%d').date()
+
+            log = SymptomEntry.objects.create(
+                user=request.user,
+                entry_date=entry_date,
+                symptom=symptom,
+                severity=data.get('severity', 3),
+                notes=data.get('notes', '').strip(),
+                related_checkup_id=data.get('related_checkup_id'),
+                related_medication_id=data.get('related_medication_id'),
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': '症状日志已创建',
+                'log': {
+                    'id': log.id,
+                    'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                    'symptom': log.symptom,
+                    'severity': log.severity,
+                    'severity_display': log.get_severity_display(),
+                    'notes': log.notes or '',
+                }
+            }, status=201)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'创建症状日志失败: {str(e)}'
+            }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PUT", "DELETE"])
+@login_required
+def api_symptom_log_detail(request, log_id):
+    """
+    症状日志详情API
+
+    GET: 获取单条症状日志详情
+    PUT: 更新症状日志
+    DELETE: 删除症状日志
+    """
+    from .models import SymptomEntry
+
+    try:
+        log = SymptomEntry.objects.get(id=log_id, user=request.user)
+    except SymptomEntry.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '症状日志不存在或无权访问'
+        }, status=404)
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'symptom': log.symptom,
+                'severity': log.severity,
+                'severity_display': log.get_severity_display(),
+                'notes': log.notes or '',
+                'related_checkup_id': log.related_checkup_id,
+                'related_medication_id': log.related_medication_id,
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': log.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+
+            if data.get('symptom'):
+                log.symptom = data['symptom'].strip()
+            if data.get('entry_date'):
+                from datetime import datetime
+                log.entry_date = datetime.strptime(data['entry_date'], '%Y-%m-%d').date()
+            if data.get('severity') is not None:
+                log.severity = data['severity']
+            if data.get('notes') is not None:
+                log.notes = data['notes'].strip()
+            if data.get('related_checkup_id') is not None:
+                log.related_checkup_id = data['related_checkup_id']
+            if data.get('related_medication_id') is not None:
+                log.related_medication_id = data['related_medication_id']
+
+            log.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': '症状日志已更新',
+                'log': {
+                    'id': log.id,
+                    'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                    'symptom': log.symptom,
+                    'severity': log.severity,
+                    'severity_display': log.get_severity_display(),
+                    'notes': log.notes or '',
+                }
+            })
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'更新症状日志失败: {str(e)}'
+            }, status=500)
+
+    elif request.method == 'DELETE':
+        symptom_name = log.symptom
+        log.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'症状日志"{symptom_name}"已删除'
+        })
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+@login_required
+def api_vital_logs(request):
+    """
+    体征日志API
+
+    GET: 获取体征日志列表
+    - 支持查询参数: start_date, end_date, vital_type
+
+    POST: 创建新的体征日志
+    """
+    from .models import VitalEntry
+
+    if request.method == 'GET':
+        # 获取体征日志列表
+        queryset = VitalEntry.objects.filter(user=request.user)
+
+        # 支持日期范围筛选
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        if start_date:
+            queryset = queryset.filter(entry_date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(entry_date__lte=end_date)
+
+        # 支持体征类型筛选
+        vital_type = request.GET.get('vital_type')
+        if vital_type:
+            queryset = queryset.filter(vital_type=vital_type)
+
+        queryset = queryset.order_by('-entry_date', '-created_at')
+
+        logs = []
+        for log in queryset:
+            logs.append({
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'vital_type': log.vital_type,
+                'vital_type_display': log.get_vital_type_display(),
+                'value': log.value,
+                'unit': log.unit or '',
+                'notes': log.notes or '',
+                'related_checkup_id': log.related_checkup_id,
+                'related_medication_id': log.related_medication_id,
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': log.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+
+        return JsonResponse({
+            'success': True,
+            'logs': logs,
+            'count': len(logs)
+        })
+
+    elif request.method == 'POST':
+        # 创建新的体征日志
+        try:
+            data = json.loads(request.body)
+
+            vital_type = data.get('vital_type', '').strip()
+            if not vital_type:
+                return JsonResponse({
+                    'success': False,
+                    'error': '体征类型不能为空'
+                }, status=400)
+
+            value = data.get('value', '').strip()
+            if not value:
+                return JsonResponse({
+                    'success': False,
+                    'error': '数值不能为空'
+                }, status=400)
+
+            from datetime import datetime
+            entry_date = data.get('entry_date')
+            if entry_date:
+                entry_date = datetime.strptime(entry_date, '%Y-%m-%d').date()
+
+            log = VitalEntry.objects.create(
+                user=request.user,
+                entry_date=entry_date,
+                vital_type=vital_type,
+                value=value,
+                unit=data.get('unit', '').strip(),
+                notes=data.get('notes', '').strip(),
+                related_checkup_id=data.get('related_checkup_id'),
+                related_medication_id=data.get('related_medication_id'),
+            )
+
+            return JsonResponse({
+                'success': True,
+                'message': '体征日志已创建',
+                'log': {
+                    'id': log.id,
+                    'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                    'vital_type': log.vital_type,
+                    'vital_type_display': log.get_vital_type_display(),
+                    'value': log.value,
+                    'unit': log.unit or '',
+                    'notes': log.notes or '',
+                }
+            }, status=201)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'创建体征日志失败: {str(e)}'
+            }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PUT", "DELETE"])
+@login_required
+def api_vital_log_detail(request, log_id):
+    """
+    体征日志详情API
+
+    GET: 获取单条体征日志详情
+    PUT: 更新体征日志
+    DELETE: 删除体征日志
+    """
+    from .models import VitalEntry
+
+    try:
+        log = VitalEntry.objects.get(id=log_id, user=request.user)
+    except VitalEntry.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': '体征日志不存在或无权访问'
+        }, status=404)
+
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'log': {
+                'id': log.id,
+                'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                'vital_type': log.vital_type,
+                'vital_type_display': log.get_vital_type_display(),
+                'value': log.value,
+                'unit': log.unit or '',
+                'notes': log.notes or '',
+                'related_checkup_id': log.related_checkup_id,
+                'related_medication_id': log.related_medication_id,
+                'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': log.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+
+            if data.get('entry_date'):
+                from datetime import datetime
+                log.entry_date = datetime.strptime(data['entry_date'], '%Y-%m-%d').date()
+            if data.get('vital_type'):
+                log.vital_type = data['vital_type']
+            if data.get('value'):
+                log.value = data['value']
+            if data.get('unit') is not None:
+                log.unit = data['unit'].strip()
+            if data.get('notes') is not None:
+                log.notes = data['notes'].strip()
+            if data.get('related_checkup_id') is not None:
+                log.related_checkup_id = data['related_checkup_id']
+            if data.get('related_medication_id') is not None:
+                log.related_medication_id = data['related_medication_id']
+
+            log.save()
+
+            return JsonResponse({
+                'success': True,
+                'message': '体征日志已更新',
+                'log': {
+                    'id': log.id,
+                    'entry_date': log.entry_date.strftime('%Y-%m-%d'),
+                    'vital_type': log.vital_type,
+                    'vital_type_display': log.get_vital_type_display(),
+                    'value': log.value,
+                    'unit': log.unit or '',
+                    'notes': log.notes or '',
+                }
+            })
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'更新体征日志失败: {str(e)}'
+            }, status=500)
+
+    elif request.method == 'DELETE':
+        vital_display = log.get_vital_type_display()
+        log.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': f'体征日志"{vital_display}"已删除'
+        })
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+@login_required
+def api_vital_types(request):
+    """
+    获取所有体征类型选项（用于前端下拉框）
+    """
+    from .models import VitalEntry
+
+    vital_types = []
+    for value, label in VitalEntry.VITAL_TYPE_CHOICES:
+        vital_types.append({
+            'value': value,
+            'label': label
+        })
+
+    return JsonResponse({
+        'success': True,
+        'vital_types': vital_types
+    })
