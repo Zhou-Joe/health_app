@@ -3905,11 +3905,11 @@ def mp_event_detail(request, event_id):
 
         if request.method == 'GET':
             # 获取事件关联的所有项目
-            items = event.event_items.all()
+            items = event.event_items.all().select_related('content_type')
             items_data = []
 
             for item in items:
-                items_data.append({
+                item_data = {
                     'id': item.id,
                     'item_summary': item.item_summary,
                     'content_type': item.content_type.model,
@@ -3917,7 +3917,82 @@ def mp_event_detail(request, event_id):
                     'notes': item.notes or '',
                     'added_by': item.added_by,
                     'added_at': item.added_at.strftime('%Y-%m-%d %H:%M:%S'),
-                })
+                }
+
+                # 根据类型添加详细信息
+                try:
+                    obj = item.content_type.get_object_for_this_type(id=item.object_id)
+
+                    if item.content_type.model == 'healthcheckup':
+                        # 体检报告详情
+                        item_data.update({
+                            'title': f"{obj.checkup_date} {obj.hospital}",
+                            'checkup_date': obj.checkup_date.strftime('%Y-%m-%d'),
+                            'hospital': obj.hospital,
+                            'department': obj.department or '',
+                            'indicator_count': obj.indicators.count(),
+                        })
+
+                    elif item.content_type.model == 'medication':
+                        # 药单详情
+                        item_data.update({
+                            'title': obj.medicine_name,
+                            'medicine_name': obj.medicine_name,
+                            'dosage': obj.dosage or '',
+                            'frequency': obj.frequency or '',
+                            'start_date': obj.start_date.strftime('%Y-%m-%d') if obj.start_date else '',
+                            'end_date': obj.end_date.strftime('%Y-%m-%d') if obj.end_date else '',
+                            'instructions': obj.instructions or '',
+                        })
+
+                    elif item.content_type.model == 'medicationgroup':
+                        # 药单组详情
+                        med_list = list(obj.medications.values_list('medicine_name', flat=True)[:5])
+                        item_data.update({
+                            'title': obj.name,
+                            'group_name': obj.name,
+                            'medication_names': med_list,
+                            'medication_count': obj.medication_count,
+                        })
+
+                    elif item.content_type.model == 'healthindicator':
+                        # 健康指标详情
+                        item_data.update({
+                            'title': obj.indicator_name,
+                            'indicator_name': obj.indicator_name,
+                            'value': obj.value,
+                            'unit': obj.unit or '',
+                            'reference_range': obj.reference_range or '',
+                            'status': obj.status,
+                            'abnormal': obj.status != 'normal',
+                        })
+
+                    elif item.content_type.model == 'symptomentry':
+                        # 症状日志详情
+                        item_data.update({
+                            'title': obj.symptom,
+                            'symptom': obj.symptom,
+                            'severity': obj.severity,
+                            'severity_display': obj.get_severity_display(),
+                            'entry_date': obj.entry_date.strftime('%Y-%m-%d'),
+                        })
+
+                    elif item.content_type.model == 'vitalentry':
+                        # 体征日志详情
+                        item_data.update({
+                            'title': f"{obj.get_vital_type_display()} - {obj.value}",
+                            'vital_type': obj.vital_type,
+                            'vital_type_display': obj.get_vital_type_display(),
+                            'value': obj.value,
+                            'unit': obj.unit or '',
+                            'entry_date': obj.entry_date.strftime('%Y-%m-%d'),
+                        })
+
+                except Exception as e:
+                    # 如果获取详情失败，保留基本信息
+                    print(f"Error getting item details: {e}")
+
+                items_data.append(item_data)
 
             return Response({
                 'success': True,
