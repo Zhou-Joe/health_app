@@ -8,7 +8,8 @@ urlpatterns = [
     path('login/', miniprogram_api.miniprogram_login, name='login'),
     path('user-info/', miniprogram_api.miniprogram_user_info, name='user_info'),
     path('complete-profile/', miniprogram_api.miniprogram_complete_profile, name='complete_profile'),
-    
+    path('change-password/', miniprogram_api.miniprogram_change_password, name='change_password'),
+
     # 头像管理
     path('avatar/', miniprogram_api.miniprogram_get_avatar, name='get_avatar'),
     path('avatar/upload/', miniprogram_api.miniprogram_upload_avatar, name='upload_avatar'),
@@ -62,4 +63,5 @@ urlpatterns = [
     path('medications/<int:medication_id>/', miniprogram_api.miniprogram_medication_detail, name='medication_detail'),
     path('medications/checkin/', miniprogram_api.miniprogram_medication_checkin, name='medication_checkin'),
     path('medications/<int:medication_id>/records/', miniprogram_api.miniprogram_medication_records, name='medication_records'),
+    path('medications/recognize-image/', miniprogram_api.miniprogram_recognize_medication_image, name='recognize_medication_image'),
 ]

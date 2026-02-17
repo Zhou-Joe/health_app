@@ -22,6 +22,10 @@ module.exports = {
     userInfo: '/api/miniprogram/user-info/',
     completeProfile: '/api/miniprogram/complete-profile/',
 
+    // 头像管理
+    uploadAvatar: '/api/miniprogram/avatar/upload/',
+    getAvatar: '/api/miniprogram/avatar/',
+
     // 体检报告
     checkups: '/api/miniprogram/checkups/',
     checkupDetail: (id) => `/api/miniprogram/checkups/${id}/`,

@@ -16,6 +16,38 @@ module.exports = {
 
   getUserInfo: () => request.get(config.api.userInfo),
 
+  // 头像管理
+  uploadAvatar: (filePath) => {
+    const token = wx.getStorageSync(config.storageKeys.TOKEN)
+    return new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url: config.server.baseUrl + config.api.uploadAvatar,
+        filePath: filePath,
+        name: 'avatar',
+        header: {
+          'Authorization': `Token ${token}`
+        },
+        success: (res) => {
+          try {
+            const data = JSON.parse(res.data)
+            if (data.success) {
+              resolve(data)
+            } else {
+              reject(new Error(data.message || '上传失败'))
+            }
+          } catch (e) {
+            reject(new Error('响应解析失败'))
+          }
+        },
+        fail: (err) => {
+          reject(err)
+        }
+      })
+    })
+  },
+
+  getAvatar: () => request.get(config.api.getAvatar),
+
   // ==================== 体检报告管理 ====================
   uploadReport: (filePath, formData) =>
     request.uploadFile(filePath, formData, { url: config.api.uploadReport }),

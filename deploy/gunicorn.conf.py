@@ -11,7 +11,8 @@ backlog = 2048
 
 # Worker进程配置
 workers = 3  # 根据CPU核心数调整，建议 (2 x CPU核心数) + 1
-worker_class = 'sync'  # SSE需要使用sync worker
+worker_class = 'gthread'  # 使用gthread以支持后台线程和SSE
+threads = 4  # 每个worker的线程数
 worker_connections = 1000
 max_requests = 1000  # 每个worker处理1000个请求后重启，防止内存泄漏
 max_requests_jitter = 50  # 重启抖动，避免所有worker同时重启
@@ -22,8 +23,9 @@ max_requests_jitter = 50  # 重启抖动，避免所有worker同时重启
 timeout = 900
 keepalive = 5  # HTTP keepalive秒数
 
-# Graceful超时：重启worker时等待现有请求完成的时间
-graceful_timeout = 30
+# Graceful超时：重启worker时等待现有请求和后台线程完成的时间
+# AI响应可能需要较长时间，设置为120秒
+graceful_timeout = 120
 
 # 预加载应用（减少内存占用）
 preload_app = True
@@ -59,14 +61,19 @@ raw_env = [
 # 临时目录
 tmp_upload_dir = None  # 使用系统默认，或设置为 /tmp
 
-# ======== 为什么使用sync worker ========
-# SSE (Server-Sent Events) 需要：
-# 1. sync worker - 保持长连接，实时推送数据
-# 2. gevent/async worker - 虽然并发高，但不适合SSE
+# ======== 为什么使用gthread worker ========
+# 1. gthread worker - 支持后台线程 + 可以处理SSE长连接
+#    - 适合需要后台异步任务的应用场景
+#    - 每个worker进程可以同时处理多个请求（多线程）
+#    - SSE长连接在gthread中可以正常工作
 #
-# 如果需要高并发，可以考虑：
-# - 增加worker数量
-# - 使用nginx负载均衡到多个gunicorn实例
+# 2. 其他worker类型：
+#    - sync worker - 单线程，不支持后台线程
+#    - gevent/async - 虽然并发高，但不适合使用标准threading的代码
+#
+# 3. 线程配置：
+#    - workers = 3, threads = 4  => 总共 12 个并发请求处理能力
+#    - 如果需要更高并发，可以增加workers或threads数量
 # ====================================
 
 # ======== 性能优化建议 ========

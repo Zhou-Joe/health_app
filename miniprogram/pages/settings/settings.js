@@ -70,29 +70,41 @@ Page({
   async applyAvatar(avatarUrl) {
     console.log('获取到头像:', avatarUrl)
 
-    // 保存到本地存储
-    wx.setStorageSync('wechat_avatar', avatarUrl)
-
-    // 先更新本地显示，避免后端同步失败时页面不更新
-    const mergedUserInfo = {
-      ...(app.globalData.userInfo || {}),
-      avatar_url: avatarUrl
-    }
-    app.globalData.userInfo = mergedUserInfo
-    wx.setStorageSync(config.storageKeys.USER_INFO, mergedUserInfo)
-
+    // 先更新本地显示，使用临时路径
     this.setData({
       'userInfo.avatar_url': avatarUrl,
       avatarLoadFailed: false
     })
 
-    // 再同步到后端，确保跨设备/重新登录后仍能显示
     try {
-      await api.completeProfile({ avatar_url: avatarUrl })
+      // 上传文件到服务器
+      util.showToast('正在上传头像...')
+      const res = await api.uploadAvatar(avatarUrl)
+
+      // 使用服务器返回的URL
+      const serverAvatarUrl = res.avatar_url
+      console.log('头像上传成功，服务器URL:', serverAvatarUrl)
+
+      // 保存到本地存储
+      wx.setStorageSync('wechat_avatar', serverAvatarUrl)
+
+      // 更新全局用户信息
+      const mergedUserInfo = {
+        ...(app.globalData.userInfo || {}),
+        avatar_url: serverAvatarUrl
+      }
+      app.globalData.userInfo = mergedUserInfo
+      wx.setStorageSync(config.storageKeys.USER_INFO, mergedUserInfo)
+
+      this.setData({
+        'userInfo.avatar_url': serverAvatarUrl
+      })
+
       util.showToast('头像已更新')
-    } catch (syncErr) {
-      console.warn('头像后端同步失败:', syncErr)
-      util.showToast('头像已本地更新，云端同步失败')
+    } catch (err) {
+      console.error('头像上传失败:', err)
+      util.showToast(err.message || '头像上传失败')
+      // 上传失败时保留临时路径
     }
   },
 

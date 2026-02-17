@@ -2507,3 +2507,234 @@ def miniprogram_medication_records(request, medication_id):
         'success': True,
         'records': record_list
     })
+
+
+# ==================== 修改密码 ====================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_change_password(request):
+    """修改密码API"""
+    try:
+        data = _get_request_data(request)
+
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        confirm_password = data.get('confirm_password')
+
+        # 参数验证
+        if not old_password or not new_password or not confirm_password:
+            return Response({
+                'success': False,
+                'message': '请提供完整参数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({
+                'success': False,
+                'message': '两次输入的新密码不一致'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({
+                'success': False,
+                'message': '新密码长度不能少于6位'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证旧密码
+        user = request.user
+        if not user.check_password(old_password):
+            return Response({
+                'success': False,
+                'message': '原密码错误'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 修改密码
+        user.set_password(new_password)
+        user.save()
+
+        # 删除旧的Token，重新生成（可选）
+        try:
+            token = Token.objects.get(user=user)
+            token.delete()
+            new_token = Token.objects.create(user=user)
+        except Token.DoesNotExist:
+            new_token = Token.objects.create(user=user)
+
+        return Response({
+            'success': True,
+            'message': '密码修改成功',
+            'token': new_token.key
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'修改密码失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== 药单识别 ====================
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_recognize_medication_image(request):
+    """小程序识别药单图片并创建药单组"""
+    try:
+        if 'image' not in request.FILES:
+            return Response({
+                'success': False,
+                'error': '未找到上传的图片'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        image_file = request.FILES['image']
+
+        # 验证文件类型
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        if image_file.content_type not in allowed_types:
+            return Response({
+                'success': False,
+                'error': '只支持 JPG、PNG、GIF、WEBP 格式的图片'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证文件大小（限制为 10MB）
+        max_size = 10 * 1024 * 1024
+        if image_file.size > max_size:
+            return Response({
+                'success': False,
+                'error': '图片大小不能超过 10MB'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.conf import settings
+        from datetime import timedelta
+        import uuid
+        import tempfile
+        import os
+
+        # 创建临时文件
+        temp_dir = tempfile.mkdtemp()
+        file_ext = os.path.splitext(image_file.name)[1]
+        temp_file_path = os.path.join(temp_dir, f"medication_{uuid.uuid4().hex}{file_ext}")
+
+        # 保存上传的图片到临时文件
+        with open(temp_file_path, 'wb+') as destination:
+            for chunk in image_file.chunks():
+                destination.write(chunk)
+
+        print(f"[小程序药单识别] 图片已保存到临时文件: {temp_file_path}")
+
+        # 调用药单识别服务
+        from .services import MedicationRecognitionService
+        from .models import MedicationGroup, Medication
+
+        service = MedicationRecognitionService()
+        result = service.recognize_medication_image(temp_file_path)
+
+        # 清理临时文件
+        try:
+            os.unlink(temp_file_path)
+            os.rmdir(temp_dir)
+        except:
+            pass
+
+        medications_data = result.get('medications', [])
+        summary = result.get('summary', '')
+
+        if not medications_data:
+            return Response({
+                'success': False,
+                'error': '未能从图片中识别出药物信息'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 创建药单组
+        from django.utils import timezone
+        group_name = f"药单组 {timezone.now().strftime('%Y-%m-%d %H:%M')}"
+        medication_group = MedicationGroup.objects.create(
+            user=request.user,
+            name=group_name,
+            ai_summary=summary,
+            raw_result=result
+        )
+
+        # 保存原始图片
+        if image_file:
+            medication_group.source_image.save(
+                f"medication_{uuid.uuid4().hex}{file_ext}",
+                image_file,
+                save=True
+            )
+
+        created_medications = []
+
+        for med_data in medications_data:
+            medicine_name = med_data.get('medicine_name', '').strip()
+            dosage = med_data.get('dosage', '').strip()
+
+            if not medicine_name:
+                continue
+
+            # 解析开始日期
+            start_date_str = med_data.get('start_date')
+            end_date_str = med_data.get('end_date')
+
+            try:
+                if start_date_str and start_date_str != 'null':
+                    start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+                else:
+                    start_date = timezone.now().date()
+            except:
+                start_date = timezone.now().date()
+
+            try:
+                if end_date_str and end_date_str != 'null':
+                    end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+                else:
+                    end_date = start_date + timedelta(days=7)
+            except:
+                end_date = start_date + timedelta(days=7)
+
+            notes = med_data.get('notes', '')
+            if notes == 'null':
+                notes = ''
+
+            medication = Medication.objects.create(
+                user=request.user,
+                group=medication_group,
+                medicine_name=medicine_name,
+                dosage=dosage or '按医嘱服用',
+                start_date=start_date,
+                end_date=end_date,
+                notes=notes
+            )
+
+            created_medications.append({
+                'id': medication.id,
+                'medicine_name': medication.medicine_name,
+                'dosage': medication.dosage,
+                'start_date': medication.start_date.strftime('%Y-%m-%d'),
+                'end_date': medication.end_date.strftime('%Y-%m-%d'),
+                'notes': medication.notes,
+                'total_days': medication.total_days,
+            })
+
+        print(f"[小程序药单识别] ✓ 识别成功，创建了 {len(created_medications)} 个药单")
+
+        return Response({
+            'success': True,
+            'group': {
+                'id': medication_group.id,
+                'name': medication_group.name,
+                'ai_summary': medication_group.ai_summary,
+                'medication_count': len(created_medications),
+                'created_at': medication_group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            },
+            'medications': created_medications,
+            'raw_result': result
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"[小程序药单识别] ✗ 识别失败: {str(e)}")
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'error': f'识别失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
