@@ -1223,22 +1223,10 @@ async function applyChanges() {
     }
 
     const changesToApply = integrationResult.changes;
-    const checkupIds = Array.from(selectedCheckups);
-    const primaryCheckupId = checkupIds.length > 0 ? checkupIds[0] : null;
     
-    console.log('[应用更改] checkupIds:', checkupIds);
-    console.log('[应用更改] primaryCheckupId:', primaryCheckupId);
     console.log('[应用更改] changesToApply:', changesToApply.length);
     
-    let confirmMsg = `确定要应用 ${changesToApply.length} 个更改吗？`;
-    if (checkupIds.length > 1) {
-        confirmMsg += `\n\n合并操作将：`;
-        confirmMsg += `\n1. 将所有源文件打包为ZIP附加到主记录`;
-        confirmMsg += `\n2. 删除其他 ${checkupIds.length - 1} 个非主记录`;
-        confirmMsg += `\n\n此操作不可撤销！`;
-    } else {
-        confirmMsg += ' 此操作不可撤销。';
-    }
+    const confirmMsg = `确定要应用 ${changesToApply.length} 个更改吗？\n\n此操作将更新指标的名称、单位、分类等信息，但不会删除或合并原始报告。\n此操作不可撤销。`;
     
     if (!confirm(confirmMsg)) {
         return;
@@ -1252,9 +1240,7 @@ async function applyChanges() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                changes: changesToApply,
-                primary_checkup_id: primaryCheckupId,
-                checkup_ids: checkupIds
+                changes: changesToApply
             })
         });
 
@@ -1278,25 +1264,6 @@ function showUpdateDetails(result) {
     const detailsContainer = document.createElement('div');
     detailsContainer.id = 'updateDetailsContent';
     
-    let mergeInfo = '';
-    if (result.zip_created) {
-        mergeInfo += `
-            <div class="alert alert-info mb-2">
-                <i class="bi bi-file-earmark-zip"></i>
-                <strong>源文件已打包</strong> - 所有源文件已压缩为ZIP并附加到主记录
-            </div>
-        `;
-    }
-    if (result.deleted_checkups && result.deleted_checkups.length > 0) {
-        mergeInfo += `
-            <div class="alert alert-warning mb-2">
-                <i class="bi bi-trash"></i>
-                <strong>已删除 ${result.deleted_checkups.length} 个非主记录</strong>：
-                ${result.deleted_checkups.map(c => `${c.checkup_date} (${c.hospital || '未知机构'})`).join('、')}
-            </div>
-        `;
-    }
-    
     detailsContainer.innerHTML = `
         <div class="row mb-3">
             <div class="col-12">
@@ -1305,7 +1272,6 @@ function showUpdateDetails(result) {
                     <strong>更新完成！</strong>
                     成功更新 <strong>${result.updated_count}</strong> 个指标
                 </div>
-                ${mergeInfo}
             </div>
         </div>
 
