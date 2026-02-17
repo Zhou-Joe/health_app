@@ -66,6 +66,12 @@ urlpatterns = [
     path('medications/<int:medication_id>/records/', miniprogram_api.miniprogram_medication_records, name='medication_records'),
     path('medications/recognize-image/', miniprogram_api.miniprogram_recognize_medication_image, name='recognize_medication_image'),
 
+    # 药单组管理
+    path('medication-groups/', miniprogram_api.mp_medication_groups, name='medication_groups'),
+    path('medication-groups/<int:group_id>/', miniprogram_api.mp_medication_group_detail, name='medication_group_detail'),
+    path('medication-groups/<int:group_id>/checkin/', miniprogram_api.mp_medication_group_checkin, name='medication_group_checkin'),
+    path('medication-groups/<int:group_id>/dissolve/', miniprogram_api.mp_medication_group_dissolve, name='medication_group_dissolve'),
+
     # 健康日志（症状日志 & 体征日志）
     path('symptom-logs/', miniprogram_api.mp_symptom_logs, name='symptom_logs'),
     path('symptom-logs/<int:log_id>/', miniprogram_api.mp_symptom_log_detail, name='symptom_log_detail'),

@@ -3158,3 +3158,332 @@ def mp_vital_types(request):
         'success': True,
         'vital_types': vital_types
     })
+
+
+# ============================================================================
+# 小程序药单组API
+# ============================================================================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def mp_medication_groups(request):
+    """
+    获取或创建药单组
+
+    GET: 获取药单组列表
+    POST: 创建新的药单组（手动选择药物组成）
+    """
+    from .models import MedicationGroup, Medication
+
+    if request.method == 'GET':
+        groups = MedicationGroup.objects.filter(user=request.user).order_by('-created_at')
+
+        group_list = []
+        for group in groups:
+            medications = Medication.objects.filter(group=group)
+            medication_list = []
+            for med in medications:
+                medication_list.append({
+                    'id': med.id,
+                    'medicine_name': med.medicine_name,
+                    'dosage': med.dosage,
+                    'start_date': med.start_date.strftime('%Y-%m-%d'),
+                    'end_date': med.end_date.strftime('%Y-%m-%d'),
+                    'notes': med.notes,
+                    'is_active': med.is_active,
+                    'total_days': med.total_days,
+                    'days_taken': med.days_taken,
+                    'progress_percentage': med.progress_percentage,
+                })
+
+            group_list.append({
+                'id': group.id,
+                'name': group.name,
+                'ai_summary': group.ai_summary,
+                'source_image': group.source_image.url if group.source_image else None,
+                'medication_count': group.medication_count,
+                'created_at': group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'medications': medication_list,
+            })
+
+        return Response({
+            'success': True,
+            'groups': group_list,
+            'count': len(group_list)
+        })
+
+    elif request.method == 'POST':
+        # 创建药单组
+        try:
+            data = _get_request_data(request)
+
+            name = data.get('name', '').strip()
+            medication_ids = data.get('medication_ids', [])
+            notes = data.get('notes', '')
+
+            if not medication_ids:
+                return Response({
+                    'success': False,
+                    'message': '请选择要加入药单组的药物'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not name:
+                today_str = datetime.now().strftime('%Y-%m-%d')
+                name = f'药单组 {today_str}'
+
+            group = MedicationGroup.objects.create(
+                user=request.user,
+                name=name,
+                ai_summary=notes
+            )
+
+            updated_count = Medication.objects.filter(
+                id__in=medication_ids,
+                user=request.user,
+                group__isnull=True
+            ).update(group=group)
+
+            return Response({
+                'success': True,
+                'message': f'成功创建药单组，包含 {updated_count} 个药物',
+                'group': {
+                    'id': group.id,
+                    'name': group.name,
+                    'ai_summary': group.ai_summary,
+                    'medication_count': updated_count,
+                }
+            }, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'message': f'创建药单组失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def mp_medication_group_detail(request, group_id):
+    """
+    获取、更新或删除药单组
+
+    GET: 获取药单组详情
+    PUT: 更新药单组（名称、备注、添加/移除药物）
+    DELETE: 删除药单组
+    """
+    from .models import MedicationGroup, Medication
+
+    try:
+        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+    except MedicationGroup.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '药单组不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        medications = Medication.objects.filter(group=group)
+        medication_list = []
+        for med in medications:
+            medication_list.append({
+                'id': med.id,
+                'medicine_name': med.medicine_name,
+                'dosage': med.dosage,
+                'start_date': med.start_date.strftime('%Y-%m-%d'),
+                'end_date': med.end_date.strftime('%Y-%m-%d'),
+                'notes': med.notes,
+                'is_active': med.is_active,
+                'total_days': med.total_days,
+                'days_taken': med.days_taken,
+                'progress_percentage': med.progress_percentage,
+            })
+
+        return Response({
+            'success': True,
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'ai_summary': group.ai_summary,
+                'source_image': group.source_image.url if group.source_image else None,
+                'medication_count': group.medication_count,
+                'created_at': group.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            },
+            'medications': medication_list
+        })
+
+    elif request.method == 'PUT':
+        # 更新药单组
+        try:
+            data = _get_request_data(request)
+
+            if data.get('name'):
+                group.name = data['name'].strip()
+            if data.get('notes') is not None:
+                group.ai_summary = data['notes']
+            group.save()
+
+            # 添加药物
+            if data.get('add_medication_ids'):
+                Medication.objects.filter(
+                    id__in=data['add_medication_ids'],
+                    user=request.user
+                ).update(group=group)
+
+            # 移除药物
+            if data.get('remove_medication_ids'):
+                Medication.objects.filter(
+                    id__in=data['remove_medication_ids'],
+                    user=request.user,
+                    group=group
+                ).update(group=None)
+
+            current_medication_count = Medication.objects.filter(group=group).count()
+
+            # 如果药单组为空，自动删除
+            if current_medication_count == 0:
+                group_name = group.name
+                group.delete()
+                return Response({
+                    'success': True,
+                    'message': f'药单组"{group_name}"已自动删除（空集合）',
+                    'medication_count': 0,
+                    'group_deleted': True
+                })
+
+            return Response({
+                'success': True,
+                'message': '药单组已更新',
+                'group': {
+                    'id': group.id,
+                    'name': group.name,
+                    'ai_summary': group.ai_summary,
+                    'medication_count': current_medication_count,
+                }
+            })
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'message': f'更新药单组失败: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    elif request.method == 'DELETE':
+        group.delete()
+        return Response({
+            'success': True,
+            'message': '药单组已删除'
+        })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_medication_group_checkin(request, group_id):
+    """
+    药单组批量打卡
+
+    请求参数：
+    - record_date: 打卡日期（可选，默认今天）
+    - frequency: 服药频率（可选，默认daily）
+    - notes: 备注（可选）
+    """
+    from .models import MedicationGroup, Medication, MedicationRecord
+
+    try:
+        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+    except MedicationGroup.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '药单组不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        data = _get_request_data(request)
+        record_date = data.get('record_date')
+        frequency = data.get('frequency', 'daily')
+        notes = data.get('notes', '')
+
+        if not record_date:
+            record_date = datetime.now().strftime('%Y-%m-%d')
+
+        record_date_obj = datetime.strptime(record_date, '%Y-%m-%d').date()
+
+        medications = Medication.objects.filter(group=group, is_active=True)
+
+        success_count = 0
+        skipped_count = 0
+
+        for med in medications:
+            existing = MedicationRecord.objects.filter(
+                medication=med,
+                record_date=record_date_obj
+            ).first()
+
+            if existing:
+                skipped_count += 1
+            else:
+                MedicationRecord.objects.create(
+                    medication=med,
+                    record_date=record_date_obj,
+                    frequency=frequency,
+                    notes=notes
+                )
+                success_count += 1
+
+        return Response({
+            'success': True,
+            'message': f'成功打卡 {success_count} 个药单' + (f'，跳过 {skipped_count} 个已打卡的药单' if skipped_count > 0 else ''),
+            'success_count': success_count,
+            'skipped_count': skipped_count,
+            'total_count': success_count + skipped_count
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'打卡失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_medication_group_dissolve(request, group_id):
+    """
+    解散药单组（保留药物，只删除分组）
+    """
+    from .models import MedicationGroup, Medication
+
+    try:
+        group = MedicationGroup.objects.get(id=group_id, user=request.user)
+    except MedicationGroup.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '药单组不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        medication_count = Medication.objects.filter(group=group).count()
+
+        # 将药物移出分组
+        Medication.objects.filter(group=group).update(group=None)
+
+        group_name = group.name
+        group.delete()
+
+        return Response({
+            'success': True,
+            'message': f'已解散药单组"{group_name}"，{medication_count} 个药物已变为独立药单'
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'解散药单组失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
