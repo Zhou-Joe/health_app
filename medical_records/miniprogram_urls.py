@@ -8,6 +8,10 @@ urlpatterns = [
     path('login/', miniprogram_api.miniprogram_login, name='login'),
     path('user-info/', miniprogram_api.miniprogram_user_info, name='user_info'),
     path('complete-profile/', miniprogram_api.miniprogram_complete_profile, name='complete_profile'),
+    
+    # 头像管理
+    path('avatar/', miniprogram_api.miniprogram_get_avatar, name='get_avatar'),
+    path('avatar/upload/', miniprogram_api.miniprogram_upload_avatar, name='upload_avatar'),
 
     # 体检报告管理
     path('upload/', miniprogram_api.miniprogram_upload_report, name='upload_report'),
@@ -49,6 +53,7 @@ urlpatterns = [
     path('system-settings/', miniprogram_api.miniprogram_system_settings, name='system_settings'),
     path('hospitals/common/', miniprogram_api.miniprogram_common_hospitals, name='common_hospitals'),
     path('indicator-types/', miniprogram_api.miniprogram_indicator_types, name='indicator_types'),
+    path('indicator-trends/', miniprogram_api.miniprogram_indicator_trends, name='indicator_trends'),
     path('detect-duplicates/', miniprogram_api.miniprogram_detect_duplicate_checkups, name='detect_duplicate_checkups'),
     path('merge-duplicates/', miniprogram_api.miniprogram_merge_duplicate_checkups, name='merge_duplicate_checkups'),
 

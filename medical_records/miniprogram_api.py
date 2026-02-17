@@ -2298,6 +2298,104 @@ def miniprogram_medication_detail(request, medication_id):
         })
 
 
+# ==================== 头像管理API ====================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def miniprogram_upload_avatar(request):
+    """小程序上传用户头像"""
+    try:
+        # 获取上传的文件
+        if 'avatar' not in request.FILES:
+            return Response({
+                'success': False,
+                'message': '未找到上传文件'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        avatar_file = request.FILES['avatar']
+
+        # 验证文件类型
+        allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        if avatar_file.content_type not in allowed_types:
+            return Response({
+                'success': False,
+                'message': '只支持 JPG、PNG、GIF、WEBP 格式的图片'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证文件大小（限制为 5MB）
+        max_size = 5 * 1024 * 1024  # 5MB
+        if avatar_file.size > max_size:
+            return Response({
+                'success': False,
+                'message': '图片大小不能超过 5MB'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 创建 avatars 目录
+        from django.conf import settings
+        avatars_dir = os.path.join(settings.MEDIA_ROOT, 'avatars')
+        os.makedirs(avatars_dir, exist_ok=True)
+
+        # 生成唯一文件名
+        import uuid
+        file_ext = os.path.splitext(avatar_file.name)[1]
+        unique_filename = f"{request.user.id}_{uuid.uuid4().hex[:8]}{file_ext}"
+        file_path = os.path.join(avatars_dir, unique_filename)
+
+        # 保存文件
+        with open(file_path, 'wb+') as destination:
+            for chunk in avatar_file.chunks():
+                destination.write(chunk)
+
+        # 构建 URL
+        avatar_url = f"{settings.MEDIA_URL}avatars/{unique_filename}"
+
+        # 更新用户头像
+        from .models import UserProfile
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        profile.avatar_url = avatar_url
+        profile.save(update_fields=['avatar_url'])
+
+        return Response({
+            'success': True,
+            'avatar_url': avatar_url,
+            'message': '头像上传成功',
+            'user': UserSerializer(request.user).data
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'上传失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def miniprogram_get_avatar(request):
+    """小程序获取用户头像"""
+    try:
+        from .models import UserProfile
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        avatar_url = profile.avatar_url if profile.avatar_url else None
+        
+        return Response({
+            'success': True,
+            'avatar_url': avatar_url,
+            'user': UserSerializer(request.user).data
+        })
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'获取头像失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def miniprogram_medication_checkin(request):
