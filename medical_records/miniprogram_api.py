@@ -3765,12 +3765,12 @@ def mp_indicator_batch_create(request):
 # 健康事件管理 API
 # ============================================================================
 
-def _serialize_mp_event(event):
-    """序列化健康事件（小程序版本）"""
+def _mp_serialize_event(event):
+    """序列化健康事件"""
     return {
         'id': event.id,
         'name': event.name,
-        'description': event.description or '',
+        'description': event.description,
         'event_type': event.event_type,
         'event_type_display': event.get_event_type_display(),
         'status': event.status,
@@ -3791,100 +3791,97 @@ def mp_events(request):
     """
     小程序健康事件API
 
-    GET: 获取用户的健康事件列表
-    POST: 创建新的健康事件
+    GET: 获取事件列表
+    POST: 创建新事件
     """
     from .models import HealthEvent
 
     if request.method == 'GET':
-        # 获取查询参数
         event_type = request.query_params.get('event_type')
-        status_param = request.query_params.get('status')
+        status_filter = request.query_params.get('status')
         is_auto = request.query_params.get('is_auto_generated')
-        limit = int(request.query_params.get('limit', 50))
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
 
-        # 构建查询
         events = HealthEvent.objects.filter(user=request.user)
 
         if event_type:
             events = events.filter(event_type=event_type)
-        if status_param:
-            events = events.filter(status=status_param)
+        if status_filter:
+            events = events.filter(status=status_filter)
         if is_auto is not None:
             is_auto_bool = is_auto.lower() == 'true'
             events = events.filter(is_auto_generated=is_auto_bool)
 
-        events = events[:limit]
+        events = events.order_by('-start_date', '-created_at')
 
-        # 序列化数据
-        events_data = []
-        for event in events:
-            events_data.append(_serialize_mp_event(event))
+        total = events.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        events_page = events[start:end]
+
+        events_data = [_mp_serialize_event(e) for e in events_page]
 
         return Response({
             'success': True,
             'events': events_data,
-            'count': len(events_data)
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'has_more': end < total
         })
 
     elif request.method == 'POST':
-        # 创建新事件
-        try:
-            data = _get_request_data(request)
-            name = data.get('name')
-            description = data.get('description', '')
-            start_date = data.get('start_date')
-            end_date = data.get('end_date')
-            event_type = data.get('event_type', 'other')
-            status = data.get('status', 'observing')
+        data = _get_request_data(request)
 
-            if not name:
-                return Response({
-                    'success': False,
-                    'message': '事件名称不能为空'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            if not start_date:
-                return Response({
-                    'success': False,
-                    'message': '开始日期不能为空'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            # 验证状态值
-            valid_statuses = ['observing', 'treating', 'recovered', 'chronic', 'other']
-            if status not in valid_statuses:
-                return Response({
-                    'success': False,
-                    'message': f'无效状态: {status}，支持的状态: {", ".join(valid_statuses)}'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
-            if end_date:
-                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
-
-            event = HealthEvent.objects.create(
-                user=request.user,
-                name=name,
-                description=description,
-                start_date=start_date,
-                end_date=end_date,
-                event_type=event_type,
-                status=status,
-                is_auto_generated=False
-            )
-
-            return Response({
-                'success': True,
-                'event': _serialize_mp_event(event)
-            }, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
+        name = data.get('name', '').strip()
+        if not name:
             return Response({
                 'success': False,
-                'message': f'创建事件失败: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'message': '事件名称不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        start_date = data.get('start_date')
+        if not start_date:
+            return Response({
+                'success': False,
+                'message': '开始日期不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({
+                'success': False,
+                'message': '日期格式错误，请使用 YYYY-MM-DD 格式'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        end_date = data.get('end_date')
+        if end_date:
+            try:
+                end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                return Response({
+                    'success': False,
+                    'message': '结束日期格式错误'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        event = HealthEvent.objects.create(
+            user=request.user,
+            name=name,
+            description=data.get('description', ''),
+            start_date=start_date,
+            end_date=end_date,
+            event_type=data.get('event_type', 'other'),
+            status=data.get('status', HealthEvent.STATUS_OBSERVING),
+            is_auto_generated=False
+        )
+
+        return Response({
+            'success': True,
+            'message': '事件创建成功',
+            'data': _mp_serialize_event(event)
+        }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
@@ -3893,171 +3890,120 @@ def mp_event_detail(request, event_id):
     """
     小程序健康事件详情API
 
-    GET: 获取事件详情（包含关联的记录）
+    GET: 获取事件详情
     PUT: 更新事件
     DELETE: 删除事件
     """
     from .models import HealthEvent, EventItem
-    from django.shortcuts import get_object_or_404
 
     try:
-        event = get_object_or_404(HealthEvent, id=event_id, user=request.user)
-
-        if request.method == 'GET':
-            # 获取事件关联的所有项目
-            items = event.event_items.all().select_related('content_type')
-            items_data = []
-
-            for item in items:
-                item_data = {
-                    'id': item.id,
-                    'item_summary': item.item_summary,
-                    'content_type': item.content_type.model,
-                    'object_id': item.object_id,
-                    'notes': item.notes or '',
-                    'added_by': item.added_by,
-                    'added_at': item.added_at.strftime('%Y-%m-%d %H:%M:%S'),
-                }
-
-                # 根据类型添加详细信息
-                try:
-                    obj = item.content_type.get_object_for_this_type(id=item.object_id)
-
-                    if item.content_type.model == 'healthcheckup':
-                        # 体检报告详情
-                        item_data.update({
-                            'title': f"{obj.checkup_date} {obj.hospital}",
-                            'checkup_date': obj.checkup_date.strftime('%Y-%m-%d'),
-                            'hospital': obj.hospital,
-                            'department': obj.department or '',
-                            'indicator_count': obj.indicators.count(),
-                        })
-
-                    elif item.content_type.model == 'medication':
-                        # 药单详情
-                        item_data.update({
-                            'title': obj.medicine_name,
-                            'medicine_name': obj.medicine_name,
-                            'dosage': obj.dosage or '',
-                            'frequency': obj.frequency or '',
-                            'start_date': obj.start_date.strftime('%Y-%m-%d') if obj.start_date else '',
-                            'end_date': obj.end_date.strftime('%Y-%m-%d') if obj.end_date else '',
-                            'instructions': obj.instructions or '',
-                        })
-
-                    elif item.content_type.model == 'medicationgroup':
-                        # 药单组详情
-                        med_list = list(obj.medications.values_list('medicine_name', flat=True)[:5])
-                        item_data.update({
-                            'title': obj.name,
-                            'group_name': obj.name,
-                            'medication_names': med_list,
-                            'medication_count': obj.medication_count,
-                        })
-
-                    elif item.content_type.model == 'healthindicator':
-                        # 健康指标详情
-                        item_data.update({
-                            'title': obj.indicator_name,
-                            'indicator_name': obj.indicator_name,
-                            'value': obj.value,
-                            'unit': obj.unit or '',
-                            'reference_range': obj.reference_range or '',
-                            'status': obj.status,
-                            'abnormal': obj.status != 'normal',
-                        })
-
-                    elif item.content_type.model == 'symptomentry':
-                        # 症状日志详情
-                        item_data.update({
-                            'title': obj.symptom,
-                            'symptom': obj.symptom,
-                            'severity': obj.severity,
-                            'severity_display': obj.get_severity_display(),
-                            'entry_date': obj.entry_date.strftime('%Y-%m-%d'),
-                        })
-
-                    elif item.content_type.model == 'vitalentry':
-                        # 体征日志详情
-                        item_data.update({
-                            'title': f"{obj.get_vital_type_display()} - {obj.value}",
-                            'vital_type': obj.vital_type,
-                            'vital_type_display': obj.get_vital_type_display(),
-                            'value': obj.value,
-                            'unit': obj.unit or '',
-                            'entry_date': obj.entry_date.strftime('%Y-%m-%d'),
-                        })
-
-                except Exception as e:
-                    # 如果获取详情失败，保留基本信息
-                    print(f"Error getting item details: {e}")
-
-                items_data.append(item_data)
-
-            return Response({
-                'success': True,
-                'event': _serialize_mp_event(event),
-                'items': items_data
-            })
-
-        elif request.method == 'PUT':
-            # 更新事件
-            try:
-                data = _get_request_data(request)
-
-                if 'name' in data:
-                    event.name = data['name']
-                if 'description' in data:
-                    event.description = data['description']
-                if 'event_type' in data:
-                    event.event_type = data['event_type']
-                if 'status' in data:
-                    new_status = data['status']
-                    valid_statuses = ['observing', 'treating', 'recovered', 'chronic', 'other']
-                    if new_status not in valid_statuses:
-                        return Response({
-                            'success': False,
-                            'message': f'无效状态: {new_status}，支持的状态: {", ".join(valid_statuses)}'
-                        }, status=status.HTTP_400_BAD_REQUEST)
-                    event.status = new_status
-                if 'start_date' in data:
-                    event.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
-                if 'end_date' in data:
-                    if data['end_date']:
-                        event.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
-                    else:
-                        event.end_date = None
-
-                event.save()
-
-                return Response({
-                    'success': True,
-                    'event': _serialize_mp_event(event)
-                })
-
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                return Response({
-                    'success': False,
-                    'message': f'更新事件失败: {str(e)}'
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        elif request.method == 'DELETE':
-            # 删除事件
-            event.delete()
-            return Response({
-                'success': True,
-                'message': '事件已删除'
-            })
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
+        event = HealthEvent.objects.get(id=event_id, user=request.user)
+    except HealthEvent.DoesNotExist:
         return Response({
             'success': False,
-            'message': f'操作失败: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            'message': '事件不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        items = event.event_items.all()
+        items_data = []
+        for item in items:
+            item_data = {
+                'id': item.id,
+                'item_summary': item.item_summary,
+                'item_type': item.content_type.model,
+                'item_id': item.object_id,
+                'notes': item.notes,
+                'added_by': item.added_by,
+                'added_at': item.added_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+
+            obj = item.content_object
+            model_name = item.content_type.model
+
+            if model_name == 'healthcheckup' and obj:
+                indicators = obj.indicators.all()[:20]
+                indicator_lines = []
+                for ind in indicators:
+                    status_text = ''
+                    if ind.status == 'high':
+                        status_text = '↑偏高'
+                    elif ind.status == 'low':
+                        status_text = '↓偏低'
+                    indicator_lines.append(f"{ind.indicator_name}: {ind.value}{ind.unit or ''} {status_text}")
+                item_data['detail_content'] = '\n'.join(indicator_lines) if indicator_lines else '暂无指标数据'
+                item_data['checkup_date'] = obj.checkup_date.strftime('%Y-%m-%d') if obj.checkup_date else None
+                item_data['hospital'] = obj.hospital
+
+            elif model_name == 'medication' and obj:
+                detail_lines = [f"药品名称: {obj.medicine_name}"]
+                if obj.dosage:
+                    detail_lines.append(f"剂量: {obj.dosage}")
+                if obj.frequency:
+                    detail_lines.append(f"频率: {obj.frequency}")
+                if obj.start_date:
+                    detail_lines.append(f"开始日期: {obj.start_date}")
+                if obj.end_date:
+                    detail_lines.append(f"结束日期: {obj.end_date}")
+                if obj.notes:
+                    detail_lines.append(f"备注: {obj.notes}")
+                item_data['detail_content'] = '\n'.join(detail_lines)
+
+            elif model_name == 'medicationgroup' and obj:
+                medications = obj.medications.all()[:10]
+                med_lines = []
+                for med in medications:
+                    med_lines.append(f"• {med.medicine_name} - {med.dosage or ''} {med.frequency or ''}")
+                item_data['detail_content'] = '\n'.join(med_lines) if med_lines else '暂无药物信息'
+
+            elif model_name == 'healthindicator' and obj:
+                item_data['detail_content'] = f"{obj.indicator_name}: {obj.value} {obj.unit or ''}"
+                if obj.reference_range:
+                    item_data['detail_content'] += f"\n参考范围: {obj.reference_range}"
+
+            items_data.append(item_data)
+
+        event_data = _mp_serialize_event(event)
+        event_data['items'] = items_data
+
+        return Response({
+            'success': True,
+            'data': event_data
+        })
+
+    elif request.method == 'PUT':
+        data = _get_request_data(request)
+
+        if 'name' in data:
+            event.name = data['name'].strip()
+        if 'description' in data:
+            event.description = data['description']
+        if 'event_type' in data:
+            event.event_type = data['event_type']
+        if 'status' in data:
+            event.status = data['status']
+        if 'start_date' in data:
+            event.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        if 'end_date' in data:
+            if data['end_date']:
+                event.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+            else:
+                event.end_date = None
+
+        event.save()
+
+        return Response({
+            'success': True,
+            'message': '事件更新成功',
+            'data': _mp_serialize_event(event)
+        })
+
+    elif request.method == 'DELETE':
+        event.delete()
+        return Response({
+            'success': True,
+            'message': '事件已删除'
+        })
 
 
 @api_view(['POST'])
