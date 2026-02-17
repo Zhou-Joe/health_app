@@ -3,7 +3,7 @@ from django.contrib.contenttypes.admin import GenericTabularInline
 from .models import (
     HealthCheckup, HealthIndicator, HealthAdvice,
     DocumentProcessing, SystemSettings, Medication, MedicationRecord,
-    HealthEvent, EventItem, EventTemplate
+    HealthEvent, EventItem, EventTemplate, SymptomEntry, VitalEntry
 )
 
 
@@ -274,3 +274,35 @@ class EventTemplateAdmin(admin.ModelAdmin):
         from django.contrib import messages
         messages.success(request, f'已创建 {created_count} 个默认模板')
     create_default_templates.short_description = '创建默认系统模板'
+
+
+@admin.register(SymptomEntry)
+class SymptomEntryAdmin(admin.ModelAdmin):
+    """症状日志管理"""
+    list_display = ['user', 'entry_date', 'symptom', 'severity_display', 'related_checkup', 'related_medication', 'created_at']
+    list_filter = ['severity', 'entry_date', 'created_at']
+    search_fields = ['user__username', 'symptom', 'notes']
+    date_hierarchy = 'entry_date'
+    ordering = ['-entry_date', '-created_at']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def severity_display(self, obj):
+        """显示严重程度"""
+        return dict(obj.SEVERITY_CHOICES).get(obj.severity, obj.severity)
+    severity_display.short_description = '严重程度'
+
+
+@admin.register(VitalEntry)
+class VitalEntryAdmin(admin.ModelAdmin):
+    """体征日志管理"""
+    list_display = ['user', 'entry_date', 'vital_type_display', 'value', 'unit', 'related_checkup', 'related_medication', 'created_at']
+    list_filter = ['vital_type', 'entry_date', 'created_at']
+    search_fields = ['user__username', 'value', 'notes']
+    date_hierarchy = 'entry_date'
+    ordering = ['-entry_date', '-created_at']
+    readonly_fields = ['created_at', 'updated_at']
+
+    def vital_type_display(self, obj):
+        """显示体征类型"""
+        return dict(obj.VITAL_TYPE_CHOICES).get(obj.vital_type, obj.vital_type)
+    vital_type_display.short_description = '体征类型'

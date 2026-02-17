@@ -81,6 +81,14 @@ urlpatterns = [
     path('vital-logs/<int:log_id>/', miniprogram_api.mp_vital_log_detail, name='vital_log_detail'),
     path('vital-types/', miniprogram_api.mp_vital_types, name='vital_types'),
 
+    # 健康管理计划
+    path('care-plans/', miniprogram_api.mp_care_plans, name='care_plans'),
+    path('care-plans/<int:plan_id>/', miniprogram_api.mp_care_plan_detail, name='care_plan_detail'),
+    path('care-plans/<int:plan_id>/goals/', miniprogram_api.mp_care_goals, name='care_goals'),
+    path('care-goals/<int:goal_id>/', miniprogram_api.mp_care_goal_detail, name='care_goal_detail'),
+    path('care-goals/<int:goal_id>/actions/', miniprogram_api.mp_care_actions, name='care_actions'),
+    path('care-actions/<int:action_id>/', miniprogram_api.mp_care_action_detail, name='care_action_detail'),
+
     # 健康事件管理
     path('events/', miniprogram_api.mp_events, name='events'),
     path('events/<int:event_id>/', miniprogram_api.mp_event_detail, name='event_detail'),

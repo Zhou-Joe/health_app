@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.contenttypes.models import ContentType
 from .models import (HealthCheckup, DocumentProcessing, HealthIndicator, Conversation, HealthAdvice, SystemSettings,
-                    Medication, MedicationRecord, MedicationGroup, HealthEvent, EventItem, CareGoal, CareAction)
+                    Medication, MedicationRecord, MedicationGroup, HealthEvent, EventItem, CareGoal, CareAction, CarePlan)
 from .forms import HealthCheckupForm
 from .services import DocumentProcessingService
 from .utils import convert_image_to_pdf, is_image_file
@@ -5894,3 +5894,464 @@ def api_vital_types(request):
         'success': True,
         'vital_types': vital_types
     })
+
+
+# ============================================================================
+# 健康管理计划 API (CarePlan, CareGoal, CareAction)
+# ============================================================================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_care_plans(request):
+    """
+    GET: 获取用户的所有健康管理计划
+    POST: 创建新的健康管理计划
+    """
+    if request.method == 'GET':
+        plans = CarePlan.objects.filter(user=request.user).order_by('-updated_at')
+        plans_list = []
+        
+        for plan in plans:
+            plans_list.append({
+                'id': plan.id,
+                'title': plan.title,
+                'description': plan.description or '',
+                'is_active': plan.is_active,
+                'goals_count': plan.goals.count(),
+                'created_at': plan.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': plan.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'plans': plans_list
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            plan = CarePlan.objects.create(
+                user=request.user,
+                title=data.get('title', '').strip(),
+                description=data.get('description', '').strip(),
+                is_active=data.get('is_active', True)
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': '健康管理计划已创建',
+                'plan': {
+                    'id': plan.id,
+                    'title': plan.title,
+                    'description': plan.description,
+                    'is_active': plan.is_active,
+                    'created_at': plan.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            }, status=201)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'创建计划失败: {str(e)}'
+            }, status=400)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def api_care_plan_detail(request, plan_id):
+    """
+    GET: 获取计划详情（包含所有目标和行动）
+    PUT: 更新计划
+    DELETE: 删除计划
+    """
+    try:
+        plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
+    except:
+        return JsonResponse({
+            'success': False,
+            'error': '计划不存在或无权访问'
+        }, status=404)
+    
+    if request.method == 'GET':
+        # 获取所有目标及其行动
+        goals_data = []
+        for goal in plan.goals.all():
+            actions_data = []
+            for action in goal.actions.all():
+                actions_data.append({
+                    'id': action.id,
+                    'title': action.title,
+                    'frequency': action.frequency or '',
+                    'status': action.status,
+                    'status_display': action.get_status_display(),
+                })
+            
+            goals_data.append({
+                'id': goal.id,
+                'title': goal.title,
+                'target_value': goal.target_value or '',
+                'unit': goal.unit or '',
+                'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                'status': goal.status,
+                'status_display': goal.get_status_display(),
+                'progress_percent': goal.progress_percent,
+                'actions_count': len(actions_data),
+                'actions': actions_data,
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'plan': {
+                'id': plan.id,
+                'title': plan.title,
+                'description': plan.description or '',
+                'is_active': plan.is_active,
+                'goals_count': len(goals_data),
+                'goals': goals_data,
+                'created_at': plan.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': plan.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+    
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            
+            if data.get('title'):
+                plan.title = data['title'].strip()
+            if data.get('description') is not None:
+                plan.description = data['description'].strip()
+            if data.get('is_active') is not None:
+                plan.is_active = data['is_active']
+            
+            plan.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': '计划已更新',
+                'plan': {
+                    'id': plan.id,
+                    'title': plan.title,
+                    'description': plan.description,
+                    'is_active': plan.is_active,
+                    'updated_at': plan.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            })
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'更新计划失败: {str(e)}'
+            }, status=400)
+    
+    elif request.method == 'DELETE':
+        plan.delete()
+        return JsonResponse({
+            'success': True,
+            'message': '计划已删除'
+        })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_care_goals(request, plan_id):
+    """
+    GET: 获取计划的所有目标
+    POST: 为计划创建新目标
+    """
+    plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
+    
+    if request.method == 'GET':
+        goals = plan.goals.all()
+        goals_list = []
+        
+        for goal in goals:
+            goals_list.append({
+                'id': goal.id,
+                'title': goal.title,
+                'target_value': goal.target_value or '',
+                'unit': goal.unit or '',
+                'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                'status': goal.status,
+                'status_display': goal.get_status_display(),
+                'progress_percent': goal.progress_percent,
+                'actions_count': goal.actions.count(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'goals': goals_list
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            from datetime import datetime
+            goal = CareGoal.objects.create(
+                plan=plan,
+                title=data.get('title', '').strip(),
+                target_value=data.get('target_value', '').strip(),
+                unit=data.get('unit', '').strip(),
+                due_date=datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None,
+                status=data.get('status', 'active'),
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': '目标已创建',
+                'goal': {
+                    'id': goal.id,
+                    'title': goal.title,
+                    'target_value': goal.target_value,
+                    'unit': goal.unit,
+                    'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                    'status': goal.status,
+                    'created_at': goal.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            }, status=201)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'创建目标失败: {str(e)}'
+            }, status=400)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def api_care_goal_detail(request, goal_id):
+    """
+    GET: 获取目标详情（包含所有行动）
+    PUT: 更新目标
+    DELETE: 删除目标
+    """
+    try:
+        goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+    except:
+        return JsonResponse({
+            'success': False,
+            'error': '目标不存在或无权访问'
+        }, status=404)
+    
+    if request.method == 'GET':
+        actions_data = []
+        for action in goal.actions.all():
+            actions_data.append({
+                'id': action.id,
+                'title': action.title,
+                'frequency': action.frequency or '',
+                'status': action.status,
+                'status_display': action.get_status_display(),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'goal': {
+                'id': goal.id,
+                'plan_id': goal.plan.id,
+                'title': goal.title,
+                'target_value': goal.target_value or '',
+                'unit': goal.unit or '',
+                'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                'status': goal.status,
+                'status_display': goal.get_status_display(),
+                'progress_percent': goal.progress_percent,
+                'actions': actions_data,
+                'created_at': goal.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': goal.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+    
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            
+            if data.get('title'):
+                goal.title = data['title'].strip()
+            if data.get('target_value') is not None:
+                goal.target_value = data['target_value'].strip()
+            if data.get('unit') is not None:
+                goal.unit = data['unit'].strip()
+            if data.get('due_date'):
+                from datetime import datetime
+                goal.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
+            if data.get('status'):
+                goal.status = data['status']
+            
+            goal.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': '目标已更新',
+                'goal': {
+                    'id': goal.id,
+                    'title': goal.title,
+                    'target_value': goal.target_value,
+                    'status': goal.status,
+                    'updated_at': goal.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            })
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'更新目标失败: {str(e)}'
+            }, status=400)
+    
+    elif request.method == 'DELETE':
+        goal.delete()
+        return JsonResponse({
+            'success': True,
+            'message': '目标已删除'
+        })
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def api_care_actions(request, goal_id):
+    """
+    GET: 获取目标的所有行动
+    POST: 为目标创建新行动
+    """
+    goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+    
+    if request.method == 'GET':
+        actions = goal.actions.all()
+        actions_list = []
+        
+        for action in actions:
+            actions_list.append({
+                'id': action.id,
+                'title': action.title,
+                'frequency': action.frequency or '',
+                'status': action.status,
+                'status_display': action.get_status_display(),
+                'created_at': action.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'actions': actions_list
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            action = CareAction.objects.create(
+                goal=goal,
+                title=data.get('title', '').strip(),
+                frequency=data.get('frequency', '').strip(),
+                status=data.get('status', 'pending'),
+            )
+            
+            # 重新计算目标进度
+            goal.recalculate_progress()
+            
+            return JsonResponse({
+                'success': True,
+                'message': '行动已创建',
+                'action': {
+                    'id': action.id,
+                    'title': action.title,
+                    'frequency': action.frequency,
+                    'status': action.status,
+                    'created_at': action.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            }, status=201)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'创建行动失败: {str(e)}'
+            }, status=400)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def api_care_action_detail(request, action_id):
+    """
+    GET: 获取行动详情
+    PUT: 更新行动（标记完成）
+    DELETE: 删除行动
+    """
+    try:
+        action = get_object_or_404(CareAction, id=action_id, goal__plan__user=request.user)
+    except:
+        return JsonResponse({
+            'success': False,
+            'error': '行动不存在或无权访问'
+        }, status=404)
+    
+    goal = action.goal
+    
+    if request.method == 'GET':
+        return JsonResponse({
+            'success': True,
+            'action': {
+                'id': action.id,
+                'goal_id': goal.id,
+                'title': action.title,
+                'frequency': action.frequency or '',
+                'status': action.status,
+                'status_display': action.get_status_display(),
+                'created_at': action.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+    
+    elif request.method == 'PUT':
+        try:
+            data = json.loads(request.body)
+            
+            if data.get('title'):
+                action.title = data['title'].strip()
+            if data.get('frequency') is not None:
+                action.frequency = data['frequency'].strip()
+            if data.get('status'):
+                action.status = data['status']
+            
+            action.save()
+            
+            # 重新计算目标进度
+            goal.recalculate_progress()
+            
+            return JsonResponse({
+                'success': True,
+                'message': '行动已更新',
+                'action': {
+                    'id': action.id,
+                    'title': action.title,
+                    'frequency': action.frequency,
+                    'status': action.status,
+                }
+            })
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse({
+                'success': False,
+                'error': f'更新行动失败: {str(e)}'
+            }, status=400)
+    
+    elif request.method == 'DELETE':
+        action.delete()
+        # 重新计算目标进度
+        goal.recalculate_progress()
+        
+        return JsonResponse({
+            'success': True,
+            'message': '行动已删除'
+        })

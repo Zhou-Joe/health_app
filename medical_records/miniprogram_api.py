@@ -15,7 +15,7 @@ import os
 import threading
 from datetime import datetime, timedelta
 
-from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing, Conversation
+from .models import HealthCheckup, HealthIndicator, HealthAdvice, SystemSettings, DocumentProcessing, Conversation, CarePlan, CareGoal, CareAction
 from .services import DocumentProcessingService, VisionLanguageModelService, AIService
 from .miniprogram_serializers import (
     UserSerializer, HealthCheckupSerializer, HealthIndicatorSerializer,
@@ -3939,8 +3939,6 @@ def mp_event_detail(request, event_id):
                 detail_lines = [f"药品名称: {obj.medicine_name}"]
                 if obj.dosage:
                     detail_lines.append(f"剂量: {obj.dosage}")
-                if obj.frequency:
-                    detail_lines.append(f"频率: {obj.frequency}")
                 if obj.start_date:
                     detail_lines.append(f"开始日期: {obj.start_date}")
                 if obj.end_date:
@@ -3953,7 +3951,7 @@ def mp_event_detail(request, event_id):
                 medications = obj.medications.all()[:10]
                 med_lines = []
                 for med in medications:
-                    med_lines.append(f"• {med.medicine_name} - {med.dosage or ''} {med.frequency or ''}")
+                    med_lines.append(f"• {med.medicine_name} - {med.dosage or ''}")
                 item_data['detail_content'] = '\n'.join(med_lines) if med_lines else '暂无药物信息'
 
             elif model_name == 'healthindicator' and obj:
@@ -4282,3 +4280,395 @@ def mp_event_available_items(request):
             'success': False,
             'message': f'获取记录列表失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# 健康管理计划 API (小程序版)
+# ============================================================================
+
+@api_view(['GET', 'POST'])
+def mp_care_plans(request):
+    """
+    小程序健康管理计划API
+    
+    GET: 获取用户的所有健康管理计划
+    POST: 创建新的健康管理计划
+    """
+    if request.method == 'GET':
+        plans = CarePlan.objects.filter(user=request.user).order_by('-updated_at')
+        plans_list = []
+        
+        for plan in plans:
+            plans_list.append({
+                'id': plan.id,
+                'title': plan.title,
+                'description': plan.description or '',
+                'is_active': plan.is_active,
+                'goals_count': plan.goals.count(),
+                'created_at': plan.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': plan.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            })
+        
+        return Response({
+            'success': True,
+            'plans': plans_list
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = request.data
+            
+            plan = CarePlan.objects.create(
+                user=request.user,
+                title=data.get('title', '').strip(),
+                description=data.get('description', '').strip(),
+                is_active=data.get('is_active', True)
+            )
+            
+            return Response({
+                'success': True,
+                'message': '健康管理计划已创建',
+                'data': {
+                    'id': plan.id,
+                    'title': plan.title,
+                    'description': plan.description,
+                    'is_active': plan.is_active,
+                    'created_at': plan.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'message': f'创建计划失败: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def mp_care_plan_detail(request, plan_id):
+    """
+    小程序计划详情API
+    
+    GET: 获取计划详情（包含所有目标和行动）
+    PUT: 更新计划
+    DELETE: 删除计划
+    """
+    try:
+        plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
+    except:
+        return Response({
+            'success': False,
+            'message': '计划不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        goals_data = []
+        for goal in plan.goals.all():
+            actions_data = []
+            for action in goal.actions.all():
+                actions_data.append({
+                    'id': action.id,
+                    'title': action.title,
+                    'frequency': action.frequency or '',
+                    'status': action.status,
+                    'status_display': action.get_status_display(),
+                })
+            
+            goals_data.append({
+                'id': goal.id,
+                'title': goal.title,
+                'target_value': goal.target_value or '',
+                'unit': goal.unit or '',
+                'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                'status': goal.status,
+                'status_display': goal.get_status_display(),
+                'progress_percent': goal.progress_percent,
+                'actions_count': len(actions_data),
+                'actions': actions_data,
+            })
+        
+        return Response({
+            'success': True,
+            'data': {
+                'id': plan.id,
+                'title': plan.title,
+                'description': plan.description or '',
+                'is_active': plan.is_active,
+                'goals_count': len(goals_data),
+                'goals': goals_data,
+                'created_at': plan.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'updated_at': plan.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+            }
+        })
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.data
+            
+            if data.get('title'):
+                plan.title = data['title'].strip()
+            if data.get('description') is not None:
+                plan.description = data['description'].strip()
+            if data.get('is_active') is not None:
+                plan.is_active = data['is_active']
+            
+            plan.save()
+            
+            return Response({
+                'success': True,
+                'message': '计划已更新',
+                'data': {
+                    'id': plan.id,
+                    'title': plan.title,
+                    'description': plan.description,
+                    'is_active': plan.is_active,
+                    'updated_at': plan.updated_at.strftime('%Y-%m-%d %H:%M:%S'),
+                }
+            })
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'message': f'更新计划失败: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        plan.delete()
+        return Response({
+            'success': True,
+            'message': '计划已删除'
+        })
+
+
+@api_view(['GET', 'POST'])
+def mp_care_goals(request, plan_id):
+    """小程序目标管理API - GET: 获取目标列表, POST: 创建目标"""
+    plan = get_object_or_404(CarePlan, id=plan_id, user=request.user)
+    
+    if request.method == 'GET':
+        goals = plan.goals.all()
+        goals_list = []
+        
+        for goal in goals:
+            goals_list.append({
+                'id': goal.id,
+                'title': goal.title,
+                'target_value': goal.target_value or '',
+                'unit': goal.unit or '',
+                'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                'status': goal.status,
+                'status_display': goal.get_status_display(),
+                'progress_percent': goal.progress_percent,
+                'actions_count': goal.actions.count(),
+            })
+        
+        return Response({'success': True, 'goals': goals_list})
+    
+    elif request.method == 'POST':
+        try:
+            data = request.data
+            from datetime import datetime
+            goal = CareGoal.objects.create(
+                plan=plan,
+                title=data.get('title', '').strip(),
+                target_value=data.get('target_value', '').strip(),
+                unit=data.get('unit', '').strip(),
+                due_date=datetime.strptime(data['due_date'], '%Y-%m-%d').date() if data.get('due_date') else None,
+                status=data.get('status', 'active'),
+            )
+            
+            return Response({
+                'success': True,
+                'message': '目标已创建',
+                'data': {
+                    'id': goal.id,
+                    'title': goal.title,
+                    'target_value': goal.target_value,
+                    'unit': goal.unit,
+                    'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                    'status': goal.status,
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({
+                'success': False,
+                'message': f'创建目标失败: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def mp_care_goal_detail(request, goal_id):
+    """小程序目标详情API"""
+    try:
+        goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+    except:
+        return Response({
+            'success': False,
+            'message': '目标不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        actions_data = []
+        for action in goal.actions.all():
+            actions_data.append({
+                'id': action.id,
+                'title': action.title,
+                'frequency': action.frequency or '',
+                'status': action.status,
+                'status_display': action.get_status_display(),
+            })
+        
+        return Response({
+            'success': True,
+            'data': {
+                'id': goal.id,
+                'plan_id': goal.plan.id,
+                'title': goal.title,
+                'target_value': goal.target_value or '',
+                'unit': goal.unit or '',
+                'due_date': goal.due_date.strftime('%Y-%m-%d') if goal.due_date else None,
+                'status': goal.status,
+                'status_display': goal.get_status_display(),
+                'progress_percent': goal.progress_percent,
+                'actions': actions_data,
+            }
+        })
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.data
+            if data.get('title'):
+                goal.title = data['title'].strip()
+            if data.get('target_value') is not None:
+                goal.target_value = data['target_value'].strip()
+            if data.get('unit') is not None:
+                goal.unit = data['unit'].strip()
+            if data.get('due_date'):
+                from datetime import datetime
+                goal.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
+            if data.get('status'):
+                goal.status = data['status']
+            goal.save()
+            
+            return Response({
+                'success': True,
+                'message': '目标已更新',
+                'data': {'id': goal.id, 'title': goal.title, 'status': goal.status}
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'更新失败: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        goal.delete()
+        return Response({'success': True, 'message': '目标已删除'})
+
+
+@api_view(['GET', 'POST'])
+def mp_care_actions(request, goal_id):
+    """小程序行动计划API"""
+    goal = get_object_or_404(CareGoal, id=goal_id, plan__user=request.user)
+    
+    if request.method == 'GET':
+        actions = goal.actions.all()
+        actions_list = []
+        for action in actions:
+            actions_list.append({
+                'id': action.id,
+                'title': action.title,
+                'frequency': action.frequency or '',
+                'status': action.status,
+                'status_display': action.get_status_display(),
+            })
+        return Response({'success': True, 'actions': actions_list})
+    
+    elif request.method == 'POST':
+        try:
+            data = request.data
+            action = CareAction.objects.create(
+                goal=goal,
+                title=data.get('title', '').strip(),
+                frequency=data.get('frequency', '').strip(),
+                status=data.get('status', 'pending'),
+            )
+            goal.recalculate_progress()
+            
+            return Response({
+                'success': True,
+                'message': '行动已创建',
+                'data': {
+                    'id': action.id,
+                    'title': action.title,
+                    'frequency': action.frequency,
+                    'status': action.status,
+                }
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'创建失败: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def mp_care_action_detail(request, action_id):
+    """小程序行动详情API"""
+    try:
+        action = get_object_or_404(CareAction, id=action_id, goal__plan__user=request.user)
+    except:
+        return Response({
+            'success': False,
+            'message': '行动不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    goal = action.goal
+    
+    if request.method == 'GET':
+        return Response({
+            'success': True,
+            'data': {
+                'id': action.id,
+                'goal_id': goal.id,
+                'title': action.title,
+                'frequency': action.frequency or '',
+                'status': action.status,
+                'status_display': action.get_status_display(),
+            }
+        })
+    
+    elif request.method == 'PUT':
+        try:
+            data = request.data
+            if data.get('title'):
+                action.title = data['title'].strip()
+            if data.get('frequency') is not None:
+                action.frequency = data['frequency'].strip()
+            if data.get('status'):
+                action.status = data['status']
+            action.save()
+            goal.recalculate_progress()
+            
+            return Response({
+                'success': True,
+                'message': '行动已更新',
+                'data': {'id': action.id, 'title': action.title, 'status': action.status}
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': f'更新失败: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        action.delete()
+        goal.recalculate_progress()
+        return Response({'success': True, 'message': '行动已删除'})

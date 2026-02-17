@@ -107,6 +107,14 @@ urlpatterns = [
     path('api/care-goals/<int:goal_id>/suggest-actions/', api_views.api_care_goal_suggest_actions, name='api_care_goal_suggest_actions'),
     path('api/care-goals/<int:goal_id>/actions/bulk/', api_views.api_care_goal_add_actions, name='api_care_goal_add_actions'),
 
+    # 健康管理计划API
+    path('api/care-plans/', api_views.api_care_plans, name='api_care_plans'),
+    path('api/care-plans/<int:plan_id>/', api_views.api_care_plan_detail, name='api_care_plan_detail'),
+    path('api/care-plans/<int:plan_id>/goals/', api_views.api_care_goals, name='api_care_goals'),
+    path('api/care-goals/<int:goal_id>/', api_views.api_care_goal_detail, name='api_care_goal_detail'),
+    path('api/care-goals/<int:goal_id>/actions/', api_views.api_care_actions, name='api_care_actions'),
+    path('api/care-actions/<int:action_id>/', api_views.api_care_action_detail, name='api_care_action_detail'),
+
     # 健康日志API（症状日志 & 体征日志）
     path('api/symptom-logs/', api_views.api_symptom_logs, name='api_symptom_logs'),
     path('api/symptom-logs/<int:log_id>/', api_views.api_symptom_log_detail, name='api_symptom_log_detail'),
