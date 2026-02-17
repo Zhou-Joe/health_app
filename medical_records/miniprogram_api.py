@@ -3487,3 +3487,275 @@ def mp_medication_group_dissolve(request, group_id):
             'success': False,
             'message': f'解散药单组失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ============================================================================
+# 小程序健康指标统一API (改进版)
+# ============================================================================
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mp_indicator_detail(request, indicator_id):
+    """
+    获取单个健康指标详情
+    """
+    try:
+        indicator = HealthIndicator.objects.get(
+            id=indicator_id,
+            checkup__user=request.user
+        )
+
+        return Response({
+            'success': True,
+            'data': {
+                'id': indicator.id,
+                'checkup_id': indicator.checkup.id,
+                'checkup_date': indicator.checkup.checkup_date.strftime('%Y-%m-%d'),
+                'hospital': indicator.checkup.hospital,
+                'indicator_type': indicator.indicator_type,
+                'indicator_type_display': indicator.get_indicator_type_display(),
+                'indicator_name': indicator.indicator_name,
+                'value': indicator.value,
+                'unit': indicator.unit,
+                'reference_range': indicator.reference_range,
+                'status': indicator.status,
+                'status_display': indicator.get_status_display(),
+            }
+        })
+
+    except HealthIndicator.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '指标不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': f'获取指标详情失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_indicator_create(request):
+    """
+    创建健康指标（简化版，统一接口）
+    """
+    try:
+        data = _get_request_data(request)
+
+        # 获取体检报告
+        checkup_id = data.get('checkup_id')
+        if not checkup_id:
+            return Response({
+                'success': False,
+                'message': '请提供体检报告ID'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        checkup = HealthCheckup.objects.get(
+            id=checkup_id,
+            user=request.user
+        )
+
+        # 创建指标
+        indicator = HealthIndicator.objects.create(
+            checkup=checkup,
+            indicator_type=data.get('indicator_type', 'other_exam'),
+            indicator_name=data.get('indicator_name', '').strip(),
+            value=data.get('value', '').strip(),
+            unit=data.get('unit', '').strip(),
+            reference_range=data.get('reference_range', '').strip(),
+            status=data.get('status', 'normal')
+        )
+
+        return Response({
+            'success': True,
+            'message': '指标创建成功',
+            'data': {
+                'id': indicator.id,
+                'checkup_id': indicator.checkup.id,
+                'indicator_type': indicator.indicator_type,
+                'indicator_type_display': indicator.get_indicator_type_display(),
+                'indicator_name': indicator.indicator_name,
+                'value': indicator.value,
+                'unit': indicator.unit,
+                'reference_range': indicator.reference_range,
+                'status': indicator.status,
+                'status_display': indicator.get_status_display(),
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    except HealthCheckup.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '体检报告不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'创建指标失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def mp_indicator_update(request, indicator_id):
+    """
+    更新健康指标（简化版，统一接口）
+    """
+    try:
+        indicator = HealthIndicator.objects.get(
+            id=indicator_id,
+            checkup__user=request.user
+        )
+
+        data = _get_request_data(request)
+
+        # 更新字段
+        if 'indicator_name' in data:
+            indicator.indicator_name = data['indicator_name'].strip()
+        if 'value' in data:
+            indicator.value = data['value'].strip()
+        if 'unit' in data:
+            indicator.unit = data['unit'].strip()
+        if 'reference_range' in data:
+            indicator.reference_range = data['reference_range'].strip()
+        if 'status' in data:
+            indicator.status = data['status']
+        if 'indicator_type' in data:
+            indicator.indicator_type = data['indicator_type']
+
+        indicator.save()
+
+        return Response({
+            'success': True,
+            'message': '指标更新成功',
+            'data': {
+                'id': indicator.id,
+                'checkup_id': indicator.checkup.id,
+                'indicator_type': indicator.indicator_type,
+                'indicator_type_display': indicator.get_indicator_type_display(),
+                'indicator_name': indicator.indicator_name,
+                'value': indicator.value,
+                'unit': indicator.unit,
+                'reference_range': indicator.reference_range,
+                'status': indicator.status,
+                'status_display': indicator.get_status_display(),
+            }
+        })
+
+    except HealthIndicator.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '指标不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'更新指标失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def mp_indicator_delete(request, indicator_id):
+    """
+    删除健康指标（简化版，统一接口）
+    """
+    try:
+        indicator = HealthIndicator.objects.get(
+            id=indicator_id,
+            checkup__user=request.user
+        )
+
+        indicator_name = indicator.indicator_name
+        indicator.delete()
+
+        return Response({
+            'success': True,
+            'message': f'指标"{indicator_name}"已删除'
+        })
+
+    except HealthIndicator.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '指标不存在或无权访问'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'删除指标失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mp_indicator_batch_create(request):
+    """
+    批量创建健康指标
+    """
+    try:
+        data = _get_request_data(request)
+
+        # 获取体检报告
+        checkup_id = data.get('checkup_id')
+        if not checkup_id:
+            return Response({
+                'success': False,
+                'message': '请提供体检报告ID'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        checkup = HealthCheckup.objects.get(
+            id=checkup_id,
+            user=request.user
+        )
+
+        indicators_data = data.get('indicators', [])
+        if not indicators_data:
+            return Response({
+                'success': False,
+                'message': '请提供要创建的指标列表'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        created_indicators = []
+        for indicator_data in indicators_data:
+            indicator = HealthIndicator.objects.create(
+                checkup=checkup,
+                indicator_type=indicator_data.get('indicator_type', 'other_exam'),
+                indicator_name=indicator_data.get('indicator_name', '').strip(),
+                value=indicator_data.get('value', '').strip(),
+                unit=indicator_data.get('unit', '').strip(),
+                reference_range=indicator_data.get('reference_range', '').strip(),
+                status=indicator_data.get('status', 'normal')
+            )
+            created_indicators.append({
+                'id': indicator.id,
+                'indicator_name': indicator.indicator_name,
+                'value': indicator.value,
+                'unit': indicator.unit,
+            })
+
+        return Response({
+            'success': True,
+            'message': f'成功创建 {len(created_indicators)} 个指标',
+            'data': created_indicators
+        }, status=status.HTTP_201_CREATED)
+
+    except HealthCheckup.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': '体检报告不存在'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({
+            'success': False,
+            'message': f'批量创建指标失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

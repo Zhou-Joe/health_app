@@ -30,9 +30,11 @@ urlpatterns = [
 
     # 健康指标
     path('indicators/', miniprogram_api.miniprogram_indicators, name='indicators'),
-    path('indicators/create/', miniprogram_api.miniprogram_create_indicator, name='create_indicator'),
-    path('indicators/<int:indicator_id>/update/', miniprogram_api.miniprogram_update_indicator, name='update_indicator'),
-    path('indicators/<int:indicator_id>/delete/', miniprogram_api.miniprogram_delete_indicator, name='delete_indicator'),
+    path('indicators/<int:indicator_id>/', miniprogram_api.mp_indicator_detail, name='indicator_detail'),
+    path('indicators/create/', miniprogram_api.mp_indicator_create, name='indicator_create'),
+    path('indicators/<int:indicator_id>/update/', miniprogram_api.mp_indicator_update, name='indicator_update'),
+    path('indicators/<int:indicator_id>/delete/', miniprogram_api.mp_indicator_delete, name='indicator_delete'),
+    path('indicators/batch-create/', miniprogram_api.mp_indicator_batch_create, name='indicator_batch_create'),
     path('checkups/<int:checkup_id>/indicators/', miniprogram_api.miniprogram_indicators, name='checkup_indicators'),
 
     # AI建议和对话
