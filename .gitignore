@@ -77,6 +77,9 @@ miniprogram/project.private.config.json
 # iOS App
 ios_app/
 
+# Flutter App
+flutter_app/
+
 # Temporary files
 *.tmp
 *.temp
