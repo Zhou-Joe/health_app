@@ -84,8 +84,13 @@ Page({
         userInfo.username = username
         wx.setStorageSync('userInfo', userInfo)
         
+        // 清除绑定标记
+        wx.removeStorageSync('needBindUsername')
+        
         setTimeout(() => {
-          wx.navigateBack()
+          wx.reLaunch({
+            url: '/pages/dashboard/dashboard'
+          })
         }, 1500)
       } else {
         util.showToast(res.message || '绑定失败')
