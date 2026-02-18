@@ -13,6 +13,7 @@
     "pages/integration-result/integration-result",
     "pages/settings/settings",
     "pages/complete-profile/complete-profile",
+    "pages/bind-account/bind-account",
     "pages/medications/medications",
     "pages/trends/trends",
     "pages/event-detail/event-detail"

@@ -14,6 +14,8 @@ module.exports = {
 
   completeProfile: (data) => request.post(config.api.completeProfile, data),
 
+  bindUsername: (data) => request.post(config.api.bindUsername, data),
+
   getUserInfo: () => request.get(config.api.userInfo),
 
   // 头像管理

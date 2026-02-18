@@ -21,6 +21,7 @@ module.exports = {
     login: '/api/miniprogram/login/',
     userInfo: '/api/miniprogram/user-info/',
     completeProfile: '/api/miniprogram/complete-profile/',
+    bindUsername: '/api/miniprogram/bind-username/',
 
     // 头像管理
     uploadAvatar: '/api/miniprogram/avatar/upload/',
@@ -113,6 +114,7 @@ module.exports = {
     integration: '/pages/integration/integration',
     settings: '/pages/settings/settings',
     completeProfile: '/pages/complete-profile/complete-profile',
+    bindAccount: '/pages/bind-account/bind-account',
     eventDetail: '/pages/event-detail/event-detail'
   },
 

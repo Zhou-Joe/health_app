@@ -120,6 +120,13 @@ Page({
             url: '/pages/complete-profile/complete-profile'
           })
         }, 1500)
+      } else if (res.need_bind_username) {
+        util.showToast('请设置登录账号，方便其他端登录', 'none', 2000)
+        setTimeout(() => {
+          wx.redirectTo({
+            url: '/pages/bind-account/bind-account'
+          })
+        }, 1500)
       } else {
         util.showToast('登录成功')
         setTimeout(() => {

@@ -1,0 +1,61 @@
+<!--pages/bind-account/bind-account.wxml-->
+<view class="container">
+  <view class="header">
+    <view class="title">设置登录账号</view>
+    <view class="subtitle">绑定后可用账号密码在其他端登录</view>
+  </view>
+
+  <view class="form">
+    <view class="form-item">
+      <view class="label">用户名</view>
+      <input 
+        class="input" 
+        type="text" 
+        placeholder="3-20位字母或数字" 
+        maxlength="20"
+        bindinput="onUsernameInput"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="label">密码</view>
+      <input 
+        class="input" 
+        type="password" 
+        placeholder="至少6位" 
+        maxlength="20"
+        bindinput="onPasswordInput"
+      />
+    </view>
+
+    <view class="form-item">
+      <view class="label">确认密码</view>
+      <input 
+        class="input" 
+        type="password" 
+        placeholder="再次输入密码" 
+        maxlength="20"
+        bindinput="onConfirmPasswordInput"
+      />
+    </view>
+
+    <view class="agreement">
+      <checkbox checked="{{agreed}}" bindtap="toggleAgreement" color="#0d9488"/>
+      <text class="agreement-text">我已阅读并同意</text>
+      <text class="link-text" catchtap="showUserAgreement">《用户协议》</text>
+    </view>
+
+    <button 
+      class="submit-btn {{submitting ? 'disabled' : ''}}" 
+      bindtap="handleSubmit"
+      disabled="{{submitting}}"
+      loading="{{submitting}}"
+    >
+      {{submitting ? '绑定中...' : '立即绑定'}}
+    </button>
+
+    <view class="skip-btn" bindtap="skipBind">
+      暂不绑定
+    </view>
+  </view>
+</view>

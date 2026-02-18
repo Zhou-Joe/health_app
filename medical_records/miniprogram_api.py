@@ -12,6 +12,7 @@ from django.core.files.storage import default_storage
 import json
 import uuid
 import os
+import re
 import threading
 from datetime import datetime, timedelta
 
@@ -133,6 +134,9 @@ def miniprogram_login(request):
             # 判断是否首次登录（没有设置个人信息）
             is_first_login = not (user_profile.birth_date or user_profile.gender)
 
+            # 判断是否需要设置自定义账号（微信登录的用户默认没有设置账号）
+            need_bind_username = not user_profile.has_custom_username
+
             login(request, user)
 
             return Response({
@@ -141,7 +145,8 @@ def miniprogram_login(request):
                 'user': UserSerializer(user).data,
                 'token': get_or_create_token(user),
                 'is_first_login': is_first_login,
-                'need_complete_profile': is_first_login
+                'need_complete_profile': is_first_login,
+                'need_bind_username': need_bind_username
             })
 
         elif 'username' in data and 'password' in data:
@@ -172,8 +177,91 @@ def miniprogram_login(request):
 
     except Exception as e:
         return Response({
+                'success': False,
+                'message': f'登录失败: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bind_username(request):
+    """
+    绑定自定义账号（用于微信登录用户设置登录账号）
+
+    请求参数：
+    - username: 新用户名（必填，3-20位字母数字）
+    - password: 密码（必填，最少6位）
+    """
+    try:
+        data = _get_request_data(request)
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+
+        if not username or not password:
+            return Response({
+                'success': False,
+                'message': '请输入用户名和密码'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(username) < 3 or len(username) > 20:
+            return Response({
+                'success': False,
+                'message': '用户名需要3-20位字母或数字'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not re.match(r'^[a-zA-Z0-9]+$', username):
+            return Response({
+                'success': False,
+                'message': '用户名只能包含字母和数字'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(password) < 6:
+            return Response({
+                'success': False,
+                'message': '密码至少需要6位'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 检查用户名是否已被占用
+        if User.objects.filter(username=username).exists():
+            return Response({
+                'success': False,
+                'message': '该用户名已被使用'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        user_profile = user.userprofile
+
+        # 如果用户已经绑定了账号，不能重复绑定
+        if user_profile.has_custom_username:
+            return Response({
+                'success': False,
+                'message': '您已经绑定了账号，请勿重复绑定'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 保存旧的openid作为备注
+        old_username = user.username
+
+        # 更新用户信息
+        user.username = username
+        user.set_password(password)
+        user.save()
+
+        # 标记已绑定自定义账号
+        user_profile.has_custom_username = True
+        user_profile.save(update_fields=['has_custom_username', 'updated_at'])
+
+        print(f"[绑定账号] 用户 {old_username} 绑定新账号: {username}")
+
+        return Response({
+            'success': True,
+            'message': '账号绑定成功',
+            'user': UserSerializer(user).data
+        })
+
+    except Exception as e:
+        return Response({
             'success': False,
-            'message': f'登录失败: {str(e)}'
+            'message': f'绑定失败: {str(e)}'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def get_or_create_token(user):
