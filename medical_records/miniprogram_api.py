@@ -102,23 +102,40 @@ def miniprogram_login(request):
 
                 print(f"[微信登录] 获取openid成功: {openid[:10]}...")
 
-            # 查找或创建用户
-            user, created = User.objects.get_or_create(
-                username=openid,
-                defaults={
-                    'first_name': nickname,
-                    'email': '',
-                    'is_active': True
-                }
-            )
-
-            if created:
-                print(f"[微信登录] 创建新用户: {openid[:10]}...")
-            else:
-                print(f"[微信登录] 用户已存在: {openid[:10]}...")
-
-            # 检查是否有UserProfile
+            # 先通过 openid 查找是否已有绑定的用户
             from .models import UserProfile
+            existing_profile = UserProfile.objects.filter(wechat_openid=openid).first()
+            
+            if existing_profile and existing_profile.user:
+                # 已有绑定的用户，直接登录
+                user = existing_profile.user
+                created = False
+                print(f"[微信登录] 使用已绑定账号登录: {user.username}")
+            else:
+                # 没有绑定，查找或创建新用户
+                user, created = User.objects.get_or_create(
+                    username=openid,
+                    defaults={
+                        'first_name': nickname,
+                        'email': '',
+                        'is_active': True
+                    }
+                )
+
+                if created:
+                    print(f"[微信登录] 创建新用户: {openid[:10]}...")
+                else:
+                    print(f"[微信登录] 用户已存在: {openid[:10]}...")
+
+                # 获取或创建 UserProfile
+                user_profile, profile_created = UserProfile.objects.get_or_create(user=user)
+                
+                # 保存微信 openid（如果还没有保存）
+                if not user_profile.wechat_openid:
+                    user_profile.wechat_openid = openid
+                    user_profile.save(update_fields=['wechat_openid', 'updated_at'])
+
+            # 确保 UserProfile 存在
             user_profile, profile_created = UserProfile.objects.get_or_create(user=user)
 
             # 保存微信头像（优先使用最新授权头像）

@@ -326,6 +326,7 @@ class UserProfile(models.Model):
         verbose_name='AI处理模式'
     )
     has_custom_username = models.BooleanField(default=False, verbose_name='是否已设置自定义账号')
+    wechat_openid = models.CharField(max_length=128, blank=True, null=True, verbose_name='微信OpenID')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
