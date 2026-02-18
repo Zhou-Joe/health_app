@@ -112,6 +112,13 @@ Page({
       // 4. 保存登录信息
       app.setLoginInfo(res.token, res.user)
 
+      // 保存是否需要绑定账号的标记
+      if (res.need_bind_username) {
+        wx.setStorageSync('needBindUsername', true)
+      } else {
+        wx.removeStorageSync('needBindUsername')
+      }
+
       // 5. 判断是否需要完善个人信息
       if (res.need_complete_profile) {
         util.showToast('首次登录，请完善个人信息', 'none', 2000)

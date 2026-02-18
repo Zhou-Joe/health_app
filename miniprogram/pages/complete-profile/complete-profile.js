@@ -69,9 +69,17 @@ Page({
 
       // 延迟跳转到首页，让用户看到成功提示
       setTimeout(() => {
-        wx.reLaunch({
-          url: '/pages/dashboard/dashboard'
-        })
+        // 检查是否需要绑定账号
+        const needBindUsername = wx.getStorageSync('needBindUsername')
+        if (needBindUsername) {
+          wx.redirectTo({
+            url: '/pages/bind-account/bind-account'
+          })
+        } else {
+          wx.reLaunch({
+            url: '/pages/dashboard/dashboard'
+          })
+        }
       }, 1500)
     } catch (err) {
       console.error('保存失败:', err)
