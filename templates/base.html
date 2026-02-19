@@ -357,11 +357,24 @@
                             <span>首页</span>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'medical_records:upload_report' %}">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-cloud-arrow-up"></i>
                             <span>智能上传</span>
                         </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'medical_records:upload_report' %}">
+                                    <i class="bi bi-file-earmark-arrow-up"></i> 单文件上传
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'medical_records:batch_upload_page' %}">
+                                    <i class="bi bi-files"></i> 批量上传
+                                    <span class="badge bg-primary ms-1">新</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'medical_records:manual_input' %}">
