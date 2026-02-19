@@ -356,5 +356,35 @@ Page({
       showCancel: false,
       confirmText: '知道了'
     })
+  },
+
+  navigateToChangePassword() {
+    wx.navigateTo({
+      url: '/pages/change-password/change-password'
+    })
+  },
+
+  navigateToManualEntry() {
+    wx.navigateTo({
+      url: '/pages/manual-entry/manual-entry'
+    })
+  },
+
+  navigateToHelpFeedback() {
+    wx.navigateTo({
+      url: '/pages/help-feedback/help-feedback'
+    })
+  },
+
+  navigateToSymptomLogs() {
+    wx.navigateTo({
+      url: '/pages/symptom-logs/symptom-logs'
+    })
+  },
+
+  navigateToVitalLogs() {
+    wx.navigateTo({
+      url: '/pages/vital-logs/vital-logs'
+    })
   }
 })

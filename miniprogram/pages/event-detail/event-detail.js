@@ -17,7 +17,10 @@ Page({
     availableLoading: false,
     availableReports: [],
     addingReportId: null,
-    removingItemId: null
+    removingItemId: null,
+    aiSummary: null,
+    aiSummaryLoading: false,
+    aiSummaryError: null
   },
 
   onLoad(options) {
@@ -76,12 +79,103 @@ Page({
         eventTypeLabel: this.getEventTypeLabel(event?.event_type),
         dateRange: this.getDateRange(event)
       })
+
+      this.loadAiSummary()
     } catch (err) {
       console.error('[event-detail] load failed:', err)
       util.showToast(err.message || '加载失败')
     } finally {
       util.hideLoading()
       this.setData({ loading: false })
+    }
+  },
+
+  async loadAiSummary() {
+    if (!this.data.eventId) return
+
+    this.setData({ aiSummaryLoading: true, aiSummaryError: null })
+
+    try {
+      const res = await api.getEventAiSummary(this.data.eventId)
+      const aiSummary = res.ai_summary || null
+      this.setData({
+        aiSummary,
+        aiSummaryLoading: false
+      })
+    } catch (err) {
+      console.error('[event-detail] loadAiSummary failed:', err)
+      this.setData({
+        aiSummaryLoading: false,
+        aiSummaryError: err.message || '加载AI总结失败'
+      })
+    }
+  },
+
+  async generateAiSummary() {
+    if (!this.data.eventId || this.data.aiSummaryLoading) return
+
+    this.setData({ aiSummaryLoading: true, aiSummaryError: null, aiSummary: '' })
+
+    try {
+      await api.streamEventAiSummary(
+        this.data.eventId,
+        (chunk, fullContent) => {
+          this.setData({
+            aiSummary: fullContent
+          })
+        },
+        (error) => {
+          console.error('[event-detail] generateAiSummary error:', error)
+          this.setData({
+            aiSummaryLoading: false,
+            aiSummaryError: error || '生成失败'
+          })
+        },
+        (finalContent) => {
+          this.setData({
+            aiSummary: finalContent,
+            aiSummaryLoading: false
+          })
+          util.showToast('AI总结已生成')
+        }
+      )
+    } catch (err) {
+      console.error('[event-detail] generateAiSummary failed:', err)
+      this.setData({
+        aiSummaryLoading: false,
+        aiSummaryError: err.message || '生成AI总结失败'
+      })
+      util.showToast(err.message || '生成AI总结失败')
+    }
+  },
+
+  async exportSummaryPdf() {
+    if (!this.data.eventId) return
+
+    util.showLoading('正在导出PDF...')
+    try {
+      await api.exportEventSummaryPdf(this.data.eventId)
+      util.showToast('导出成功')
+    } catch (err) {
+      console.error('[event-detail] exportSummaryPdf failed:', err)
+      util.showToast(err.message || '导出失败')
+    } finally {
+      util.hideLoading()
+    }
+  },
+
+  async exportSummaryWord() {
+    if (!this.data.eventId) return
+
+    util.showLoading('正在导出Word...')
+    try {
+      await api.exportEventSummaryWord(this.data.eventId)
+      util.showToast('导出成功')
+    } catch (err) {
+      console.error('[event-detail] exportSummaryWord failed:', err)
+      util.showToast(err.message || '导出失败')
+    } finally {
+      util.hideLoading()
     }
   },
 

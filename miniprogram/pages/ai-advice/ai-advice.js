@@ -24,6 +24,11 @@ Page({
     selectedMedicationIds: [],
     medications: [],
 
+    // 健康事件
+    eventMode: 'none', // 'none' 或 'select'
+    selectedEventId: null,
+    events: [],
+
     // 输入
     question: '',
     submitting: false,
@@ -31,7 +36,8 @@ Page({
     // 弹窗状态
     showModeModal: false,
     showReportModal: false,
-    showMedicationModal: false
+    showMedicationModal: false,
+    showEventModal: false
   },
 
   onLoad() {
@@ -57,20 +63,29 @@ Page({
   async loadData() {
     util.showLoading('加载中...')
     try {
-      const [conversationsRes, reportsRes, medicationsRes] = await Promise.all([
+      const [conversationsRes, reportsRes, medicationsRes, eventsRes] = await Promise.all([
         api.getConversations(),
         api.getCheckups({ page_size: 100 }),
-        api.getMedications()
+        api.getMedications(),
+        api.getEvents({ limit: 50 })
       ])
 
       const conversations = conversationsRes.data || []
       const reports = reportsRes.data || reportsRes.results || []
       const medications = medicationsRes.medications || []
+      const rawEvents = eventsRes.events || eventsRes.data || []
+
+      const events = rawEvents.map(e => ({
+        ...e,
+        event_type_label: this.getEventTypeLabel(e.event_type),
+        date_range: this.getEventDateRange(e)
+      }))
 
       this.setData({
         conversations,
         reports: reports.map(r => ({ ...r, selected: false })),
-        medications: medications.map(m => ({ ...m, selected: false }))
+        medications: medications.map(m => ({ ...m, selected: false })),
+        events
       })
     } catch (err) {
       console.error('加载数据失败:', err)
@@ -78,6 +93,28 @@ Page({
     } finally {
       util.hideLoading()
     }
+  },
+
+  getEventTypeLabel(type) {
+    const labelMap = {
+      illness: '疾病事件',
+      checkup: '体检事件',
+      chronic_management: '慢病管理',
+      emergency: '急诊事件',
+      wellness: '健康管理',
+      medication_course: '用药疗程',
+      other: '其他'
+    }
+    return labelMap[type] || '其他'
+  },
+
+  getEventDateRange(event) {
+    const start = event.start_date || ''
+    const end = event.end_date || ''
+    if (start && end && start !== end) {
+      return `${start} ~ ${end}`
+    }
+    return start || end || '未知时间'
   },
 
   /**
@@ -281,14 +318,43 @@ Page({
   },
 
   /**
+   * 显示健康事件弹窗
+   */
+  showEventModal() {
+    this.setData({ showEventModal: true })
+  },
+
+  /**
    * 隐藏所有弹窗
    */
   hideModals() {
     this.setData({
       showModeModal: false,
       showReportModal: false,
-      showMedicationModal: false
+      showMedicationModal: false,
+      showEventModal: false
     })
+  },
+
+  /**
+   * 选择事件模式
+   */
+  selectEventMode(e) {
+    const mode = e.currentTarget.dataset.mode
+    this.setData({
+      eventMode: mode,
+      selectedEventId: null
+    })
+  },
+
+  /**
+   * 切换事件选择
+   */
+  toggleEvent(e) {
+    const id = parseInt(e.currentTarget.dataset.id, 10)
+    const selectedEventId = this.data.selectedEventId === id ? null : id
+    console.log('[ai-advice] toggleEvent:', { id, selectedEventId, prevId: this.data.selectedEventId })
+    this.setData({ selectedEventId })
   },
 
   /**
@@ -302,7 +368,7 @@ Page({
    * 提交咨询
    */
   async handleSubmit() {
-    const { question, conversationMode, selectedConversationId, reportMode, selectedReportIds, medicationMode, selectedMedicationIds } = this.data
+    const { question, conversationMode, selectedConversationId, reportMode, selectedReportIds, medicationMode, selectedMedicationIds, eventMode, selectedEventId } = this.data
 
     if (!question.trim()) {
       return util.showToast('请输入问题')
@@ -336,6 +402,16 @@ Page({
     // 处理药单选择 - 使用selected_medication_ids（与网页端一致）
     if (medicationMode === 'select' && selectedMedicationIds.length > 0) {
       requestData.selected_medication_ids = selectedMedicationIds
+    }
+
+    // 处理健康事件选择
+    if (eventMode === 'select' && selectedEventId) {
+      requestData.selected_event = selectedEventId
+      requestData.event_mode = 'select_event'
+      console.log('[小程序] 选择了健康事件:', selectedEventId)
+    } else {
+      requestData.event_mode = 'no_event'
+      console.log('[小程序] 未选择健康事件, eventMode:', eventMode, 'selectedEventId:', selectedEventId)
     }
 
     console.log('[小程序] 提交咨询，请求数据:', JSON.stringify({

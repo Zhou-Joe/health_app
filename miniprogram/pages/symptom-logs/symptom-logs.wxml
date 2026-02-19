@@ -1,0 +1,100 @@
+<view class="symptom-logs-container app-theme">
+  <view class="header-section">
+    <text class="header-title">症状日志</text>
+    <text class="header-desc">记录您的症状变化，便于健康追踪</text>
+  </view>
+
+  <view class="logs-list" wx:if="{{logs.length > 0}}">
+    <view class="log-item" wx:for="{{logs}}" wx:key="id">
+      <view class="log-date">{{item.entry_date}}</view>
+      <view class="log-content">
+        <view class="log-main">
+          <text class="symptom-name">{{item.symptom}}</text>
+          <view class="severity-badge" style="background: {{item.severityColor}}20; color: {{item.severityColor}}">
+            <text>{{item.severity_display || item.severity}}级 - {{item.severity >= 4 ? '严重' : item.severity >= 3 ? '中度' : '轻微'}}</text>
+          </view>
+        </view>
+        <view class="log-notes" wx:if="{{item.notes}}">
+          <text>{{item.notes}}</text>
+        </view>
+        <view class="log-actions">
+          <text class="action-btn edit" bindtap="editLog" data-log="{{item}}">编辑</text>
+          <text class="action-btn delete" bindtap="deleteLog" data-log="{{item}}">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:elif="{{!loading}}">
+    <text class="empty-icon">📝</text>
+    <text class="empty-text">暂无症状记录</text>
+    <text class="empty-desc">点击下方按钮添加您的第一条症状记录</text>
+  </view>
+
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <button class="add-btn" bindtap="showAddModal">
+    <text class="add-icon">➕</text>
+    <text>添加症状记录</text>
+  </button>
+
+  <view class="modal-mask" wx:if="{{showAddModal}}" bindtap="hideModal">
+    <view class="modal-container" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">{{editingLog ? '编辑症状' : '添加症状'}}</text>
+        <text class="modal-close" bindtap="hideModal">✕</text>
+      </view>
+      <view class="modal-content">
+        <view class="form-item">
+          <text class="form-label">日期</text>
+          <picker mode="date" value="{{formData.entry_date}}" end="{{today}}" bindchange="onDateChange">
+            <view class="picker-value">
+              <text class="picker-icon">📅</text>
+              <text>{{formData.entry_date || '请选择日期'}}</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">症状名称</text>
+          <input class="form-input"
+                 placeholder="如：头痛、咳嗽、失眠等"
+                 placeholder-class="input-placeholder"
+                 value="{{formData.symptom}}"
+                 bindinput="onSymptomInput" />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">严重程度</text>
+          <picker mode="selector" range="{{severityOptions}}" range-key="label" bindchange="onSeverityChange">
+            <view class="picker-value severity-picker">
+              <view class="severity-dots">
+                <view class="severity-dot" wx:for="{{5}}" wx:key="index" 
+                      style="background: {{item < formData.severity ? severityOptions[formData.severity-1].color : '#e0e0e0'}}"></view>
+              </view>
+              <text>{{severityOptions[formData.severity-1].label}}</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">备注（选填）</text>
+          <textarea class="form-textarea"
+                    placeholder="描述症状详情、持续时间等"
+                    placeholder-class="input-placeholder"
+                    value="{{formData.notes}}"
+                    bindinput="onNotesInput"
+                    maxlength="500"></textarea>
+        </view>
+      </view>
+      <view class="modal-actions">
+        <button class="modal-btn cancel-btn" bindtap="hideModal">取消</button>
+        <button class="modal-btn confirm-btn" bindtap="submitForm" loading="{{submitting}}">
+          {{editingLog ? '保存' : '添加'}}
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

@@ -25,6 +25,43 @@
     </view>
   </view>
 
+  <view class="ai-summary-card" wx:if="{{aiSummary || aiSummaryLoading || aiSummaryError}}">
+    <view class="ai-summary-header">
+      <text class="ai-summary-title">AI 事件总结</text>
+      <view class="ai-summary-actions" wx:if="{{aiSummary && !aiSummaryLoading}}">
+        <text class="ai-action-btn" bindtap="generateAiSummary">重新生成</text>
+        <text class="ai-action-btn" bindtap="exportSummaryPdf">导出PDF</text>
+        <text class="ai-action-btn" bindtap="exportSummaryWord">导出Word</text>
+      </view>
+    </view>
+
+    <view class="ai-summary-loading" wx:if="{{aiSummaryLoading}}">
+      <text>{{aiSummary ? '正在更新...' : '正在生成AI总结...'}}</text>
+    </view>
+
+    <view class="ai-summary-error" wx:elif="{{aiSummaryError}}">
+      <text class="error-text">{{aiSummaryError}}</text>
+      <text class="retry-btn" bindtap="generateAiSummary">重新生成</text>
+    </view>
+
+    <view class="ai-summary-content" wx:elif="{{aiSummary}}">
+      <text>{{aiSummary}}</text>
+    </view>
+
+    <view class="ai-summary-empty" wx:else>
+      <text>暂无AI总结</text>
+      <text class="generate-btn" bindtap="generateAiSummary">生成总结</text>
+    </view>
+  </view>
+
+  <view class="ai-summary-card ai-summary-placeholder" wx:elif="{{items.length > 0}}" bindtap="generateAiSummary">
+    <view class="placeholder-content">
+      <text class="placeholder-icon">✨</text>
+      <text class="placeholder-text">点击生成AI事件总结</text>
+      <text class="placeholder-hint">基于事件关联的健康记录智能分析</text>
+    </view>
+  </view>
+
   <view class="section-title-wrap">
     <text class="section-title">绑定记录</text>
   </view>

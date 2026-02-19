@@ -1,0 +1,155 @@
+<view class="manual-entry-container app-theme">
+  <view class="mode-toggle">
+    <view class="toggle-item {{mode === 'new' ? 'active' : ''}}" bindtap="onModeChange" data-value="new">
+      <text class="toggle-icon">➕</text>
+      <text class="toggle-text">新建体检报告</text>
+    </view>
+    <view class="toggle-item {{mode === 'existing' ? 'active' : ''}}" bindtap="onModeChange" data-value="existing">
+      <text class="toggle-icon">📁</text>
+      <text class="toggle-text">添加到已有报告</text>
+    </view>
+  </view>
+
+  <view class="form-section" wx:if="{{mode === 'new'}}">
+    <view class="form-item">
+      <text class="form-label">体检日期</text>
+      <picker mode="date" value="{{checkupDate}}" end="{{today}}" bindchange="onDateChange">
+        <view class="picker-value">
+          <text class="picker-icon">📅</text>
+          <text>{{checkupDate || '请选择日期'}}</text>
+        </view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">体检机构（选填）</text>
+      <input class="form-input"
+             placeholder="请输入体检医院或机构名称"
+             placeholder-class="input-placeholder"
+             value="{{hospital}}"
+             bindinput="onHospitalInput" />
+    </view>
+  </view>
+
+  <view class="form-section" wx:if="{{mode === 'existing'}}">
+    <view class="form-item">
+      <text class="form-label">选择已有体检报告</text>
+      <picker mode="selector" range="{{checkups}}" range-key="checkup_date" bindchange="onCheckupChange">
+        <view class="picker-value">
+          <text class="picker-icon">📋</text>
+          <text>{{selectedCheckupId ? '已选择报告' : '请选择体检报告'}}</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="indicators-section">
+    <view class="section-header">
+      <text class="section-title">健康指标</text>
+      <text class="indicator-count">共 {{indicators.length}} 项</text>
+    </view>
+
+    <view class="indicator-list" wx:if="{{indicators.length > 0}}">
+      <view class="indicator-item" wx:for="{{indicators}}" wx:key="index">
+        <view class="indicator-info">
+          <text class="indicator-name">{{item.indicator_name}}</text>
+          <view class="indicator-value-row">
+            <text class="indicator-value">{{item.value}}</text>
+            <text class="indicator-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
+          </view>
+          <text class="indicator-status status-{{item.status}}">
+            {{item.status === 'normal' ? '正常' : item.status === 'attention' ? '关注' : '异常'}}
+          </text>
+        </view>
+        <view class="indicator-actions">
+          <text class="action-btn delete" bindtap="removeIndicator" data-index="{{index}}">删除</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-indicators" wx:else>
+      <text class="empty-icon">📊</text>
+      <text class="empty-text">暂无指标，点击下方按钮添加</text>
+    </view>
+
+    <button class="add-indicator-btn" bindtap="showAddIndicator">
+      <text class="btn-icon">➕</text>
+      <text>添加指标</text>
+    </button>
+  </view>
+
+  <button class="submit-btn"
+          bindtap="submitData"
+          loading="{{submitting}}"
+          disabled="{{submitting || indicators.length === 0}}">
+    {{submitting ? '提交中...' : '提交数据'}}
+  </button>
+
+  <view class="modal-mask" wx:if="{{showAddModal}}" bindtap="hideAddModal">
+    <view class="modal-container" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">添加指标</text>
+        <text class="modal-close" bindtap="hideAddModal">✕</text>
+      </view>
+      <view class="modal-content">
+        <view class="modal-form-item">
+          <text class="modal-label">指标名称</text>
+          <input class="modal-input"
+                 placeholder="如：血红蛋白"
+                 placeholder-class="input-placeholder"
+                 value="{{newIndicator.indicator_name}}"
+                 bindinput="onIndicatorNameInput" />
+        </view>
+
+        <view class="modal-form-item">
+          <text class="modal-label">指标分类</text>
+          <picker mode="selector" range="{{indicatorTypes}}" range-key="name" bindchange="onIndicatorTypeChange">
+            <view class="picker-value">
+              <text>{{newIndicator.indicator_type || '请选择分类'}}</text>
+            </view>
+          </picker>
+        </view>
+
+        <view class="modal-form-item">
+          <text class="modal-label">数值</text>
+          <input class="modal-input"
+                 placeholder="如：120"
+                 placeholder-class="input-placeholder"
+                 value="{{newIndicator.value}}"
+                 bindinput="onIndicatorValueInput" />
+        </view>
+
+        <view class="modal-form-item">
+          <text class="modal-label">单位（选填）</text>
+          <input class="modal-input"
+                 placeholder="如：g/L"
+                 placeholder-class="input-placeholder"
+                 value="{{newIndicator.unit}}"
+                 bindinput="onIndicatorUnitInput" />
+        </view>
+
+        <view class="modal-form-item">
+          <text class="modal-label">参考范围（选填）</text>
+          <input class="modal-input"
+                 placeholder="如：110-160"
+                 placeholder-class="input-placeholder"
+                 value="{{newIndicator.reference_range}}"
+                 bindinput="onIndicatorReferenceInput" />
+        </view>
+
+        <view class="modal-form-item">
+          <text class="modal-label">状态</text>
+          <picker mode="selector" range="{{statusOptions}}" range-key="label" bindchange="onIndicatorStatusChange">
+            <view class="picker-value">
+              <text>{{newIndicator.status === 'normal' ? '正常' : newIndicator.status === 'attention' ? '关注' : '异常'}}</text>
+            </view>
+          </picker>
+        </view>
+      </view>
+      <view class="modal-actions">
+        <button class="modal-btn cancel-btn" bindtap="hideAddModal">取消</button>
+        <button class="modal-btn confirm-btn" bindtap="addIndicator">添加</button>
+      </view>
+    </view>
+  </view>
+</view>

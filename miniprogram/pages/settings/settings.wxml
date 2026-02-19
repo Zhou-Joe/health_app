@@ -88,12 +88,61 @@
     </view>
   </view>
 
+  <!-- 功能设置 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">功能设置</text>
+    </view>
+    <view class="section-list">
+      <view class="list-item" bindtap="navigateToChangePassword">
+        <view class="item-left">
+          <text class="item-label">修改密码</text>
+        </view>
+        <view class="item-right">
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+      <view class="list-item" bindtap="navigateToManualEntry">
+        <view class="item-left">
+          <text class="item-label">手动录入健康指标</text>
+        </view>
+        <view class="item-right">
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+      <view class="list-item" bindtap="navigateToSymptomLogs">
+        <view class="item-left">
+          <text class="item-label">症状日志</text>
+        </view>
+        <view class="item-right">
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+      <view class="list-item" bindtap="navigateToVitalLogs">
+        <view class="item-left">
+          <text class="item-label">体征日志</text>
+        </view>
+        <view class="item-right">
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
   <!-- 其他 -->
   <view class="section">
     <view class="section-header">
       <text class="section-title">其他</text>
     </view>
     <view class="section-list">
+      <view class="list-item" bindtap="navigateToHelpFeedback">
+        <view class="item-left">
+          <text class="item-label">帮助与反馈</text>
+        </view>
+        <view class="item-right">
+          <text class="item-arrow">›</text>
+        </view>
+      </view>
       <view class="list-item" bindtap="showAbout">
         <view class="item-left">
           <text class="item-label">关于</text>

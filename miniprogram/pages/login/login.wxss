@@ -460,6 +460,26 @@ page {
   font-weight: 500;
 }
 
+/* ==================== 注册链接 ==================== */
+.register-link {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 32rpx;
+}
+
+.register-text {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.register-btn {
+  font-size: 26rpx;
+  color: var(--warm-coral);
+  font-weight: 600;
+  margin-left: 8rpx;
+}
+
 /* ==================== 底部装饰 ==================== */
 .bottom-decoration {
   position: absolute;

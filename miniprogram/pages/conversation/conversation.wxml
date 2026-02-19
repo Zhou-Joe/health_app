@@ -21,6 +21,9 @@
       <view class="icon-btn top-action-btn" bindtap="showAttachmentMenu">
         <text class="action-label">资料</text>
       </view>
+      <view class="icon-btn top-action-btn summary-btn" bindtap="showSummary" wx:if="{{conversationId}}">
+        <text class="action-label">总结</text>
+      </view>
     </view>
 
     <view class="meta-strip">
@@ -80,6 +83,24 @@
     </view>
   </scroll-view>
 
+  <view class="quick-select-bar">
+    <view class="quick-select-item {{selectedReportIds.length > 0 ? 'selected' : ''}}" bindtap="openReportSelector">
+      <text class="quick-select-icon">检</text>
+      <text class="quick-select-label">体检报告</text>
+      <text class="quick-select-count" wx:if="{{selectedReportIds.length > 0}}">{{selectedReportIds.length}}</text>
+    </view>
+    <view class="quick-select-item {{selectedMedicationIds.length > 0 ? 'selected' : ''}}" bindtap="openMedicationSelector">
+      <text class="quick-select-icon">药</text>
+      <text class="quick-select-label">药单</text>
+      <text class="quick-select-count" wx:if="{{selectedMedicationIds.length > 0}}">{{selectedMedicationIds.length}}</text>
+    </view>
+    <view class="quick-select-item {{selectedEventId ? 'selected' : ''}}" bindtap="openEventSelector">
+      <text class="quick-select-icon">事</text>
+      <text class="quick-select-label">健康事件</text>
+      <text class="quick-select-count" wx:if="{{selectedEventId}}">1</text>
+    </view>
+  </view>
+
   <view class="composer-shell">
     <view class="composer">
       <view class="attach-trigger" bindtap="showAttachmentMenu">
@@ -122,6 +143,11 @@
           <view class="option-icon">药</view>
           <text class="option-title">药单信息</text>
           <text class="option-count" wx:if="{{selectedMedicationIds.length > 0}}">{{selectedMedicationIds.length}}</text>
+        </view>
+        <view class="menu-option" bindtap="openEventSelector">
+          <view class="option-icon">事</view>
+          <text class="option-title">健康事件</text>
+          <text class="option-count" wx:if="{{selectedEventId}}">1</text>
         </view>
       </view>
     </view>
@@ -176,6 +202,47 @@
           </view>
         </view>
       </scroll-view>
+    </view>
+  </view>
+
+  <!-- AI 总结弹窗 -->
+  <view class="summary-modal" wx:if="{{showSummaryModal}}" bindtap="hideSummaryModal">
+    <view class="summary-modal-content" catchtap="stopPropagation">
+      <view class="summary-modal-header">
+        <text class="summary-modal-title">AI 对话总结</text>
+        <view class="summary-header-actions">
+          <text class="regenerate-btn" wx:if="{{aiSummary && !aiSummaryLoading}}" bindtap="generateSummary">重新生成</text>
+          <text class="summary-modal-close" bindtap="hideSummaryModal">✕</text>
+        </view>
+      </view>
+
+      <view class="summary-modal-body">
+        <view class="summary-loading" wx:if="{{aiSummaryLoading && !aiSummary}}">
+          <text class="loading-text">正在生成AI总结...</text>
+        </view>
+
+        <view class="summary-content streaming" wx:elif="{{aiSummary}}">
+          <text>{{aiSummary}}</text>
+          <view class="streaming-indicator" wx:if="{{aiSummaryLoading}}">
+            <text>生成中...</text>
+          </view>
+        </view>
+
+        <view class="summary-error" wx:elif="{{aiSummaryError}}">
+          <text class="error-text">{{aiSummaryError}}</text>
+          <button class="retry-btn" bindtap="generateSummary">重新生成</button>
+        </view>
+
+        <view class="summary-empty" wx:else>
+          <text class="empty-text">暂无AI总结</text>
+          <button class="generate-btn" bindtap="generateSummary">生成总结</button>
+        </view>
+      </view>
+
+      <view class="summary-modal-footer" wx:if="{{aiSummary && !aiSummaryLoading}}">
+        <button class="export-btn pdf-btn" bindtap="exportSummaryPdf">导出 PDF</button>
+        <button class="export-btn word-btn" bindtap="exportSummaryWord">导出 Word</button>
+      </view>
     </view>
   </view>
 </view>

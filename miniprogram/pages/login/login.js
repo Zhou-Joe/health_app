@@ -178,5 +178,12 @@ Page({
   // 阻止冒泡
   stopPropagation() {
     // 阻止点击事件冒泡，防止关闭弹窗
+  },
+
+  // 跳转到注册页面
+  goToRegister() {
+    wx.navigateTo({
+      url: '/pages/register/register'
+    })
   }
 })

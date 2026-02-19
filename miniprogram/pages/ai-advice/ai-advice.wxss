@@ -155,7 +155,7 @@ page {
 /* 选项网格 */
 .options-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16rpx;
   margin-bottom: 32rpx;
 }
@@ -197,6 +197,10 @@ page {
 
 .medication-theme {
   background: linear-gradient(135deg, rgba(245, 169, 98, 0.15), rgba(255, 200, 100, 0.15));
+}
+
+.event-theme {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(255, 193, 7, 0.15));
 }
 
 .option-emoji {
@@ -588,6 +592,86 @@ page {
 
 .medication-date {
   font-size: 20rpx;
+  color: #999;
+}
+
+/* 健康事件列表 */
+.event-list-section {
+  margin-top: 24rpx;
+}
+
+.event-scroll {
+  max-height: 400rpx;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx;
+  background: white;
+  border-radius: 20rpx;
+  margin-bottom: 12rpx;
+  border: 2rpx solid rgba(0, 0, 0, 0.04);
+}
+
+.event-item.selected {
+  border-color: #FF9800;
+  background: rgba(255, 152, 0, 0.05);
+}
+
+.event-check {
+  width: 40rpx;
+  height: 40rpx;
+  background: linear-gradient(135deg, #FF9800, #FFC107);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24rpx;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.event-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.event-name {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #2A2A2A;
+}
+
+.event-type {
+  font-size: 22rpx;
+  color: #FF9800;
+}
+
+.event-meta {
+  font-size: 20rpx;
+  color: #999;
+}
+
+.list-hint {
+  font-size: 22rpx;
+  color: #999;
+  text-align: center;
+  display: block;
+  padding: 16rpx 0;
+}
+
+.empty-list {
+  padding: 40rpx;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 26rpx;
   color: #999;
 }
 

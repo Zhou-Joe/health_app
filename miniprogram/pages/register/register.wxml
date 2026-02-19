@@ -1,0 +1,91 @@
+<view class="register-container app-theme">
+  <view class="bg-decoration">
+    <view class="blob blob-1"></view>
+    <view class="blob blob-2"></view>
+  </view>
+
+  <view class="register-header">
+    <view class="logo-wrapper">
+      <view class="logo-icon">💝</view>
+    </view>
+    <text class="app-name">我的健康档案</text>
+    <text class="app-desc">创建新账号，开启健康之旅</text>
+  </view>
+
+  <view class="register-form">
+    <view class="form-item">
+      <view class="input-wrapper">
+        <text class="input-icon">👤</text>
+        <input class="input-field"
+               placeholder="请输入用户名（3-20位）"
+               placeholder-class="input-placeholder"
+               value="{{username}}"
+               bindinput="onUsernameInput" />
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="input-wrapper">
+        <text class="input-icon">🔒</text>
+        <input class="input-field"
+               placeholder="请输入密码（至少6位）"
+               password
+               placeholder-class="input-placeholder"
+               value="{{password}}"
+               bindinput="onPasswordInput" />
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="input-wrapper">
+        <text class="input-icon">🔐</text>
+        <input class="input-field"
+               placeholder="请再次输入密码"
+               password
+               placeholder-class="input-placeholder"
+               value="{{confirmPassword}}"
+               bindinput="onConfirmPasswordInput" />
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="input-wrapper">
+        <text class="input-icon">😊</text>
+        <input class="input-field"
+               placeholder="昵称（选填）"
+               placeholder-class="input-placeholder"
+               value="{{nickname}}"
+               bindinput="onNicknameInput" />
+      </view>
+    </view>
+
+    <view class="agreement-check">
+      <label class="checkbox-label" bindtap="toggleAgreement">
+        <view class="custom-checkbox {{agreed ? 'checked' : ''}}">
+          <text class="checkmark" wx:if="{{agreed}}">✓</text>
+        </view>
+        <view class="check-content">
+          <text class="check-text">我已阅读并同意</text>
+          <text class="link-text" catchtap="showUserAgreement">《用户协议》</text>
+          <text class="check-text">和</text>
+          <text class="link-text" catchtap="showPrivacyPolicy">《隐私政策》</text>
+        </view>
+      </label>
+    </view>
+
+    <button class="register-btn warm-btn-primary"
+            bindtap="handleRegister"
+            loading="{{loading}}"
+            disabled="{{loading || !agreed}}">
+      <view wx:if="{{!loading}}" class="btn-content">
+        <text class="btn-icon">✨</text>
+        <text>立即注册</text>
+      </view>
+      <text wx:else>注册中...</text>
+    </button>
+
+    <view class="login-link">
+      <text class="link-text" bindtap="goToLogin">已有账号？返回登录</text>
+    </view>
+  </view>
+</view>

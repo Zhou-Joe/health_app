@@ -1,0 +1,80 @@
+<view class="help-feedback-container app-theme">
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">常见问题</text>
+    </view>
+    <view class="faq-list">
+      <view class="faq-item" wx:for="{{faqList}}" wx:key="index">
+        <view class="faq-question" bindtap="toggleFaq" data-index="{{index}}">
+          <text class="question-text">{{item.question}}</text>
+          <text class="expand-icon">{{expandedIndex === index ? '▼' : '▶'}}</text>
+        </view>
+        <view class="faq-answer {{expandedIndex === index ? 'expanded' : ''}}">
+          <text class="answer-text">{{item.answer}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">意见反馈</text>
+    </view>
+    <view class="feedback-form">
+      <view class="form-item">
+        <text class="form-label">联系邮箱（选填）</text>
+        <input class="form-input"
+               placeholder="请输入您的邮箱"
+               placeholder-class="input-placeholder"
+               value="{{email}}"
+               bindinput="onEmailInput" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">反馈内容</text>
+        <textarea class="form-textarea"
+                  placeholder="请描述您遇到的问题或建议..."
+                  placeholder-class="input-placeholder"
+                  value="{{feedback}}"
+                  bindinput="onFeedbackInput"
+                  maxlength="500" />
+      </view>
+      <button class="submit-btn"
+              bindtap="submitFeedback"
+              loading="{{submitting}}"
+              disabled="{{submitting}}">
+        {{submitting ? '提交中...' : '提交反馈'}}
+      </button>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">联系我们</text>
+    </view>
+    <view class="contact-list">
+      <view class="contact-item" bindtap="copyToClipboard" data-text="support@example.com">
+        <view class="contact-icon">📧</view>
+        <view class="contact-info">
+          <text class="contact-label">邮箱</text>
+          <text class="contact-value">support@example.com</text>
+        </view>
+        <text class="contact-action">复制</text>
+      </view>
+      <view class="contact-item" bindtap="copyToClipboard" data-text="400-123-4567">
+        <view class="contact-icon">📞</view>
+        <view class="contact-info">
+          <text class="contact-label">电话</text>
+          <text class="contact-value">400-123-4567</text>
+        </view>
+        <text class="contact-action">复制</text>
+      </view>
+      <view class="contact-item">
+        <view class="contact-icon">🕐</view>
+        <view class="contact-info">
+          <text class="contact-label">工作时间</text>
+          <text class="contact-value">周一至周五 9:00-18:00</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

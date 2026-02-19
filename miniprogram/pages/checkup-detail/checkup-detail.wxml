@@ -23,6 +23,41 @@
     <text class="notes-content">{{checkup.notes}}</text>
   </view>
 
+  <view class="ai-summary-card card" wx:if="{{aiSummary || aiSummaryLoading || aiSummaryError}}">
+    <view class="ai-summary-header">
+      <text class="ai-summary-title">AI 报告解读</text>
+      <view class="ai-summary-actions" wx:if="{{aiSummary && !aiSummaryLoading}}">
+        <text class="ai-action-btn" bindtap="generateAiSummary">重新生成</text>
+      </view>
+    </view>
+
+    <view class="ai-summary-loading" wx:if="{{aiSummaryLoading}}">
+      <text>{{aiSummary ? '正在更新...' : '正在生成AI解读...'}}</text>
+    </view>
+
+    <view class="ai-summary-error" wx:elif="{{aiSummaryError}}">
+      <text class="error-text">{{aiSummaryError}}</text>
+      <text class="retry-btn" bindtap="generateAiSummary">重新生成</text>
+    </view>
+
+    <view class="ai-summary-content" wx:elif="{{aiSummary}}">
+      <text>{{aiSummary}}</text>
+    </view>
+
+    <view class="ai-summary-empty" wx:else>
+      <text>暂无AI解读</text>
+      <text class="generate-btn" bindtap="generateAiSummary">生成解读</text>
+    </view>
+  </view>
+
+  <view class="ai-summary-card card ai-summary-placeholder" wx:elif="{{indicators.length > 0}}" bindtap="generateAiSummary">
+    <view class="placeholder-content">
+      <text class="placeholder-icon">✨</text>
+      <text class="placeholder-text">点击生成AI报告解读</text>
+      <text class="placeholder-hint">基于体检指标智能分析</text>
+    </view>
+  </view>
+
   <view class="stats-card card">
     <view class="stat-item"><text class="stat-value">{{stats.total}}</text><text class="stat-label">总指标</text></view>
     <view class="stat-item"><text class="stat-value text-success">{{stats.normal}}</text><text class="stat-label">正常</text></view>

@@ -19,9 +19,11 @@ module.exports = {
   api: {
     // 用户认证
     login: '/api/miniprogram/login/',
+    register: '/api/miniprogram/register/',
     userInfo: '/api/miniprogram/user-info/',
     completeProfile: '/api/miniprogram/complete-profile/',
     bindUsername: '/api/miniprogram/bind-username/',
+    changePassword: '/api/miniprogram/change-password/',
 
     // 头像管理
     uploadAvatar: '/api/miniprogram/avatar/upload/',
@@ -43,6 +45,7 @@ module.exports = {
       return '/api/miniprogram/indicators/'
     },
     createIndicator: '/api/miniprogram/indicators/create/',
+    batchCreateIndicators: '/api/miniprogram/indicators/batch-create/',
     updateIndicator: (id) => `/api/miniprogram/indicators/${id}/update/`,
     deleteIndicator: (id) => `/api/miniprogram/indicators/${id}/delete/`,
 
@@ -68,9 +71,24 @@ module.exports = {
     events: '/api/events/',
     eventDetail: (id) => `/api/events/${id}/`,
     eventAutoCluster: '/api/events/auto-cluster/',
+    eventRecluster: '/api/events/recluster/',
     eventAddItem: (id) => `/api/events/${id}/add-item/`,
     eventRemoveItem: (eventId, itemId) => `/api/events/${eventId}/remove-item/${itemId}/`,
     eventAvailableItems: '/api/events/available-items/',
+    eventAiSummary: (id) => `/api/events/${id}/summary/`,
+    streamEventAiSummary: '/api/stream-event-ai-summary/',
+    eventExportSummaryPdf: (id) => `/events/${id}/export-summary/pdf/`,
+    eventExportSummaryWord: (id) => `/events/${id}/export-summary/word/`,
+
+    // 体检报告AI总结
+    checkupAiSummary: (id) => `/api/checkups/${id}/summary/`,
+    streamCheckupAiSummary: '/api/stream-checkup-ai-summary/',
+
+    // 对话AI总结
+    conversationAiSummary: (id) => `/api/conversations/${id}/summary/`,
+    streamConversationAiSummary: '/api/stream-ai-summary/',
+    conversationExportSummaryPdf: (id) => `/conversations/${id}/export-summary/pdf/`,
+    conversationExportSummaryWord: (id) => `/conversations/${id}/export-summary/word/`,
 
     // 系统信息
     servicesStatus: '/api/miniprogram/services-status/', // 小程序专用接口
@@ -85,6 +103,14 @@ module.exports = {
     medicationDetail: (id) => `/api/miniprogram/medications/${id}/`,
     medicationCheckin: '/api/miniprogram/medications/checkin/',
     medicationRecords: (id) => `/api/miniprogram/medications/${id}/records/`,
+
+    // 症状日志
+    symptomLogs: '/api/miniprogram/symptom-logs/',
+    symptomLogDetail: (id) => `/api/miniprogram/symptom-logs/${id}/`,
+
+    // 体征日志
+    vitalLogs: '/api/miniprogram/vital-logs/',
+    vitalLogDetail: (id) => `/api/miniprogram/vital-logs/${id}/`,
 
     // 导出功能（使用小程序专用接口）
     exportHealthTrendsPDF: '/dashboard/export/pdf/',

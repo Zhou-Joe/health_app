@@ -40,6 +40,13 @@ Page({
     medicationsLoaded: false,
     medicationsError: null,
 
+    events: [],
+    selectedEventId: null,
+    eventsNoSelection: false,
+    eventsLoading: false,
+    eventsLoaded: false,
+    eventsError: null,
+
     activeSelector: '',
     activeSelectorTitle: '',
     activeSelectorNoSelection: false,
@@ -51,7 +58,12 @@ Page({
     bindingSummary: '未绑定资料',
 
     showAttachmentMenu: false,
-    isGenerating: false
+    isGenerating: false,
+
+    showSummaryModal: false,
+    aiSummary: null,
+    aiSummaryLoading: false,
+    aiSummaryError: null
   },
 
   onLoad(options) {
@@ -65,6 +77,7 @@ Page({
     // 预加载可选数据，减少首次打开弹窗等待
     this.loadReports()
     this.loadMedications()
+    this.loadEvents()
 
     if (isNewFromAdvice) {
       this.handlePendingAdviceRequest()
@@ -319,9 +332,18 @@ Page({
   updateBindingSummary() {
     const reportCount = this.data.selectedReportIds.length
     const medicationCount = this.data.selectedMedicationIds.length
-    const bindingSummary = (reportCount === 0 && medicationCount === 0)
-      ? '未绑定资料'
-      : `已绑定 报告${reportCount} · 药单${medicationCount}`
+    const hasEvent = !!this.data.selectedEventId
+    const parts = []
+    if (reportCount > 0) {
+      parts.push(`报告${reportCount}`)
+    }
+    if (medicationCount > 0) {
+      parts.push(`药单${medicationCount}`)
+    }
+    if (hasEvent) {
+      parts.push('事件1')
+    }
+    const bindingSummary = parts.length === 0 ? '未绑定资料' : `已绑定 ${parts.join(' · ')}`
     this.setData({ bindingSummary })
   },
 
@@ -332,27 +354,81 @@ Page({
     }
 
     const isReport = type === 'report'
-    const source = isReport ? this.data.reports : this.data.medications
-    const activeSelectorItems = source.map((item) => ({
-      id: item.id,
-      selected: !!item.selected,
-      icon: isReport ? '检' : '药',
-      title: isReport ? item.hospital : item.medicine_name,
-      desc: isReport
-        ? `${item.checkup_date} · ${item.indicators_count} 项指标`
-        : (item.dosage || '用药信息')
-    }))
+    const isMedication = type === 'medication'
+    const isEvent = type === 'event'
+
+    let source = []
+    let activeSelectorItems = []
+
+    if (isReport) {
+      source = this.data.reports
+      activeSelectorItems = source.map((item) => ({
+        id: item.id,
+        selected: !!item.selected,
+        icon: '检',
+        title: item.hospital,
+        desc: `${item.checkup_date} · ${item.indicators_count} 项指标`
+      }))
+    } else if (isMedication) {
+      source = this.data.medications
+      activeSelectorItems = source.map((item) => ({
+        id: item.id,
+        selected: !!item.selected,
+        icon: '药',
+        title: item.medicine_name,
+        desc: item.dosage || '用药信息'
+      }))
+    } else if (isEvent) {
+      source = this.data.events
+      activeSelectorItems = source.map((item) => ({
+        id: item.id,
+        selected: this.data.selectedEventId === item.id,
+        icon: '事',
+        title: item.name,
+        desc: item.date_range || item.start_date || ''
+      }))
+    }
+
+    let noSelection = false
+    let noSelectionTitle = ''
+    let noSelectionDesc = ''
+    let loading = false
+    let error = ''
+
+    if (isReport) {
+      noSelection = this.data.selectedReportIds.length === 0 && this.data.reportsNoSelection
+      noSelectionTitle = '不使用报告'
+      noSelectionDesc = '仅基于问题咨询'
+      loading = this.data.reportsLoading
+      error = this.data.reportsError || ''
+    } else if (isMedication) {
+      noSelection = this.data.selectedMedicationIds.length === 0 && this.data.medicationsNoSelection
+      noSelectionTitle = '不使用药单'
+      noSelectionDesc = '仅咨询健康问题'
+      loading = this.data.medicationsLoading
+      error = this.data.medicationsError || ''
+    } else if (isEvent) {
+      noSelection = !this.data.selectedEventId && this.data.eventsNoSelection
+      noSelectionTitle = '不使用事件'
+      noSelectionDesc = '不关联健康事件'
+      loading = this.data.eventsLoading
+      error = this.data.eventsError || ''
+    }
+
+    const titleMap = {
+      report: '选择体检报告',
+      medication: '选择药单',
+      event: '选择健康事件'
+    }
 
     this.setData({
-      activeSelectorTitle: isReport ? '选择体检报告' : '选择药单',
-      activeSelectorNoSelection: isReport
-        ? (this.data.selectedReportIds.length === 0 && this.data.reportsNoSelection)
-        : (this.data.selectedMedicationIds.length === 0 && this.data.medicationsNoSelection),
-      activeSelectorNoSelectionTitle: isReport ? '不使用报告' : '不使用药单',
-      activeSelectorNoSelectionDesc: isReport ? '仅基于问题咨询' : '仅咨询健康问题',
+      activeSelectorTitle: titleMap[type] || '',
+      activeSelectorNoSelection: noSelection,
+      activeSelectorNoSelectionTitle: noSelectionTitle,
+      activeSelectorNoSelectionDesc: noSelectionDesc,
       activeSelectorItems,
-      activeSelectorLoading: isReport ? this.data.reportsLoading : this.data.medicationsLoading,
-      activeSelectorError: isReport ? (this.data.reportsError || '') : (this.data.medicationsError || '')
+      activeSelectorLoading: loading,
+      activeSelectorError: error
     })
   },
 
@@ -434,6 +510,66 @@ Page({
     }
   },
 
+  async loadEvents() {
+    try {
+      this.setData({ eventsLoading: true, eventsError: null }, () => {
+        this.syncActiveSelectorState()
+      })
+      const res = await api.getEvents({ limit: 50 })
+      const rawEvents = res.events || res.data || []
+
+      const events = rawEvents.map((e) => ({
+        id: e.id,
+        name: e.name || '未命名事件',
+        event_type: e.event_type,
+        event_type_label: e.event_type_label || this.getEventTypeLabel(e.event_type),
+        start_date: e.start_date || '',
+        end_date: e.end_date || '',
+        date_range: this.getEventDateRange(e),
+        item_count: e.item_count || 0
+      }))
+
+      this.setData({
+        events,
+        eventsLoading: false,
+        eventsLoaded: true
+      }, () => {
+        this.syncActiveSelectorState()
+      })
+    } catch (err) {
+      console.error('[conversation] loadEvents failed:', err)
+      this.setData({
+        eventsLoading: false,
+        eventsError: err.message || '加载事件失败',
+        eventsLoaded: true
+      }, () => {
+        this.syncActiveSelectorState()
+      })
+    }
+  },
+
+  getEventTypeLabel(type) {
+    const labelMap = {
+      illness: '疾病事件',
+      checkup: '体检事件',
+      chronic_management: '慢病管理',
+      emergency: '急诊事件',
+      wellness: '健康管理',
+      medication_course: '用药疗程',
+      other: '其他'
+    }
+    return labelMap[type] || '其他'
+  },
+
+  getEventDateRange(event) {
+    const start = event.start_date || ''
+    const end = event.end_date || ''
+    if (start && end && start !== end) {
+      return `${start} ~ ${end}`
+    }
+    return start || end || ''
+  },
+
   restoreLastSelection() {
     try {
       const lastSelection = wx.getStorageSync('lastConsultationSelection')
@@ -444,8 +580,10 @@ Page({
       this.setData({
         selectedReportIds: lastSelection.selectedReportIds || [],
         selectedMedicationIds: lastSelection.selectedMedicationIds || [],
+        selectedEventId: lastSelection.selectedEventId || null,
         reportsNoSelection: !!lastSelection.reportsNoSelection,
-        medicationsNoSelection: !!lastSelection.medicationsNoSelection
+        medicationsNoSelection: !!lastSelection.medicationsNoSelection,
+        eventsNoSelection: !!lastSelection.eventsNoSelection
       }, () => {
         this.updateBindingSummary()
         this.syncActiveSelectorState()
@@ -482,8 +620,10 @@ Page({
       wx.setStorageSync('lastConsultationSelection', {
         selectedReportIds: this.data.selectedReportIds,
         selectedMedicationIds: this.data.selectedMedicationIds,
+        selectedEventId: this.data.selectedEventId,
         reportsNoSelection: this.data.reportsNoSelection,
         medicationsNoSelection: this.data.medicationsNoSelection,
+        eventsNoSelection: this.data.eventsNoSelection,
         timestamp: Date.now()
       })
       this.updateBindingSummary()
@@ -494,7 +634,7 @@ Page({
   },
 
   openSelector(type) {
-    if (type !== 'report' && type !== 'medication') {
+    if (type !== 'report' && type !== 'medication' && type !== 'event') {
       return
     }
 
@@ -511,6 +651,9 @@ Page({
     if (type === 'medication' && !this.data.medicationsLoaded) {
       this.loadMedications()
     }
+    if (type === 'event' && !this.data.eventsLoaded) {
+      this.loadEvents()
+    }
   },
 
   openReportSelector() {
@@ -519,6 +662,10 @@ Page({
 
   openMedicationSelector() {
     this.openSelector('medication')
+  },
+
+  openEventSelector() {
+    this.openSelector('event')
   },
 
   closeSelector() {
@@ -532,6 +679,10 @@ Page({
     }
     if (this.data.activeSelector === 'medication') {
       this.loadMedications()
+      return
+    }
+    if (this.data.activeSelector === 'event') {
+      this.loadEvents()
     }
   },
 
@@ -559,6 +710,17 @@ Page({
         this.saveCurrentSelection()
       })
       util.showToast('已设置为不使用药单')
+      return
+    }
+
+    if (this.data.activeSelector === 'event') {
+      this.setData({
+        selectedEventId: null,
+        eventsNoSelection: true
+      }, () => {
+        this.saveCurrentSelection()
+      })
+      util.showToast('已设置为不使用事件')
     }
   },
 
@@ -596,6 +758,17 @@ Page({
         medications,
         selectedMedicationIds,
         medicationsNoSelection: false
+      }, () => {
+        this.saveCurrentSelection()
+      })
+      return
+    }
+
+    if (this.data.activeSelector === 'event') {
+      const newSelectedId = this.data.selectedEventId === parseInt(rawId, 10) ? null : parseInt(rawId, 10)
+      this.setData({
+        selectedEventId: newSelectedId,
+        eventsNoSelection: false
       }, () => {
         this.saveCurrentSelection()
       })
@@ -654,13 +827,23 @@ Page({
       ? rawData.selected_medication_ids
       : (Array.isArray(rawData.selected_medications) ? rawData.selected_medications : [])
 
+    const selectedEventId = rawData.selected_event || rawData.selected_event_id || null
+
+    console.log('[conversation] normalizeAdviceRequest:', {
+      selectedEventId,
+      rawSelectedEvent: rawData.selected_event,
+      rawSelectedEventId: rawData.selected_event_id,
+      eventMode: rawData.event_mode
+    })
+
     const hasConversation = !!rawData.conversation_id
 
     const requestData = {
       question: (rawData.question || '').trim(),
       conversation_mode: rawData.conversation_mode || (hasConversation ? 'continue_conversation' : 'new_conversation'),
       report_mode: rawData.report_mode || (selectedReportIds.length > 0 ? 'select' : 'no_reports'),
-      medication_mode: rawData.medication_mode || (selectedMedicationIds.length > 0 ? 'select' : 'no_medications')
+      medication_mode: rawData.medication_mode || (selectedMedicationIds.length > 0 ? 'select' : 'no_medications'),
+      event_mode: rawData.event_mode || (selectedEventId ? 'select_event' : 'no_event')
     }
 
     if (hasConversation) {
@@ -675,6 +858,10 @@ Page({
       requestData.selected_medication_ids = selectedMedicationIds
     }
 
+    if (selectedEventId) {
+      requestData.selected_event = selectedEventId
+    }
+
     return requestData
   },
 
@@ -685,7 +872,8 @@ Page({
       question,
       conversation_mode: isContinue ? 'continue_conversation' : 'new_conversation',
       report_mode: 'no_reports',
-      medication_mode: 'no_medications'
+      medication_mode: 'no_medications',
+      event_mode: 'no_event'
     }
 
     if (isContinue) {
@@ -710,6 +898,15 @@ Page({
     } else {
       // 继续对话未显式取消时，允许后端复用上一轮选择
       requestData.medication_mode = isContinue ? 'select' : 'no_medications'
+    }
+
+    if (this.data.selectedEventId) {
+      requestData.selected_event = this.data.selectedEventId
+      requestData.event_mode = 'select_event'
+    } else if (this.data.eventsNoSelection) {
+      requestData.event_mode = 'no_event'
+    } else {
+      requestData.event_mode = isContinue ? 'select_event' : 'no_event'
     }
 
     return requestData
@@ -931,8 +1128,10 @@ Page({
         conversationMode: requestData.conversation_mode === 'continue_conversation' ? 'continue' : 'new',
         selectedReportIds: requestData.selected_report_ids || [],
         selectedMedicationIds: requestData.selected_medication_ids || [],
+        selectedEventId: requestData.selected_event || null,
         reportsNoSelection: requestData.report_mode === 'no_reports',
-        medicationsNoSelection: requestData.medication_mode === 'no_medications'
+        medicationsNoSelection: requestData.medication_mode === 'no_medications',
+        eventsNoSelection: requestData.event_mode === 'no_event'
       }, () => {
         this.updateBindingSummary()
         this.restoreReportSelection()
@@ -980,6 +1179,126 @@ Page({
         isGenerating: false
       })
       util.showToast(err.message || '请求失败，请重试')
+    }
+  },
+
+  async showSummary() {
+    if (!this.data.conversationId) {
+      util.showToast('请先进行对话')
+      return
+    }
+
+    this.setData({
+      showSummaryModal: true,
+      aiSummaryLoading: true,
+      aiSummaryError: null,
+      aiSummary: null
+    })
+
+    try {
+      const res = await api.getConversationAiSummary(this.data.conversationId)
+      
+      if (res.has_summary && res.ai_summary) {
+        this.setData({
+          aiSummary: res.ai_summary,
+          aiSummaryLoading: false
+        })
+      } else {
+        this.setData({
+          aiSummary: null,
+          aiSummaryLoading: false,
+          aiSummaryError: null
+        })
+      }
+    } catch (err) {
+      console.error('[conversation] loadSummary failed:', err)
+      this.setData({
+        aiSummaryLoading: false,
+        aiSummaryError: err.message || '加载AI总结失败'
+      })
+    }
+  },
+
+  async generateSummary() {
+    if (!this.data.conversationId || this.data.aiSummaryLoading) {
+      return
+    }
+
+    this.setData({
+      aiSummaryLoading: true,
+      aiSummaryError: null,
+      aiSummary: ''
+    })
+
+    try {
+      await api.streamConversationAiSummary(
+        this.data.conversationId,
+        (chunk, fullContent) => {
+          this.setData({
+            aiSummary: fullContent
+          })
+        },
+        (error) => {
+          console.error('[conversation] generateSummary error:', error)
+          this.setData({
+            aiSummaryLoading: false,
+            aiSummaryError: error || '生成失败'
+          })
+        },
+        (finalContent) => {
+          this.setData({
+            aiSummary: finalContent,
+            aiSummaryLoading: false
+          })
+          util.showToast('AI总结已生成')
+        }
+      )
+    } catch (err) {
+      console.error('[conversation] generateSummary failed:', err)
+      this.setData({
+        aiSummaryLoading: false,
+        aiSummaryError: err.message || '生成AI总结失败'
+      })
+    }
+  },
+
+  hideSummaryModal() {
+    this.setData({ showSummaryModal: false })
+  },
+
+  async exportSummaryPdf() {
+    if (!this.data.conversationId || !this.data.aiSummary) {
+      util.showToast('暂无AI总结可导出')
+      return
+    }
+
+    util.showLoading('正在导出PDF...')
+    try {
+      await api.exportConversationSummaryPdf(this.data.conversationId)
+      util.showToast('导出成功')
+    } catch (err) {
+      console.error('[conversation] exportPdf failed:', err)
+      util.showToast(err.message || '导出失败')
+    } finally {
+      util.hideLoading()
+    }
+  },
+
+  async exportSummaryWord() {
+    if (!this.data.conversationId || !this.data.aiSummary) {
+      util.showToast('暂无AI总结可导出')
+      return
+    }
+
+    util.showLoading('正在导出Word...')
+    try {
+      await api.exportConversationSummaryWord(this.data.conversationId)
+      util.showToast('导出成功')
+    } catch (err) {
+      console.error('[conversation] exportWord failed:', err)
+      util.showToast(err.message || '导出失败')
+    } finally {
+      util.hideLoading()
     }
   }
 })

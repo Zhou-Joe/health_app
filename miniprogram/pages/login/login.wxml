@@ -108,6 +108,12 @@
       </view>
       <text wx:else>登录中...</text>
     </button>
+
+    <!-- 注册入口 -->
+    <view class="register-link">
+      <text class="register-text">还没有账号？</text>
+      <text class="register-btn" bindtap="goToRegister">立即注册</text>
+    </view>
   </view>
 
   <!-- 底部装饰 -->

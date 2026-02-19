@@ -10,11 +10,15 @@ module.exports = {
   // ==================== 用户认证 ====================
   login: (data) => request.post(config.api.login, data),
 
+  register: (data) => request.post(config.api.register, data),
+
   wechatLogin: (data) => request.post(config.api.login, data),
 
   completeProfile: (data) => request.post(config.api.completeProfile, data),
 
   bindUsername: (data) => request.post(config.api.bindUsername, data),
+
+  changePassword: (data) => request.post(config.api.changePassword, data),
 
   getUserInfo: () => request.get(config.api.userInfo),
 
@@ -72,6 +76,9 @@ module.exports = {
 
   createIndicator: (data) =>
     request.post(config.api.createIndicator, data),
+
+  batchCreateIndicators: (data) =>
+    request.post(config.api.batchCreateIndicators, data),
 
   updateIndicator: (indicatorId, data) =>
     request.put(config.api.updateIndicator(indicatorId), data),
@@ -198,6 +205,207 @@ module.exports = {
   removeEventItem: (eventId, itemId) =>
     request.delete(config.api.eventRemoveItem(eventId, itemId)),
 
+  reclusterEvents: (data = {}) =>
+    request.post(config.api.eventRecluster, data),
+
+  getEventAiSummary: (eventId) =>
+    request.get(config.api.eventAiSummary(eventId)),
+
+  getCheckupAiSummary: (checkupId) =>
+    request.get(config.api.checkupAiSummary(checkupId)),
+
+  getConversationAiSummary: (conversationId) =>
+    request.get(config.api.conversationAiSummary(conversationId)),
+
+  streamEventAiSummary: (eventId, onMessage, onError, onComplete) => {
+    const token = wx.getStorageSync(config.storageKeys.TOKEN)
+    const url = config.server.baseUrl + config.api.streamEventAiSummary
+
+    return new Promise((resolve, reject) => {
+      const requestTask = wx.request({
+        url: url,
+        method: 'POST',
+        header: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: { event_id: eventId },
+        enableChunked: true,
+        success: (res) => {
+          if (res.statusCode === 200) {
+            const data = res.data
+            if (typeof data === 'string') {
+              const lines = data.split('\n')
+              let fullContent = ''
+              lines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const parsed = JSON.parse(line.slice(6))
+                    if (parsed.error) {
+                      onError?.(parsed.error)
+                    } else if (parsed.content) {
+                      fullContent += parsed.content
+                      onMessage?.(parsed.content, fullContent)
+                    } else if (parsed.done) {
+                      onComplete?.(fullContent)
+                    }
+                  } catch (e) {}
+                }
+              })
+              resolve(fullContent)
+            } else if (data.success && data.summary) {
+              onComplete?.(data.summary)
+              resolve(data.summary)
+            } else {
+              onComplete?.(data.ai_summary || '')
+              resolve(data.ai_summary || '')
+            }
+          } else {
+            const error = res.data?.error || '生成失败'
+            onError?.(error)
+            reject(new Error(error))
+          }
+        },
+        fail: (err) => {
+          onError?.(err.errMsg || '网络错误')
+          reject(err)
+        }
+      })
+
+      return requestTask
+    })
+  },
+
+  streamCheckupAiSummary: (checkupId, onMessage, onError, onComplete) => {
+    const token = wx.getStorageSync(config.storageKeys.TOKEN)
+    const url = config.server.baseUrl + config.api.streamCheckupAiSummary
+
+    return new Promise((resolve, reject) => {
+      const requestTask = wx.request({
+        url: url,
+        method: 'POST',
+        header: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: { checkup_id: checkupId },
+        enableChunked: true,
+        success: (res) => {
+          if (res.statusCode === 200) {
+            const data = res.data
+            if (typeof data === 'string') {
+              const lines = data.split('\n')
+              let fullContent = ''
+              lines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const parsed = JSON.parse(line.slice(6))
+                    if (parsed.error) {
+                      onError?.(parsed.error)
+                    } else if (parsed.content) {
+                      fullContent += parsed.content
+                      onMessage?.(parsed.content, fullContent)
+                    } else if (parsed.done) {
+                      onComplete?.(fullContent)
+                    }
+                  } catch (e) {}
+                }
+              })
+              resolve(fullContent)
+            } else if (data.success && data.summary) {
+              onComplete?.(data.summary)
+              resolve(data.summary)
+            } else {
+              onComplete?.(data.ai_summary || '')
+              resolve(data.ai_summary || '')
+            }
+          } else {
+            const error = res.data?.error || '生成失败'
+            onError?.(error)
+            reject(new Error(error))
+          }
+        },
+        fail: (err) => {
+          onError?.(err.errMsg || '网络错误')
+          reject(err)
+        }
+      })
+
+      return requestTask
+    })
+  },
+
+  streamConversationAiSummary: (conversationId, onMessage, onError, onComplete) => {
+    const token = wx.getStorageSync(config.storageKeys.TOKEN)
+    const url = config.server.baseUrl + config.api.streamConversationAiSummary
+
+    return new Promise((resolve, reject) => {
+      const requestTask = wx.request({
+        url: url,
+        method: 'POST',
+        header: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: { conversation_id: conversationId },
+        enableChunked: true,
+        success: (res) => {
+          if (res.statusCode === 200) {
+            const data = res.data
+            if (typeof data === 'string') {
+              const lines = data.split('\n')
+              let fullContent = ''
+              lines.forEach(line => {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const parsed = JSON.parse(line.slice(6))
+                    if (parsed.error) {
+                      onError?.(parsed.error)
+                    } else if (parsed.content) {
+                      fullContent += parsed.content
+                      onMessage?.(parsed.content, fullContent)
+                    } else if (parsed.done) {
+                      onComplete?.(fullContent)
+                    }
+                  } catch (e) {}
+                }
+              })
+              resolve(fullContent)
+            } else if (data.success && data.summary) {
+              onComplete?.(data.summary)
+              resolve(data.summary)
+            } else {
+              onComplete?.(data.ai_summary || '')
+              resolve(data.ai_summary || '')
+            }
+          } else {
+            const error = res.data?.error || '生成失败'
+            onError?.(error)
+            reject(new Error(error))
+          }
+        },
+        fail: (err) => {
+          onError?.(err.errMsg || '网络错误')
+          reject(err)
+        }
+      })
+
+      return requestTask
+    })
+  },
+
+  exportEventSummaryPdf: (eventId) =>
+    request.downloadFile(config.api.eventExportSummaryPdf(eventId)),
+
+  exportEventSummaryWord: (eventId) =>
+    request.downloadFile(config.api.eventExportSummaryWord(eventId)),
+
+  exportConversationSummaryPdf: (conversationId) =>
+    request.downloadFile(config.api.conversationExportSummaryPdf(conversationId)),
+
+  exportConversationSummaryWord: (conversationId) =>
+    request.downloadFile(config.api.conversationExportSummaryWord(conversationId)),
+
   // ==================== 系统信息 ====================
   getServicesStatus: () =>
     request.get(config.api.servicesStatus),
@@ -241,6 +449,38 @@ module.exports = {
 
   getMedicationRecords: (medicationId) =>
     request.get(config.api.medicationRecords(medicationId)),
+
+  // ==================== 症状日志 ====================
+  getSymptomLogs: (params = {}) =>
+    request.get(config.api.symptomLogs, params),
+
+  createSymptomLog: (data) =>
+    request.post(config.api.symptomLogs, data),
+
+  getSymptomLogDetail: (logId) =>
+    request.get(config.api.symptomLogDetail(logId)),
+
+  updateSymptomLog: (logId, data) =>
+    request.put(config.api.symptomLogDetail(logId), data),
+
+  deleteSymptomLog: (logId) =>
+    request.delete(config.api.symptomLogDetail(logId)),
+
+  // ==================== 体征日志 ====================
+  getVitalLogs: (params = {}) =>
+    request.get(config.api.vitalLogs, params),
+
+  createVitalLog: (data) =>
+    request.post(config.api.vitalLogs, data),
+
+  getVitalLogDetail: (logId) =>
+    request.get(config.api.vitalLogDetail(logId)),
+
+  updateVitalLog: (logId, data) =>
+    request.put(config.api.vitalLogDetail(logId), data),
+
+  deleteVitalLog: (logId) =>
+    request.delete(config.api.vitalLogDetail(logId)),
 
   // ==================== 导出功能 ====================
   exportHealthTrendsPDF: () =>

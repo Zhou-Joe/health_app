@@ -57,6 +57,15 @@
         <text class="option-title">药单信息</text>
         <text class="option-value">{{medicationMode === 'none' ? '不使用' : selectedMedicationIds.length + '份'}}</text>
       </view>
+
+      <!-- 健康事件 -->
+      <view class="option-card" bindtap="showEventModal">
+        <view class="option-icon-wrap event-theme">
+          <text class="option-emoji">🏥</text>
+        </view>
+        <text class="option-title">健康事件</text>
+        <text class="option-value">{{eventMode === 'none' ? '不使用' : '已选择'}}</text>
+      </view>
     </view>
 
     <!-- 问题输入区 -->
@@ -251,6 +260,66 @@
             </view>
           </view>
         </scroll-view>
+      </view>
+    </view>
+    <view class="modal-footer">
+      <button class="modal-btn" bindtap="hideModals">确定</button>
+    </view>
+  </view>
+</view>
+
+<!-- 健康事件弹窗 -->
+<view class="modal-mask" wx:if="{{showEventModal}}" bindtap="hideModals">
+  <view class="modal-container" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">健康事件</text>
+      <text class="modal-close" bindtap="hideModals">✕</text>
+    </view>
+    <view class="modal-body">
+      <view class="modal-option {{eventMode === 'none' ? 'active' : ''}}"
+            bindtap="selectEventMode"
+            data-mode="none">
+        <text class="modal-option-icon">💭</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">不使用事件</text>
+          <text class="modal-option-desc">单独选择报告和药单</text>
+        </view>
+        <view class="modal-check" wx:if="{{eventMode === 'none'}}">✓</view>
+      </view>
+
+      <view class="modal-option {{eventMode === 'select' ? 'active' : ''}}"
+            bindtap="selectEventMode"
+            data-mode="select">
+        <text class="modal-option-icon">🏥</text>
+        <view class="modal-option-content">
+          <text class="modal-option-title">选择健康事件</text>
+          <text class="modal-option-desc">自动包含关联的报告和药单</text>
+        </view>
+        <view class="modal-check" wx:if="{{eventMode === 'select'}}">✓</view>
+      </view>
+
+      <!-- 事件列表 -->
+      <view class="event-list-section" wx:if="{{eventMode === 'select'}}">
+        <view class="list-actions">
+          <text class="list-hint">选择健康事件可自动包含关联的报告和药单</text>
+        </view>
+        <scroll-view class="event-scroll" scroll-y wx:if="{{events.length > 0}}">
+          <view class="event-item {{selectedEventId === item.id ? 'selected' : ''}}"
+                wx:for="{{events}}"
+                wx:key="id"
+                bindtap="toggleEvent"
+                data-id="{{item.id}}">
+            <view class="event-check">{{selectedEventId === item.id ? '✓' : ''}}</view>
+            <view class="event-content">
+              <text class="event-name">🏥 {{item.name}}</text>
+              <text class="event-type">{{item.event_type_label}}</text>
+              <text class="event-meta">{{item.date_range}} · {{item.item_count}}项</text>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="empty-list" wx:else>
+          <text class="empty-text">暂无健康事件</text>
+        </view>
       </view>
     </view>
     <view class="modal-footer">
