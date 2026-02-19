@@ -26,6 +26,18 @@ class HealthCheckup(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.checkup_date} - {self.hospital}"
 
+    def get_abnormal_count(self):
+        """获取异常指标数量"""
+        return self.indicators.filter(status='abnormal').count()
+
+    def get_attention_count(self):
+        """获取需关注指标数量"""
+        return self.indicators.filter(status='attention').count()
+
+    def get_normal_count(self):
+        """获取正常指标数量"""
+        return self.indicators.filter(status='normal').count()
+
 
 class HealthIndicator(models.Model):
     """健康指标模型"""
@@ -265,7 +277,7 @@ class SystemSettings(models.Model):
             'api_url': cls.get_setting('vl_model_api_url', ''),
             'api_key': cls.get_setting('vl_model_api_key', ''),
             'model_name': cls.get_setting('vl_model_name', 'gpt-4-vision-preview'),
-            'timeout': cls.get_setting('vl_model_timeout', '300'),
+            'timeout': cls.get_setting('vl_model_timeout', '600'),
             'max_tokens': cls.get_setting('vl_model_max_tokens', '4000'),
         }
 
@@ -1149,3 +1161,101 @@ class EventTemplate(models.Model):
         )
 
         return event
+
+
+class BatchDocumentProcessing(models.Model):
+    """批量文档处理任务"""
+    BATCH_STATUS = [
+        ('pending', '等待处理'),
+        ('processing', '处理中'),
+        ('completed', '处理完成'),
+        ('failed', '处理失败'),
+        ('partial_failed', '部分失败'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='用户')
+    name = models.CharField(max_length=200, verbose_name='批次名称', blank=True, null=True)
+    checkup_date = models.DateField(verbose_name='体检日期')
+    hospital = models.CharField(max_length=200, verbose_name='体检机构', default='未知机构')
+    status = models.CharField(max_length=20, choices=BATCH_STATUS, default='pending', verbose_name='批次状态')
+    total_files = models.IntegerField(default=0, verbose_name='文件总数')
+    completed_files = models.IntegerField(default=0, verbose_name='已完成文件数')
+    failed_files = models.IntegerField(default=0, verbose_name='失败文件数')
+    error_message = models.TextField(blank=True, null=True, verbose_name='错误信息')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+    completed_at = models.DateTimeField(blank=True, null=True, verbose_name='完成时间')
+
+    class Meta:
+        verbose_name = '批量文档处理'
+        verbose_name_plural = '批量文档处理'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} - {self.name or '批量上传'} - {self.get_status_display()}"
+
+    @property
+    def progress_percentage(self):
+        """计算处理进度百分比"""
+        if self.total_files == 0:
+            return 0
+        return int((self.completed_files / self.total_files) * 100)
+
+    @property
+    def is_completed(self):
+        """检查是否全部完成"""
+        return self.completed_files + self.failed_files >= self.total_files
+
+    def update_status(self):
+        """根据子任务状态更新批次状态"""
+        items = self.items.all()
+        total = items.count()
+        if total == 0:
+            return
+
+        completed = items.filter(status='completed').count()
+        failed = items.filter(status='failed').count()
+        pending = items.filter(status='pending').count()
+        processing = items.filter(status__in=['uploading', 'ocr_processing', 'ai_processing', 'saving_data']).count()
+
+        self.completed_files = completed
+        self.failed_files = failed
+
+        if failed == total:
+            self.status = 'failed'
+        elif failed > 0 and completed > 0:
+            self.status = 'partial_failed'
+        elif completed == total:
+            self.status = 'completed'
+            if not self.completed_at:
+                from django.utils import timezone
+                self.completed_at = timezone.now()
+        elif processing > 0:
+            self.status = 'processing'
+        else:
+            self.status = 'pending'
+
+        self.save()
+
+
+class BatchProcessingItem(models.Model):
+    """批量处理中的单个文件项"""
+    batch = models.ForeignKey(BatchDocumentProcessing, on_delete=models.CASCADE, verbose_name='批量任务', related_name='items')
+    file_name = models.CharField(max_length=255, verbose_name='文件名')
+    file_type = models.CharField(max_length=10, verbose_name='文件类型', choices=[('pdf', 'PDF'), ('image', '图片')])
+    workflow_type = models.CharField(max_length=20, verbose_name='工作流类型')
+    status = models.CharField(max_length=20, choices=DocumentProcessing.PROCESSING_STATUS, default='pending', verbose_name='处理状态')
+    progress = models.IntegerField(default=0, verbose_name='处理进度(%)')
+    health_checkup = models.ForeignKey(HealthCheckup, on_delete=models.CASCADE, verbose_name='体检报告', null=True, blank=True)
+    document_processing = models.ForeignKey(DocumentProcessing, on_delete=models.CASCADE, verbose_name='文档处理', null=True, blank=True)
+    error_message = models.TextField(blank=True, null=True, verbose_name='错误信息')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        verbose_name = '批量处理项'
+        verbose_name_plural = '批量处理项'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.batch.name or '批量任务'} - {self.file_name}"

@@ -70,6 +70,7 @@ class DocumentProcessingService:
         self.llm_model_name = SystemSettings.get_setting('llm_model_name', 'qwen3-4b-instruct')
         self.llm_timeout = int(SystemSettings.get_setting('llm_timeout', '600'))
         self.ocr_timeout = int(SystemSettings.get_setting('ocr_timeout', '300'))
+        self.llm_max_tokens = int(SystemSettings.get_setting('llm_max_tokens', '8000'))
 
     def update_progress(self, status, progress, message=None, is_error=False):
         """更新处理进度"""
@@ -228,7 +229,7 @@ class DocumentProcessingService:
                 }
             ],
             "temperature": 0.1,
-            "max_tokens": 4000
+            "max_tokens": self.llm_max_tokens
         }
 
         # 准备请求头
@@ -245,7 +246,7 @@ class DocumentProcessingService:
             print(f"   - API URL: {self.modelscope_api_url}")
             print(f"   - 模型名称: {self.llm_model_name}")
             print(f"   - 超时时间: {self.llm_timeout}秒")
-            print(f"   - 最大令牌数: 4000")
+            print(f"   - 最大令牌数: {self.llm_max_tokens}")
             print(f"   - API Key: {'已设置' if self.modelscope_api_key else '未设置'}")
 
             # 根据API URL判断服务类型并使用正确的端点
@@ -750,7 +751,7 @@ class DocumentProcessingService:
         return str(measured_value).strip()
 
     def _extract_json_objects(self, text):
-        """从文本中提取完整的JSON对象"""
+        """从文本中提取完整的JSON对象，支持修复截断的JSON"""
         import json
 
         json_objects = []
@@ -765,11 +766,30 @@ class DocumentProcessingService:
             # 寻找匹配的 }
             brace_count = 0
             end_pos = start_pos
+            in_string = False
+            escape_char = False
 
             for i in range(start_pos, len(text)):
-                if text[i] == '{':
+                char = text[i]
+
+                if escape_char:
+                    escape_char = False
+                    continue
+
+                if char == '\\':
+                    escape_char = True
+                    continue
+
+                if char == '"' and not escape_char:
+                    in_string = not in_string
+                    continue
+
+                if in_string:
+                    continue
+
+                if char == '{':
                     brace_count += 1
-                elif text[i] == '}':
+                elif char == '}':
                     brace_count -= 1
 
                 if brace_count == 0:
@@ -785,10 +805,28 @@ class DocumentProcessingService:
                     if 'indicators' in parsed:
                         json_objects.append(json_str)
                 except json.JSONDecodeError:
-                    pass
+                    # 尝试修复后再次解析
+                    repaired = self._fix_truncated_json(json_str)
+                    try:
+                        parsed = json.loads(repaired)
+                        if 'indicators' in parsed:
+                            json_objects.append(repaired)
+                            print(f"[修复] 成功修复并提取截断的JSON对象")
+                    except json.JSONDecodeError:
+                        pass
                 start_idx = end_pos + 1
             else:
-                start_idx = start_pos + 1
+                # JSON可能被截断了，尝试修复
+                json_str = text[start_pos:]
+                repaired = self._fix_truncated_json(json_str)
+                try:
+                    parsed = json.loads(repaired)
+                    if 'indicators' in parsed:
+                        json_objects.append(repaired)
+                        print(f"[修复] 成功修复并提取截断的JSON对象（文件末尾）")
+                except json.JSONDecodeError:
+                    pass
+                break
 
         return json_objects
 
@@ -1318,15 +1356,21 @@ class VisionLanguageModelService:
             # 根据提供商选择不同的API调用方式
             if self.vl_provider == 'gemini':
                 # 使用 Gemini Vision API
-                return self._call_gemini_vision_api(image_path, prompt)
+                indicators = self._call_gemini_vision_api(image_path, prompt)
             else:
                 # 使用 OpenAI 兼容格式
-                return self._call_openai_vision_api(image_path, prompt)
+                indicators = self._call_openai_vision_api(image_path, prompt)
+
+            # 如果返回空列表，抛出异常
+            if not indicators:
+                raise Exception(f"第{page_num}页图片处理完成但未提取到任何指标")
+
+            return indicators
 
         except Exception as e:
             print(f"[失败] 处理第{page_num}页图片失败: {str(e)}")
             print(f"{'='*60}\n")
-            return []
+            raise  # 重新抛出异常，让上层处理
 
     def _call_gemini_vision_api(self, image_path, prompt):
         """调用 Gemini Vision API"""
@@ -1471,6 +1515,13 @@ class VisionLanguageModelService:
                 "max_tokens": self.vl_max_tokens
             }
 
+            # 添加 enable_thinking 配置（如果启用）
+            enable_thinking = SystemSettings.get_setting('vl_enable_thinking', 'false').lower() == 'true'
+            if enable_thinking:
+                thinking_mode = SystemSettings.get_setting('vl_thinking_mode', 'true')
+                request_data["extra_body"] = {"enable_thinking": thinking_mode == 'true'}
+                print(f"[VLM] 启用思考模式: {thinking_mode}")
+
             # 准备请求头
             headers = {
                 "Content-Type": "application/json"
@@ -1495,6 +1546,7 @@ class VisionLanguageModelService:
             print(f"   - 最大令牌数: {self.vl_max_tokens}")
             print(f"   - API Key: {'已设置' if self.vl_api_key else '未设置'}")
             print(f"[发送] 请求数据大小: {len(json.dumps(request_data))} 字符")
+            print(f"[调试] 请求数据预览: {json.dumps(request_data, ensure_ascii=False)[:500]}...")
 
             # 记录请求开始时间
             import time
@@ -1825,7 +1877,7 @@ class VisionLanguageModelService:
         return candidates
 
     def _repair_json_syntax(self, text):
-        """尝试修复常见的JSON语法错误"""
+        """尝试修复常见的JSON语法错误，包括截断的JSON"""
         if not text:
             return None
 
@@ -1841,7 +1893,46 @@ class VisionLanguageModelService:
         # 修复常见的引号问题
         repaired = re.sub(r"'([^']*)'", r'"\1"', repaired)
 
+        # 修复截断的JSON - 处理未闭合的字符串
+        repaired = self._fix_truncated_json(repaired)
+
         return repaired if repaired != text else None
+
+    def _fix_truncated_json(self, text):
+        """修复可能被截断的JSON"""
+        repaired = text
+
+        # 计算括号匹配情况
+        open_braces = repaired.count('{') - repaired.count('}')
+        open_brackets = repaired.count('[') - repaired.count(']')
+        open_quotes = repaired.count('"') % 2  # 奇数表示有未闭合的引号
+
+        # 修复未闭合的字符串（引号未配对）
+        if open_quotes > 0:
+            # 找到最后一个未闭合的引号并添加闭合引号
+            last_quote_pos = repaired.rfind('"')
+            if last_quote_pos > 0 and repaired[last_quote_pos:].count('"') % 2 == 1:
+                repaired = repaired + '"'
+
+        # 修复未闭合的对象
+        while open_braces > 0:
+            repaired = repaired + '}'
+            open_braces -= 1
+
+        # 修复未闭合的数组
+        while open_brackets > 0:
+            repaired = repaired + ']'
+            open_brackets -= 1
+
+        # 处理尾部逗号问题
+        repaired = re.sub(r',(\s*})$', r'\1', repaired)
+        repaired = re.sub(r',(\s*])$', r'\1', repaired)
+
+        # 处理属性值缺失的情况（如 "key": } 改为 "key": null }）
+        repaired = re.sub(r':\s*}', ': null }', repaired)
+        repaired = re.sub(r':\s*,', ': null,', repaired)
+
+        return repaired
 
     def _parse_vision_response(self, content):
         """解析视觉模型的响应"""
@@ -2237,6 +2328,13 @@ def call_llm_for_integration(system_prompt, user_prompt, timeout=120):
         "temperature": 0.1,
         "max_tokens": 8000
     }
+
+    # 添加 enable_thinking 配置（如果启用）
+    enable_thinking = SystemSettings.get_setting('llm_enable_thinking', 'false').lower() == 'true'
+    if enable_thinking:
+        thinking_mode = SystemSettings.get_setting('llm_thinking_mode', 'true')
+        llm_data["extra_body"] = {"enable_thinking": thinking_mode == 'true'}
+        print(f"[数据整合 LLM调用] 启用思考模式: {thinking_mode}")
 
     # 准备请求头
     headers = {

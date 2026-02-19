@@ -1561,6 +1561,14 @@ def call_ai_doctor_api(question, health_data, user, conversation_context=None, m
             'temperature': 0.3
         }
 
+        # 添加 enable_thinking 配置（如果启用）
+        enable_thinking = SystemSettings.get_setting('ai_doctor_enable_thinking', 'false').lower() == 'true'
+        if enable_thinking:
+            thinking_mode = SystemSettings.get_setting('ai_doctor_thinking_mode', 'true')
+            # 通过 extra_body 传递 enable_thinking 参数
+            data['extra_body'] = {"enable_thinking": thinking_mode == 'true'}
+            print(f"[AI医生] 启用思考模式: {thinking_mode}")
+
         print(f"AI医生API调用，超时设置: {timeout}秒")
 
         # AI医生API调用直接使用配置的完整地址
@@ -1845,12 +1853,34 @@ def checkup_detail(request, checkup_id):
     abnormal_count = indicators.filter(status='abnormal').count()
     attention_count = indicators.filter(status='attention').count()
 
+    # 获取用户常用的体检机构（用于编辑时的下拉选择）
+    from django.db.models import Count, Max, Q
+    user_hospitals = HealthCheckup.objects.filter(
+        user=request.user
+    ).exclude(
+        Q(hospital__isnull=True) | Q(hospital='')
+    ).exclude(
+        hospital='未知机构'
+    ).values('hospital').annotate(
+        usage_count=Count('id'),
+        last_used=Max('checkup_date')
+    ).order_by('-usage_count', 'hospital')[:10]
+
+    hospitals_data = []
+    for item in user_hospitals:
+        hospitals_data.append({
+            'name': item['hospital'],
+            'usage_count': item['usage_count'],
+            'last_used': item['last_used'].strftime('%Y-%m-%d')
+        })
+
     context = {
         'checkup': checkup,
         'indicators': indicators,
         'normal_count': normal_count,
         'abnormal_count': abnormal_count,
         'attention_count': attention_count,
+        'user_hospitals': hospitals_data,
     }
 
     return render(request, 'medical_records/checkup_detail.html', context)
@@ -2146,17 +2176,39 @@ def all_checkups(request):
     """所有体检报告列表页面"""
     user = request.user
     checkups = HealthCheckup.objects.filter(user=user).order_by('-checkup_date')
-    
+
     # 分页：每页显示10条记录
     from django.core.paginator import Paginator
     paginator = Paginator(checkups, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
+    # 获取用户常用的体检机构（用于编辑时的下拉选择）
+    from django.db.models import Count, Max, Q
+    user_hospitals = HealthCheckup.objects.filter(
+        user=request.user
+    ).exclude(
+        Q(hospital__isnull=True) | Q(hospital='')
+    ).exclude(
+        hospital='未知机构'
+    ).values('hospital').annotate(
+        usage_count=Count('id'),
+        last_used=Max('checkup_date')
+    ).order_by('-usage_count', 'hospital')[:10]
+
+    hospitals_data = []
+    for item in user_hospitals:
+        hospitals_data.append({
+            'name': item['hospital'],
+            'usage_count': item['usage_count'],
+            'last_used': item['last_used'].strftime('%Y-%m-%d')
+        })
+
     return render(request, 'medical_records/all_checkups.html', {
         'page_obj': page_obj,
         'total_checkups': checkups.count(),
-        'title': '我的所有体检报告'
+        'title': '我的所有体检报告',
+        'user_hospitals': hospitals_data,
     })
 
 
@@ -2710,3 +2762,37 @@ def shared_medications(request, owner_id):
         'page_title': f"{access.owner.username} 的药单"
     }
     return render(request, 'medical_records/shared_medications.html', context)
+
+
+@login_required
+def batch_upload_page(request):
+    """批量上传页面 - 支持同时上传多个PDF和图片文件"""
+    from datetime import date
+
+    # 获取用户常用的体检机构
+    from django.db.models import Count, Max, Q
+    user_hospitals = HealthCheckup.objects.filter(
+        user=request.user
+    ).exclude(
+        Q(hospital__isnull=True) | Q(hospital='')
+    ).exclude(
+        hospital='未知机构'
+    ).values('hospital').annotate(
+        usage_count=Count('id'),
+        last_used=Max('checkup_date')
+    ).order_by('-usage_count', 'hospital')[:10]
+
+    hospitals_data = []
+    for item in user_hospitals:
+        hospitals_data.append({
+            'name': item['hospital'],
+            'usage_count': item['usage_count'],
+            'last_used': item['last_used'].strftime('%Y-%m-%d')
+        })
+
+    context = {
+        'hospitals': hospitals_data,
+        'today': date.today().isoformat(),
+        'max_files': 20,
+    }
+    return render(request, 'medical_records/batch_upload.html', context)

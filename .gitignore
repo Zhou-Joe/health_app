@@ -52,6 +52,10 @@ Thumbs.db
 # Local settings
 system_settings.json
 export_settings.py
+
+# Local apps
+local_health_app/
+ios_app/
 *.bak
 
 # Static files

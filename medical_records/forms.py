@@ -405,6 +405,24 @@ class SystemSettingsForm(forms.Form):
         help_text='选择数据整合LLM使用的API格式类型'
     )
 
+    llm_enable_thinking = forms.BooleanField(
+        label='传入思考模式参数',
+        required=False,
+        initial=False,
+        help_text='是否向模型传入 enable_thinking 参数。适用于支持混合思考的模型（如 Qwen3.5、Qwen3、Qwen3-Omni-Flash、Qwen3-VL）。'
+    )
+
+    llm_thinking_mode = forms.ChoiceField(
+        label='思考模式',
+        choices=[
+            ('true', '开启 - 启用深度思考'),
+            ('false', '关闭 - 直接回复'),
+        ],
+        initial='true',
+        required=False,
+        help_text='选择思考模式的具体设置。仅在"传入思考模式参数"勾选时生效。'
+    )
+
     ai_doctor_api_url = forms.URLField(
         label='AI医生API地址',
         max_length=200,
@@ -445,6 +463,31 @@ class SystemSettingsForm(forms.Form):
         ],
         initial='openai',
         help_text='选择AI医生使用的API格式类型'
+    )
+
+    ai_doctor_enable_thinking = forms.BooleanField(
+        label='传入思考模式参数',
+        required=False,
+        initial=False,
+        help_text='是否向模型传入 enable_thinking 参数。适用于支持混合思考的模型（如 Qwen3.5、Qwen3、Qwen3-Omni-Flash、Qwen3-VL）。'
+    )
+
+    ai_doctor_thinking_mode = forms.ChoiceField(
+        label='思考模式',
+        choices=[
+            ('true', '开启 - 启用深度思考'),
+            ('false', '关闭 - 直接回复'),
+        ],
+        initial='true',
+        required=False,
+        help_text='选择思考模式的具体设置。仅在"传入思考模式参数"勾选时生效。'
+    )
+
+    ai_doctor_enable_thinking = forms.BooleanField(
+        label='启用深度思考模式',
+        required=False,
+        initial=True,
+        help_text='仅适用于阿里云 Qwen 系列模型（Qwen3.5、Qwen3、Qwen3-Omni-Flash、Qwen3-VL）。开启后模型会在回复前进行思考，思考内容可通过 reasoning_content 字段查看。'
     )
 
     # Google Gemini设置
@@ -502,10 +545,28 @@ class SystemSettingsForm(forms.Form):
     vl_model_max_tokens = forms.IntegerField(
         label='多模态模型最大输出令牌数',
         min_value=1000,
-        max_value=8000,
-        initial=4000,
+        max_value=128000,
+        initial=8000,
         required=False,
-        help_text='多模态模型最大输出token数量，建议4000'
+        help_text='多模态模型最大输出token数量，建议8000-20000，根据模型支持的最大上下文设置'
+    )
+
+    vl_enable_thinking = forms.BooleanField(
+        label='传入思考模式参数',
+        required=False,
+        initial=False,
+        help_text='是否向模型传入 enable_thinking 参数。适用于支持混合思考的模型（如 Qwen3.5、Qwen3、Qwen3-Omni-Flash、Qwen3-VL）。'
+    )
+
+    vl_thinking_mode = forms.ChoiceField(
+        label='思考模式',
+        choices=[
+            ('true', '开启 - 启用深度思考'),
+            ('false', '关闭 - 直接回复'),
+        ],
+        initial='true',
+        required=False,
+        help_text='选择思考模式的具体设置。仅在"传入思考模式参数"勾选时生效。'
     )
 
     # 系统配置
@@ -538,11 +599,15 @@ class SystemSettingsForm(forms.Form):
         self.fields['ai_model_timeout'].initial = int(SystemSettings.get_setting('ai_model_timeout', '300'))
         self.fields['llm_max_tokens'].initial = int(SystemSettings.get_setting('llm_max_tokens', '16000'))
         self.fields['llm_provider'].initial = SystemSettings.get_setting('llm_provider', 'openai')
+        self.fields['llm_enable_thinking'].initial = SystemSettings.get_setting('llm_enable_thinking', 'false').lower() == 'true'
+        self.fields['llm_thinking_mode'].initial = SystemSettings.get_setting('llm_thinking_mode', 'true')
         self.fields['ai_doctor_api_url'].initial = SystemSettings.get_setting('ai_doctor_api_url', 'https://api.siliconflow.cn/v1/chat/completions')
         self.fields['ai_doctor_api_key'].initial = SystemSettings.get_setting('ai_doctor_api_key', 'sk-zgjlsnpadljnnoustkxwfpmugagfsigzdthtwfgvcptblbxa')
         self.fields['ai_doctor_model_name'].initial = SystemSettings.get_setting('ai_doctor_model_name', 'deepseek-ai/DeepSeek-V3.2')
         self.fields['ai_doctor_max_tokens'].initial = int(SystemSettings.get_setting('ai_doctor_max_tokens', '4000'))
         self.fields['ai_doctor_provider'].initial = SystemSettings.get_setting('ai_doctor_provider', 'openai')
+        self.fields['ai_doctor_enable_thinking'].initial = SystemSettings.get_setting('ai_doctor_enable_thinking', 'false').lower() == 'true'
+        self.fields['ai_doctor_thinking_mode'].initial = SystemSettings.get_setting('ai_doctor_thinking_mode', 'true')
 
         # 加载Gemini设置
         self.fields['gemini_api_key'].initial = SystemSettings.get_setting('gemini_api_key', '')
@@ -554,6 +619,8 @@ class SystemSettingsForm(forms.Form):
         self.fields['vl_model_api_key'].initial = SystemSettings.get_setting('vl_model_api_key', 'sk-zgjlsnpadljnnoustkxwfpmugagfsigzdthtwfgvcptblbxa')
         self.fields['vl_model_name'].initial = SystemSettings.get_setting('vl_model_name', 'zai-org/GLM-4.6V')
         self.fields['vl_model_max_tokens'].initial = int(SystemSettings.get_setting('vl_model_max_tokens', '4000'))
+        self.fields['vl_enable_thinking'].initial = SystemSettings.get_setting('vl_enable_thinking', 'false').lower() == 'true'
+        self.fields['vl_thinking_mode'].initial = SystemSettings.get_setting('vl_thinking_mode', 'true')
 
         # 加载系统配置
         self.fields['is_mac_system'].initial = SystemSettings.get_setting('is_mac_system', 'false').lower() == 'true'
@@ -572,11 +639,15 @@ class SystemSettingsForm(forms.Form):
         SystemSettings.set_setting('ai_model_timeout', str(self.cleaned_data['ai_model_timeout']), 'AI模型统一超时时间')
         SystemSettings.set_setting('llm_max_tokens', str(self.cleaned_data['llm_max_tokens']), 'LLM最大输出Token数')
         SystemSettings.set_setting('llm_provider', self.cleaned_data['llm_provider'], '数据整合LLM提供商')
+        SystemSettings.set_setting('llm_enable_thinking', 'true' if self.cleaned_data['llm_enable_thinking'] else 'false', '数据整合LLM传入思考模式参数')
+        SystemSettings.set_setting('llm_thinking_mode', self.cleaned_data['llm_thinking_mode'], '数据整合LLM思考模式')
         SystemSettings.set_setting('ai_doctor_api_url', self.cleaned_data['ai_doctor_api_url'], 'AI医生API地址')
         SystemSettings.set_setting('ai_doctor_api_key', self.cleaned_data['ai_doctor_api_key'], 'AI医生API密钥')
         SystemSettings.set_setting('ai_doctor_model_name', self.cleaned_data['ai_doctor_model_name'], 'AI医生模型名称')
         SystemSettings.set_setting('ai_doctor_max_tokens', str(self.cleaned_data['ai_doctor_max_tokens']), 'AI医生最大输出Token数')
         SystemSettings.set_setting('ai_doctor_provider', self.cleaned_data['ai_doctor_provider'], 'AI医生服务提供商')
+        SystemSettings.set_setting('ai_doctor_enable_thinking', 'true' if self.cleaned_data['ai_doctor_enable_thinking'] else 'false', 'AI医生启用思考模式')
+        SystemSettings.set_setting('ai_doctor_thinking_mode', self.cleaned_data['ai_doctor_thinking_mode'], 'AI医生思考模式')
 
         # 保存Gemini设置
         SystemSettings.set_setting('gemini_api_key', self.cleaned_data['gemini_api_key'], 'Gemini API密钥')
@@ -588,6 +659,8 @@ class SystemSettingsForm(forms.Form):
         SystemSettings.set_setting('vl_model_api_key', self.cleaned_data['vl_model_api_key'], '多模态模型API密钥')
         SystemSettings.set_setting('vl_model_name', self.cleaned_data['vl_model_name'], '多模态模型名称')
         SystemSettings.set_setting('vl_model_max_tokens', str(self.cleaned_data['vl_model_max_tokens']), '多模态模型最大输出令牌数')
+        SystemSettings.set_setting('vl_enable_thinking', 'true' if self.cleaned_data['vl_enable_thinking'] else 'false', '多模态模型传入思考模式参数')
+        SystemSettings.set_setting('vl_thinking_mode', self.cleaned_data['vl_thinking_mode'], '多模态模型思考模式')
 
         # 保存系统配置
         SystemSettings.set_setting('is_mac_system', 'true' if self.cleaned_data['is_mac_system'] else 'false', 'Mac系统')

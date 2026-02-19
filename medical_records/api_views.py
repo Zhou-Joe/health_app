@@ -698,7 +698,6 @@ def stream_event_ai_summary(request):
         response = StreamingHttpResponse(generate(), content_type='text/event-stream; charset=utf-8')
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'
-        response['Connection'] = 'keep-alive'
         return response
 
     except Exception as e:
@@ -943,7 +942,6 @@ def stream_checkup_ai_summary(request):
         response = StreamingHttpResponse(generate(), content_type='text/event-stream; charset=utf-8')
         response['Cache-Control'] = 'no-cache'
         response['X-Accel-Buffering'] = 'no'
-        response['Connection'] = 'keep-alive'
         return response
 
     except Exception as e:
@@ -2696,54 +2694,121 @@ def stream_advice_sync(request):
         # 获取选择的报告ID
         selected_report_ids = data.get('selected_report_ids', [])
         selected_reports = None
-        if selected_report_ids:
-            from .models import HealthCheckup
-            selected_reports = HealthCheckup.objects.filter(
-                id__in=selected_report_ids,
-                user=request.user
-            )
 
         # 获取选择的药单ID
         selected_medication_ids = data.get('selected_medication_ids', [])
         selected_medications = None
-        if selected_medication_ids:
-            from .models import Medication, MedicationGroup
-            selected_medications_list = []
 
-            for med_id in selected_medication_ids:
-                # 处理药单组（前端可能传递 "group_3" 格式）
-                if isinstance(med_id, str) and med_id.startswith('group_'):
-                    group_id = med_id.replace('group_', '')
-                    try:
-                        group = MedicationGroup.objects.get(id=group_id, user=request.user)
-                        # 添加药单组中的所有药物
-                        group_medications = Medication.objects.filter(
-                            group=group,
-                            user=request.user,
-                            is_active=True
-                        )
-                        selected_medications_list.extend(group_medications)
-                    except MedicationGroup.DoesNotExist:
-                        pass
-                else:
-                    # 处理单个药单
-                    try:
-                        medication = Medication.objects.get(
-                            id=med_id,
-                            user=request.user,
-                            is_active=True
-                        )
-                        selected_medications_list.append(medication)
-                    except (Medication.DoesNotExist, ValueError):
-                        pass
+        # 获取选择的事件
+        selected_event_id = data.get('selected_event')
+        event_mode = data.get('event_mode')
 
-            # 去重
-            selected_medications_list = list(set(selected_medications_list))
+        # 处理事件选择（优先级最高）
+        if event_mode == 'select_event' and selected_event_id:
+            print(f"[小程序-同步AI] 选择了事件ID: {selected_event_id}")
+            try:
+                from .models import HealthEvent, EventItem
+                selected_event = HealthEvent.objects.get(id=selected_event_id, user=request.user)
+                print(f"[小程序-同步AI] 事件名称: {selected_event.name}")
 
-            if selected_medications_list:
-                selected_medications = Medication.objects.filter(
-                    id__in=[m.id for m in selected_medications_list]
+                # 从事件中提取报告和药单
+                event_items = selected_event.get_all_items()
+                selected_reports_list = []
+                selected_medications_list = []
+
+                for item in event_items:
+                    model_name = item.content_type.model
+
+                    if model_name == 'healthcheckup':
+                        try:
+                            from .models import HealthCheckup
+                            checkup = HealthCheckup.objects.get(id=item.object_id, user=request.user)
+                            selected_reports_list.append(checkup)
+                        except HealthCheckup.DoesNotExist:
+                            continue
+                    elif model_name == 'medication':
+                        try:
+                            from .models import Medication
+                            medication = Medication.objects.get(id=item.object_id, user=request.user, is_active=True)
+                            selected_medications_list.append(medication)
+                        except Medication.DoesNotExist:
+                            continue
+                    elif model_name == 'medicationgroup':
+                        try:
+                            from .models import MedicationGroup, Medication
+                            group = MedicationGroup.objects.get(id=item.object_id, user=request.user)
+                            group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
+                            selected_medications_list.extend(group_medications)
+                        except MedicationGroup.DoesNotExist:
+                            continue
+
+                # 去重
+                selected_reports_list = list(set(selected_reports_list))
+                selected_medications_list = list(set(selected_medications_list))
+
+                if selected_reports_list:
+                    selected_reports = HealthCheckup.objects.filter(
+                        id__in=[r.id for r in selected_reports_list]
+                    )
+                    print(f"[小程序-同步AI] 从事件中提取了 {selected_reports.count()} 个报告")
+
+                if selected_medications_list:
+                    selected_medications = Medication.objects.filter(
+                        id__in=[m.id for m in selected_medications_list]
+                    )
+                    print(f"[小程序-同步AI] 从事件中提取了 {selected_medications.count()} 个药单")
+
+            except Exception as e:
+                print(f"[小程序-同步AI] 获取事件失败: {e}")
+                traceback.print_exc()
+
+        # 如果没有选择事件，单独处理报告和药单
+        if not (event_mode == 'select_event' and selected_event_id):
+            if selected_report_ids:
+                from .models import HealthCheckup
+                selected_reports = HealthCheckup.objects.filter(
+                    id__in=selected_report_ids,
+                    user=request.user
                 )
+
+            if selected_medication_ids:
+                from .models import Medication, MedicationGroup
+                selected_medications_list = []
+
+                for med_id in selected_medication_ids:
+                    # 处理药单组（前端可能传递 "group_3" 格式）
+                    if isinstance(med_id, str) and med_id.startswith('group_'):
+                        group_id = med_id.replace('group_', '')
+                        try:
+                            group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                            # 添加药单组中的所有药物
+                            group_medications = Medication.objects.filter(
+                                group=group,
+                                user=request.user,
+                                is_active=True
+                            )
+                            selected_medications_list.extend(group_medications)
+                        except MedicationGroup.DoesNotExist:
+                            pass
+                    else:
+                        # 处理单个药单
+                        try:
+                            medication = Medication.objects.get(
+                                id=med_id,
+                                user=request.user,
+                                is_active=True
+                            )
+                            selected_medications_list.append(medication)
+                        except (Medication.DoesNotExist, ValueError):
+                            pass
+
+                # 去重
+                selected_medications_list = list(set(selected_medications_list))
+
+                if selected_medications_list:
+                    selected_medications = Medication.objects.filter(
+                        id__in=[m.id for m in selected_medications_list]
+                    )
 
         # 获取AI医生设置
         provider = SystemSettings.get_setting('ai_doctor_provider', 'openai')
@@ -2809,50 +2874,116 @@ def stream_advice_sync(request):
                     except json.JSONDecodeError:
                         selected_medication_ids = []
 
-                if selected_report_ids:
-                    from .models import HealthCheckup
-                    selected_reports = HealthCheckup.objects.filter(
-                        id__in=selected_report_ids,
-                        user=request.user
-                    )
-                if selected_medication_ids:
-                    from .models import Medication, MedicationGroup
-                    selected_medications_list = []
+                # 复用上次选择的事件
+                if (event_mode != 'select_event' or not selected_event_id) and event_mode != 'no_event':
+                    if latest_advice.selected_event:
+                        try:
+                            selected_event_id = latest_advice.selected_event
+                            event_mode = 'select_event'
+                            print(f"[小程序-同步AI] 复用上次选择的事件ID: {selected_event_id}")
+                        except Exception as e:
+                            print(f"[小程序-同步AI] 复用事件失败: {e}")
 
-                    for med_id in selected_medication_ids:
-                        # 处理药单组（前端可能传递 "group_3" 格式）
-                        if isinstance(med_id, str) and med_id.startswith('group_'):
-                            group_id = med_id.replace('group_', '')
-                            try:
-                                group = MedicationGroup.objects.get(id=group_id, user=request.user)
-                                # 添加药单组中的所有药物
-                                group_medications = Medication.objects.filter(
-                                    group=group,
-                                    user=request.user,
-                                    is_active=True
-                                )
-                                selected_medications_list.extend(group_medications)
-                            except MedicationGroup.DoesNotExist:
-                                pass
-                        else:
-                            # 处理单个药单
-                            try:
-                                medication = Medication.objects.get(
-                                    id=med_id,
-                                    user=request.user,
-                                    is_active=True
-                                )
-                                selected_medications_list.append(medication)
-                            except (Medication.DoesNotExist, ValueError):
-                                pass
+                # 如果选择了事件，从事件中提取报告和药单
+                if event_mode == 'select_event' and selected_event_id:
+                    try:
+                        from .models import HealthEvent
+                        selected_event = HealthEvent.objects.get(id=selected_event_id, user=request.user)
+                        print(f"[小程序-同步AI] 从复用事件中提取数据: {selected_event.name}")
 
-                    # 去重
-                    selected_medications_list = list(set(selected_medications_list))
+                        event_items = selected_event.get_all_items()
+                        selected_reports_list = []
+                        selected_medications_list = []
 
-                    if selected_medications_list:
-                        selected_medications = Medication.objects.filter(
-                            id__in=[m.id for m in selected_medications_list]
+                        for item in event_items:
+                            model_name = item.content_type.model
+
+                            if model_name == 'healthcheckup':
+                                try:
+                                    from .models import HealthCheckup
+                                    checkup = HealthCheckup.objects.get(id=item.object_id, user=request.user)
+                                    selected_reports_list.append(checkup)
+                                except HealthCheckup.DoesNotExist:
+                                    continue
+                            elif model_name == 'medication':
+                                try:
+                                    from .models import Medication
+                                    medication = Medication.objects.get(id=item.object_id, user=request.user, is_active=True)
+                                    selected_medications_list.append(medication)
+                                except Medication.DoesNotExist:
+                                    continue
+                            elif model_name == 'medicationgroup':
+                                try:
+                                    from .models import MedicationGroup, Medication
+                                    group = MedicationGroup.objects.get(id=item.object_id, user=request.user)
+                                    group_medications = Medication.objects.filter(group=group, user=request.user, is_active=True)
+                                    selected_medications_list.extend(group_medications)
+                                except MedicationGroup.DoesNotExist:
+                                    continue
+
+                        selected_reports_list = list(set(selected_reports_list))
+                        selected_medications_list = list(set(selected_medications_list))
+
+                        if selected_reports_list:
+                            selected_reports = HealthCheckup.objects.filter(
+                                id__in=[r.id for r in selected_reports_list]
+                            )
+
+                        if selected_medications_list:
+                            selected_medications = Medication.objects.filter(
+                                id__in=[m.id for m in selected_medications_list]
+                            )
+
+                    except Exception as e:
+                        print(f"[小程序-同步AI] 从复用事件提取数据失败: {e}")
+
+                # 如果没有选择事件，使用报告和药单选择
+                if not (event_mode == 'select_event' and selected_event_id):
+                    if selected_report_ids:
+                        from .models import HealthCheckup
+                        selected_reports = HealthCheckup.objects.filter(
+                            id__in=selected_report_ids,
+                            user=request.user
                         )
+
+                    if selected_medication_ids:
+                        from .models import Medication, MedicationGroup
+                        selected_medications_list = []
+
+                        for med_id in selected_medication_ids:
+                            # 处理药单组（前端可能传递 "group_3" 格式）
+                            if isinstance(med_id, str) and med_id.startswith('group_'):
+                                group_id = med_id.replace('group_', '')
+                                try:
+                                    group = MedicationGroup.objects.get(id=group_id, user=request.user)
+                                    # 添加药单组中的所有药物
+                                    group_medications = Medication.objects.filter(
+                                        group=group,
+                                        user=request.user,
+                                        is_active=True
+                                    )
+                                    selected_medications_list.extend(group_medications)
+                                except MedicationGroup.DoesNotExist:
+                                    pass
+                            else:
+                                # 处理单个药单
+                                try:
+                                    medication = Medication.objects.get(
+                                        id=med_id,
+                                        user=request.user,
+                                        is_active=True
+                                    )
+                                    selected_medications_list.append(medication)
+                                except (Medication.DoesNotExist, ValueError):
+                                    pass
+
+                        # 去重
+                        selected_medications_list = list(set(selected_medications_list))
+
+                        if selected_medications_list:
+                            selected_medications = Medication.objects.filter(
+                                id__in=[m.id for m in selected_medications_list]
+                            )
 
         # 构建系统提示词和用户消息（与stream_ai_advice完全相同）
         from .llm_prompts import AI_DOCTOR_SYSTEM_PROMPT
@@ -3029,7 +3160,8 @@ def stream_advice_sync(request):
             prompt_sent=prompt,
             conversation_context=json.dumps(conversation_context, ensure_ascii=False) if conversation_context else None,
             selected_reports=json.dumps(selected_report_ids, ensure_ascii=False) if selected_report_ids else None,
-            selected_medications=json.dumps(selected_medication_ids, ensure_ascii=False) if selected_medication_ids else None
+            selected_medications=json.dumps(selected_medication_ids, ensure_ascii=False) if selected_medication_ids else None,
+            selected_event=selected_event_id if (event_mode == 'select_event' and selected_event_id) else None
         )
 
         print(f"[小程序-同步AI] 已保存到数据库，advice_id: {advice.id}, conversation_id: {conversation.id}")
@@ -3807,6 +3939,73 @@ def update_checkup_notes(request, checkup_id):
             'notes': new_notes
         })
 
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'更新失败: {str(e)}'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required
+def update_checkup_info(request, checkup_id):
+    """更新体检报告的基本信息（日期、机构、描述）"""
+    try:
+        import json
+        from datetime import datetime
+
+        # 验证报告所有权
+        checkup = get_object_or_404(HealthCheckup, id=checkup_id, user=request.user)
+
+        # 获取请求数据
+        data = json.loads(request.body)
+        checkup_date = data.get('checkup_date', '').strip()
+        hospital = data.get('hospital', '').strip()
+        notes = data.get('notes', '').strip()
+
+        # 验证必填字段
+        if not checkup_date:
+            return JsonResponse({
+                'success': False,
+                'error': '体检日期不能为空'
+            }, status=400)
+
+        if not hospital:
+            return JsonResponse({
+                'success': False,
+                'error': '体检机构不能为空'
+            }, status=400)
+
+        # 验证日期格式
+        try:
+            datetime.strptime(checkup_date, '%Y-%m-%d')
+        except ValueError:
+            return JsonResponse({
+                'success': False,
+                'error': '日期格式不正确，请使用 YYYY-MM-DD 格式'
+            }, status=400)
+
+        # 更新信息
+        checkup.checkup_date = checkup_date
+        checkup.hospital = hospital
+        checkup.notes = notes
+        checkup.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': '报告信息已更新',
+            'data': {
+                'checkup_date': checkup_date,
+                'hospital': hospital,
+                'notes': notes
+            }
+        })
+
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': '请求数据格式不正确'
+        }, status=400)
     except Exception as e:
         return JsonResponse({
             'success': False,
@@ -6355,3 +6554,142 @@ def api_care_action_detail(request, action_id):
             'success': True,
             'message': '行动已删除'
         })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+@login_required
+def reparse_checkup(request, checkup_id):
+    """
+    重新解析体检报告
+    
+    根据文件类型自动选择处理工作流：
+    - PDF文件: OCR + LLM
+    - 图片文件: VLM (视觉语言模型)
+    
+    只有在重新解析成功时才替换原有指标，失败则保留原指标
+    采用安全策略：
+    1. 在解析前记录所有旧指标ID
+    2. 解析新指标（process_document会创建新指标，不删除旧指标）
+    3. 解析成功后，只删除之前记录的旧指标ID对应的记录
+    """
+    import os
+    
+    try:
+        # 获取体检报告
+        checkup = get_object_or_404(HealthCheckup, id=checkup_id, user=request.user)
+        
+        # 检查是否有报告文件
+        if not checkup.report_file:
+            return JsonResponse({
+                'success': False,
+                'error': '该体检报告没有上传文件，无法重新解析'
+            }, status=400)
+        
+        # 获取文件路径
+        file_path = checkup.report_file.path
+        if not os.path.exists(file_path):
+            return JsonResponse({
+                'success': False,
+                'error': '报告文件不存在，可能已被删除'
+            }, status=400)
+        
+        # 获取文件类型
+        file_name = checkup.report_file.name
+        file_ext = file_name.lower().split('.')[-1] if '.' in file_name else ''
+        
+        # 判断工作流类型
+        if file_ext == 'pdf':
+            workflow_type = 'ocr_llm'
+        elif file_ext in ['jpg', 'jpeg', 'png', 'tiff', 'bmp']:
+            workflow_type = 'vl_model'
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': f'不支持的文件格式: {file_ext}'
+            }, status=400)
+        
+        # 保存原始指标数量用于对比
+        original_indicators_count = checkup.indicators.count()
+        
+        # 记录所有旧指标的ID（关键：在解析前记录）
+        old_indicator_ids = list(checkup.indicators.values_list('id', flat=True))
+        print(f"[重新解析] 记录原有 {len(old_indicator_ids)} 个指标ID: {old_indicator_ids}")
+        
+        # 查找或创建文档处理记录
+        document_processing, created = DocumentProcessing.objects.get_or_create(
+            health_checkup=checkup,
+            defaults={
+                'user': request.user,
+                'workflow_type': workflow_type,
+                'status': 'pending',
+                'progress': 0
+            }
+        )
+        
+        # 如果不是新创建的，更新工作流类型和状态
+        if not created:
+            document_processing.workflow_type = workflow_type
+            document_processing.status = 'pending'
+            document_processing.progress = 0
+            document_processing.error_message = None
+            document_processing.save()
+        
+        # 解析新指标（不删除旧指标，process_document会创建新指标）
+        service = DocumentProcessingService(document_processing)
+        result = service.process_document(file_path)
+        
+        if not result.get('success'):
+            # 解析失败，保留原有指标（不删除任何东西）
+            return JsonResponse({
+                'success': False,
+                'error': result.get('error', '重新解析失败'),
+                'workflow_type': workflow_type,
+                'original_indicators_count': original_indicators_count,
+                'new_indicators_count': 0
+            }, status=500)
+        
+        new_indicators_count = result.get('indicators_count', 0)
+        
+        if new_indicators_count == 0:
+            # 成功但没有提取到指标，保留原有指标
+            return JsonResponse({
+                'success': False,
+                'error': '重新解析完成但未提取到任何指标，请检查API配置',
+                'workflow_type': workflow_type,
+                'original_indicators_count': original_indicators_count,
+                'new_indicators_count': 0
+            }, status=400)
+        
+        # 解析成功，现在删除旧指标（只删除之前记录的ID）
+        # 新指标已经由process_document保存到数据库
+        # 现在数据库里既有旧指标又有新指标
+        deleted_count = 0
+        if old_indicator_ids:
+            # 删除旧指标（通过ID精确删除）
+            deleted_count = HealthIndicator.objects.filter(
+                id__in=old_indicator_ids,
+                checkup=checkup
+            ).delete()[0]
+            print(f"[重新解析] 已删除 {deleted_count} 个旧指标")
+        
+        # 获取最终的新指标数量
+        final_indicators_count = checkup.indicators.count()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'重新解析成功，原{original_indicators_count}个指标已替换为新解析的{final_indicators_count}个指标',
+            'workflow_type': workflow_type,
+            'original_indicators_count': original_indicators_count,
+            'new_indicators_count': final_indicators_count,
+            'processing_time': str(result.get('processing_time', '未知'))
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"[重新解析] 错误: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': f'重新解析失败: {str(e)}'
+        }, status=500)

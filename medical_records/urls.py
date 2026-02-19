@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import api_views
+from . import batch_upload_views
 
 app_name = 'medical_records'
 
@@ -57,6 +58,8 @@ urlpatterns = [
     path('api/stream-upload/', api_views.stream_upload_and_process, name='api_stream_upload'),
     path('api/stream-integrate/', api_views.stream_integrate_data, name='api_stream_integrate'),
     path('api/checkup/<int:checkup_id>/update-notes/', api_views.update_checkup_notes, name='api_update_checkup_notes'),
+    path('api/checkup/<int:checkup_id>/update/', api_views.update_checkup_info, name='api_update_checkup_info'),
+    path('api/checkup/<int:checkup_id>/reparse/', api_views.reparse_checkup, name='api_reparse_checkup'),
     path('api/task/<str:task_id>/status/', api_views.api_task_status, name='api_task_status'),
     path('api/processing-mode/', api_views.api_processing_mode, name='api_processing_mode'),
     path('api/avatar/upload/', api_views.upload_avatar, name='api_avatar_upload'),
@@ -136,4 +139,13 @@ urlpatterns = [
     # path('api/events/statistics/', api_views.api_event_statistics, name='api_event_statistics'),
     # path('api/events/search/', api_views.api_events_advanced_search, name='api_events_advanced_search'),
     # path('api/events/timeline/', api_views.api_events_timeline, name='api_events_timeline'),
+
+    # 批量上传API
+    path('api/batch-upload/', batch_upload_views.batch_upload_and_process, name='api_batch_upload'),
+    path('api/batch-upload/<int:batch_id>/status/', batch_upload_views.get_batch_status, name='api_batch_status'),
+    path('api/batch-upload/list/', batch_upload_views.get_batch_list, name='api_batch_list'),
+    path('api/batch-upload/item/<int:item_id>/retry/', batch_upload_views.retry_batch_item, name='api_batch_item_retry'),
+
+    # 批量上传页面
+    path('batch-upload/', views.batch_upload_page, name='batch_upload_page'),
 ]
