@@ -48,6 +48,10 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Local settings
+system_settings.json
+export_settings.py
 *.bak
 
 # Static files
