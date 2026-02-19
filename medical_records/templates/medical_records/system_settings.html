@@ -421,6 +421,26 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.ai_doctor_enable_thinking }}
+                                            <label for="{{ form.ai_doctor_enable_thinking.id_for_label }}" class="form-check-label">
+                                                {{ form.ai_doctor_enable_thinking.label }}
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">{{ form.ai_doctor_enable_thinking.help_text }}</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="thinkingModeContainer">
+                                    <div class="mb-3">
+                                        <label for="{{ form.ai_doctor_thinking_mode.id_for_label }}" class="form-label">{{ form.ai_doctor_thinking_mode.label }}</label>
+                                        {{ form.ai_doctor_thinking_mode }}
+                                        <small class="form-text text-muted">{{ form.ai_doctor_thinking_mode.help_text }}</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -527,6 +547,26 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.vl_enable_thinking }}
+                                            <label for="{{ form.vl_enable_thinking.id_for_label }}" class="form-check-label">
+                                                {{ form.vl_enable_thinking.label }}
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">{{ form.vl_enable_thinking.help_text }}</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="vlThinkingModeContainer">
+                                    <div class="mb-3">
+                                        <label for="{{ form.vl_thinking_mode.id_for_label }}" class="form-label">{{ form.vl_thinking_mode.label }}</label>
+                                        {{ form.vl_thinking_mode }}
+                                        <small class="form-text text-muted">{{ form.vl_thinking_mode.help_text }}</small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -611,6 +651,26 @@
                                     <div class="mb-3">
                                         <label for="{{ form.llm_api_key.id_for_label }}" class="form-label fw-bold">API密钥</label>
                                         {{ form.llm_api_key }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            {{ form.llm_enable_thinking }}
+                                            <label for="{{ form.llm_enable_thinking.id_for_label }}" class="form-check-label">
+                                                {{ form.llm_enable_thinking.label }}
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted">{{ form.llm_enable_thinking.help_text }}</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="llmThinkingModeContainer">
+                                    <div class="mb-3">
+                                        <label for="{{ form.llm_thinking_mode.id_for_label }}" class="form-label">{{ form.llm_thinking_mode.label }}</label>
+                                        {{ form.llm_thinking_mode }}
+                                        <small class="form-text text-muted">{{ form.llm_thinking_mode.help_text }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -834,6 +894,57 @@ document.addEventListener('DOMContentLoaded', function() {
     if (aiDoctorProvider) {
         aiDoctorProvider.addEventListener('change', updateAiDoctorConfig);
         updateAiDoctorConfig();
+    }
+
+    // AI医生思考模式控制
+    const enableThinkingCheckbox = document.getElementById('id_ai_doctor_enable_thinking');
+    const thinkingModeContainer = document.getElementById('thinkingModeContainer');
+
+    function updateThinkingModeVisibility() {
+        if (enableThinkingCheckbox && enableThinkingCheckbox.checked) {
+            thinkingModeContainer.classList.remove('d-none');
+        } else {
+            thinkingModeContainer.classList.add('d-none');
+        }
+    }
+
+    if (enableThinkingCheckbox) {
+        enableThinkingCheckbox.addEventListener('change', updateThinkingModeVisibility);
+        updateThinkingModeVisibility();
+    }
+
+    // 数据整合LLM思考模式控制
+    const llmEnableThinkingCheckbox = document.getElementById('id_llm_enable_thinking');
+    const llmThinkingModeContainer = document.getElementById('llmThinkingModeContainer');
+
+    function updateLlmThinkingModeVisibility() {
+        if (llmEnableThinkingCheckbox && llmEnableThinkingCheckbox.checked) {
+            llmThinkingModeContainer.classList.remove('d-none');
+        } else {
+            llmThinkingModeContainer.classList.add('d-none');
+        }
+    }
+
+    if (llmEnableThinkingCheckbox) {
+        llmEnableThinkingCheckbox.addEventListener('change', updateLlmThinkingModeVisibility);
+        updateLlmThinkingModeVisibility();
+    }
+
+    // VLM思考模式控制
+    const vlEnableThinkingCheckbox = document.getElementById('id_vl_enable_thinking');
+    const vlThinkingModeContainer = document.getElementById('vlThinkingModeContainer');
+
+    function updateVlThinkingModeVisibility() {
+        if (vlEnableThinkingCheckbox && vlEnableThinkingCheckbox.checked) {
+            vlThinkingModeContainer.classList.remove('d-none');
+        } else {
+            vlThinkingModeContainer.classList.add('d-none');
+        }
+    }
+
+    if (vlEnableThinkingCheckbox) {
+        vlEnableThinkingCheckbox.addEventListener('change', updateVlThinkingModeVisibility);
+        updateVlThinkingModeVisibility();
     }
 
     // 多模态模型提供商切换

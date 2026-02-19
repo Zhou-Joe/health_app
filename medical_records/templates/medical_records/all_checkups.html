@@ -210,6 +210,7 @@
                     <tr>
                         <th class="ps-4">体检日期</th>
                         <th>医院/机构</th>
+                        <th>报告描述</th>
                         <th>异常指标数</th>
                         <th>体检报告</th>
                         <th class="text-end pe-4">操作</th>
@@ -224,6 +225,15 @@
                         <td>
                             <i class="bi bi-hospital me-2" style="color: #94a3b8;"></i>
                             <span style="color: #475569;">{{ checkup.hospital|default:"未知" }}</span>
+                        </td>
+                        <td>
+                            {% if checkup.notes %}
+                                <span class="text-muted" style="font-size: 0.875rem; max-width: 200px; display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ checkup.notes }}">
+                                    <i class="bi bi-card-text me-1"></i>{{ checkup.notes }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted" style="font-size: 0.875rem;">-</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% with checkup.get_abnormal_count as abnormal_count %}
@@ -250,9 +260,12 @@
                             <button class="btn btn-outline-info me-2" onclick="showCheckupAiSummary({{ checkup.id }})" title="AI快速解读">
                                 <i class="bi bi-stars"></i> AI解读
                             </button>
+                            <button class="btn btn-outline-secondary me-2" onclick="editCheckup({{ checkup.id }}, '{{ checkup.checkup_date|date:'Y-m-d' }}', '{{ checkup.hospital|escapejs }}', '{{ checkup.notes|default:''|escapejs }}')" title="编辑报告信息">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </button>
                             <a href="{% url 'medical_records:checkup_detail' checkup.id %}"
                                class="btn btn-view">
-                                <i class="bi bi-eye me-1"></i>查看详情
+                                <i class="bi bi-eye me-1"></i>查看
                             </a>
                             <button class="btn btn-delete ms-2" onclick="deleteCheckup({{ checkup.id }}, '{% url 'medical_records:delete_checkup' checkup.id %}')">
                                 <i class="bi bi-trash me-1"></i>删除
@@ -370,6 +383,63 @@
                 </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="bi bi-x-circle"></i> 关闭
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑报告信息模态框 -->
+<div class="modal fade" id="editCheckupModal" tabindex="-1" aria-labelledby="editCheckupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editCheckupModalLabel">
+                    <i class="bi bi-pencil-square"></i> 编辑报告信息
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCheckupForm">
+                    <input type="hidden" id="editCheckupId" name="checkup_id">
+                    <div class="mb-3">
+                        <label for="editCheckupDate" class="form-label">体检日期 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="editCheckupDate" name="checkup_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editHospital" class="form-label">体检机构 <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="editHospital" name="hospital" list="hospitalList" placeholder="请输入或选择体检机构" required>
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-building"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" id="hospitalDropdown">
+                                <li><h6 class="dropdown-header">常用体检机构</h6></li>
+                                {% for hospital in user_hospitals %}
+                                <li><a class="dropdown-item" href="#" data-value="{{ hospital.name }}">{{ hospital.name }}</a></li>
+                                {% empty %}
+                                <li><span class="dropdown-item-text text-muted">暂无历史机构</span></li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        <datalist id="hospitalList">
+                            {% for hospital in user_hospitals %}
+                            <option value="{{ hospital.name }}">
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCheckupNotes" class="form-label">报告描述</label>
+                        <textarea class="form-control" id="editCheckupNotes" name="notes" rows="3" placeholder="请输入报告描述..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> 取消
+                </button>
+                <button type="button" class="btn btn-primary" id="saveCheckupBtn">
+                    <i class="bi bi-check-circle"></i> 保存
                 </button>
             </div>
         </div>
@@ -582,6 +652,116 @@ function getCsrfToken() {
         }
     }
     return cookieValue;
+}
+
+// 获取Cookie的辅助函数（用于CSRF Token）
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// ========== 编辑报告信息功能 ==========
+const editCheckupModal = new bootstrap.Modal(document.getElementById('editCheckupModal'));
+const saveCheckupBtn = document.getElementById('saveCheckupBtn');
+let currentEditingCheckupId = null;
+
+// 显示编辑模态框
+function editCheckup(checkupId, checkupDate, hospital, notes) {
+    currentEditingCheckupId = checkupId;
+    document.getElementById('editCheckupId').value = checkupId;
+    document.getElementById('editCheckupDate').value = checkupDate;
+    document.getElementById('editHospital').value = hospital;
+    document.getElementById('editCheckupNotes').value = notes || '';
+    editCheckupModal.show();
+}
+
+// 处理机构下拉菜单选择
+document.getElementById('hospitalDropdown').addEventListener('click', function(e) {
+    if (e.target.classList.contains('dropdown-item') && e.target.dataset.value) {
+        document.getElementById('editHospital').value = e.target.dataset.value;
+    }
+});
+
+// 保存报告信息
+if (saveCheckupBtn) {
+    saveCheckupBtn.addEventListener('click', function() {
+        // 防止重复提交
+        if (saveCheckupBtn.disabled) {
+            console.log('保存按钮已被禁用，防止重复提交');
+            return;
+        }
+        
+        const checkupDate = document.getElementById('editCheckupDate').value;
+        const hospital = document.getElementById('editHospital').value.trim();
+        const notes = document.getElementById('editCheckupNotes').value.trim();
+        
+        console.log('准备保存:', { checkupId: currentEditingCheckupId, checkupDate, hospital, notes });
+        
+        // 验证必填字段
+        if (!checkupDate) {
+            alert('请输入体检日期');
+            return;
+        }
+        if (!hospital) {
+            alert('请输入体检机构');
+            return;
+        }
+        
+        // 禁用按钮防止重复点击
+        saveCheckupBtn.disabled = true;
+        const originalHtml = saveCheckupBtn.innerHTML;
+        saveCheckupBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 保存中...';
+        
+        // 发送更新请求
+        fetch(`/api/checkup/${currentEditingCheckupId}/update/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                checkup_date: checkupDate,
+                hospital: hospital,
+                notes: notes
+            })
+        })
+        .then(response => {
+            console.log('收到响应:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('响应数据:', data);
+            if (data.success) {
+                // 更新成功，关闭模态框并刷新页面
+                editCheckupModal.hide();
+                window.location.reload();
+            } else {
+                // 更新失败，显示错误信息
+                alert('保存失败: ' + (data.message || data.error || '未知错误'));
+                saveCheckupBtn.disabled = false;
+                saveCheckupBtn.innerHTML = originalHtml;
+            }
+        })
+        .catch(error => {
+            console.error('保存请求失败:', error);
+            alert('保存请求失败: ' + error.message);
+            saveCheckupBtn.disabled = false;
+            saveCheckupBtn.innerHTML = originalHtml;
+        });
+    });
 }
 </script>
 {% endblock %}
